@@ -6,6 +6,7 @@ using Yoma.Core.Domain.Core.Exceptions;
 using Yoma.Core.Domain.Core.Helpers;
 using Yoma.Core.Domain.Core.Interfaces;
 using Yoma.Core.Domain.Core.Models;
+using Yoma.Core.Domain.CourseQuality.Interfaces;
 using Yoma.Core.Domain.Entity.Interfaces;
 using Yoma.Core.Domain.MyOpportunity;
 using Yoma.Core.Domain.MyOpportunity.Interfaces;
@@ -28,6 +29,7 @@ namespace Yoma.Core.Domain.Opportunity.Services
     private readonly IUserService _userService;
     private readonly IDownloadService _downloadService;
     private readonly ITreasuryService _treasuryService;
+    private readonly ICourseQualityService _courseQualityService;
     #endregion
 
     #region Constructor
@@ -38,7 +40,8 @@ namespace Yoma.Core.Domain.Opportunity.Services
         ILinkService linkService,
         IUserService userService,
         IDownloadService downloadService,
-        ITreasuryService treasuryService)
+        ITreasuryService treasuryService,
+        ICourseQualityService courseQualityService)
     {
       _appSettings = appSettings?.Value ?? throw new ArgumentNullException(nameof(appSettings));
       _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
@@ -48,6 +51,7 @@ namespace Yoma.Core.Domain.Opportunity.Services
       _userService = userService ?? throw new ArgumentNullException(nameof(userService));
       _downloadService = downloadService ?? throw new ArgumentNullException(nameof(downloadService));
       _treasuryService = treasuryService ?? throw new ArgumentNullException(nameof(treasuryService));
+      _courseQualityService = courseQualityService ?? throw new ArgumentNullException(nameof(courseQualityService));
     }
     #endregion
 
@@ -206,6 +210,11 @@ namespace Yoma.Core.Domain.Opportunity.Services
         ];
       }
 
+      //verified courses first within any default or popularity order; an explicit sort stays as the user asked
+      var verified = filter.Ordering == null ? _courseQualityService.ListVerifiedForBrowse() : null;
+      if (verified?.Count > 0)
+        filterInternal.OrderInstructions.Insert(0, new() { OrderBy = opportunity => verified.Contains(opportunity.Id), SortOrder = FilterSortOrder.Descending });
+
       var searchResult = _opportunityService.Search(filterInternal, false);
       if (filter.TotalCountOnly)
         return new OpportunitySearchResultsInfo { TotalCount = searchResult.TotalCount };
@@ -219,6 +228,7 @@ namespace Yoma.Core.Domain.Opportunity.Services
       };
 
       SetEngagementCounts(results.Items);
+      _courseQualityService.SetBrowseStatus(searchResult.Items, results.Items);
       return results;
     }
 

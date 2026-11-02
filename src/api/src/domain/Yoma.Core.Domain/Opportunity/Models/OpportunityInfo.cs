@@ -2,6 +2,7 @@ using CsvHelper.Configuration.Attributes;
 using Newtonsoft.Json;
 using Yoma.Core.Domain.Core.Helpers;
 using Yoma.Core.Domain.Core.Models;
+using Yoma.Core.Domain.CourseQuality.Models;
 using Yoma.Core.Domain.Lookups.Models;
 using Yoma.Core.Domain.PartnerSync.Models;
 
@@ -223,6 +224,18 @@ namespace Yoma.Core.Domain.Opportunity.Models
 
     [Ignore]
     public string YomaInfoURL { get; set; } = null!;
+
+    /// <summary>
+    /// Course quality status for browsing. Null unless turned on, and for anything other than a course.
+    /// </summary>
+    [Ignore]
+    public CourseQualityStatus? QualityStatus { get; set; }
+
+    /// <summary>
+    /// The course's current learner card, so a page of results needs no further requests. Null when it has none.
+    /// </summary>
+    [Ignore]
+    public LearnerCard? LearnerCard { get; set; }
 
     [Ignore]
     public bool IsCompletable { get; set; }

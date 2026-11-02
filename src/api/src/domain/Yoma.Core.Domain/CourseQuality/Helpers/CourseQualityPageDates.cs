@@ -148,7 +148,7 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
 
     private static bool TryParse(string value, out DateTimeOffset date)
     {
-      var normalized = OrdinalRegex().Replace(value, "$1").Replace("Sept", "Sep", StringComparison.OrdinalIgnoreCase).Replace(".", string.Empty);
+      var normalized = SeptRegex().Replace(OrdinalRegex().Replace(value, "$1"), "Sep").Replace(".", string.Empty);
 
       return DateTimeOffset.TryParse(normalized, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out date) && date.Year is >= MinYear and <= MaxYear;
     }
@@ -158,6 +158,10 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
 
     [GeneratedRegex(@"(\d)(?:st|nd|rd|th)", SafeOptions, RegexTimeoutMilliseconds)]
     private static partial Regex OrdinalRegex();
+
+    // the short form only: "September" must stay whole to parse
+    [GeneratedRegex(@"\bSept\b", SafeOptions, RegexTimeoutMilliseconds)]
+    private static partial Regex SeptRegex();
 
     [GeneratedRegex(@"^\s*(?:to|until|through|till|-|–|—)\s*$", SafeOptions, RegexTimeoutMilliseconds)]
     private static partial Regex RangeRegex();

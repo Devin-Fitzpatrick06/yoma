@@ -88,13 +88,42 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       // with its child items, because the fingerprint covers them
       var opportunity = _opportunityService.GetByIdOrNull(opportunityId, true, false, false) ?? throw notFound;
       if (!IsPubliclyVisible(opportunity)) throw notFound;
-
-      // a badge speaks for what was assessed: not for a listing edited since, or a time that has gone by
-      if (latest.ContentFingerprint != CourseQualityFingerprint.Compute(opportunity)) throw notFound;
-      if (opportunity.DateEnd.HasValue && opportunity.DateEnd.Value < now) throw notFound;
-      if (latest.Format == CourseFormat.Webinar && !opportunity.DateEnd.HasValue && opportunity.DateStart < now) throw notFound;
+      if (!IsCurrent(latest, opportunity, now)) throw notFound;
 
       return latest.ToAssessment().LearnerCard;
+    }
+
+    public List<Guid>? ListVerifiedForBrowse()
+    {
+      if (!_options.ShowInBrowse) return null;
+
+      var cutoff = DateTimeOffset.UtcNow.AddDays(-_options.CardMaxAgeInDays);
+      return [.. _assessmentRepository.Query()
+        .Where(o => o.IsLatest && o.Status == CourseQualityStatus.Verified && o.DateAssessed >= cutoff)
+        .Select(o => o.OpportunityId)];
+    }
+
+    public void SetBrowseStatus(List<Opportunity.Models.Opportunity>? opportunities, List<Opportunity.Models.OpportunityInfo>? results)
+    {
+      if (!_options.ShowInBrowse || opportunities == null || results == null) return;
+
+      var courses = opportunities.Where(o => o.Type == Opportunity.Type.Learning).ToDictionary(o => o.Id);
+      if (courses.Count == 0) return;
+
+      var ids = courses.Keys.ToList();
+      var latest = _assessmentRepository.Query().Where(o => o.IsLatest && ids.Contains(o.OpportunityId)).ToDictionary(o => o.OpportunityId);
+
+      var now = DateTimeOffset.UtcNow;
+      foreach (var result in results)
+      {
+        if (!courses.TryGetValue(result.Id, out var course)) continue;
+
+        var current = latest.TryGetValue(result.Id, out var assessment)
+          && assessment.DateAssessed >= now.AddDays(-_options.CardMaxAgeInDays) && IsCurrent(assessment, course, now);
+
+        result.QualityStatus = current ? assessment!.Status : CourseQualityStatus.NeedsReview;
+        result.LearnerCard = current ? assessment!.ToAssessment().LearnerCard : null;
+      }
     }
 
     public async Task<CourseQualityAssessment> Assess(Guid opportunityId, CancellationToken cancellationToken)
@@ -243,6 +272,14 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     #endregion
 
     #region Private Members
+    // a badge speaks for what was assessed: not for a listing edited since, or a time that has gone by
+    private static bool IsCurrent(CourseQualityAssessmentRecord latest, Opportunity.Models.Opportunity opportunity, DateTimeOffset now)
+    {
+      if (latest.ContentFingerprint != CourseQualityFingerprint.Compute(opportunity)) return false;
+      if (opportunity.DateEnd.HasValue && opportunity.DateEnd.Value < now) return false;
+      return latest.Format != CourseFormat.Webinar || opportunity.DateEnd.HasValue || opportunity.DateStart >= now;
+    }
+
     private static bool IsPubliclyVisible(Opportunity.Models.Opportunity opportunity)
     {
       return opportunity.Type == Opportunity.Type.Learning

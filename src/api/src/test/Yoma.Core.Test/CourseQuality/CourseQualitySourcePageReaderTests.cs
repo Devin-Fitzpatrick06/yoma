@@ -158,6 +158,17 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.Equal(100, Score(result!, CourseQualityCriterion.DatesAccurate));
     }
 
+    [Theory]
+    [InlineData("14 September 2026", "9 October 2026")]
+    [InlineData("14 Sept 2026", "9 Oct 2026")]
+    public async Task Dates_September_IsRead_InFullAndShort(string start, string end)
+    {
+      var result = await Read(Request(Link(Page($"Start date: {start}. End date: {end}. Learn to clean, explore and present data in this course.")),
+        start: new DateTimeOffset(2026, 9, 14, 0, 0, 0, TimeSpan.Zero), end: new DateTimeOffset(2026, 10, 9, 0, 0, 0, TimeSpan.Zero)));
+
+      Assert.Equal(100, Score(result!, CourseQualityCriterion.DatesAccurate));
+    }
+
     [Fact]
     public async Task Dates_TwoDaysApart_Disagree()
     {

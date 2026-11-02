@@ -12,6 +12,11 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     /// </summary>
     public bool Enabled { get; set; }
 
+    /// <summary>
+    /// Shows each course's status in opportunity search and lists verified courses first. Off by default, so search results and ranking stay as they are until turned on.
+    /// </summary>
+    public bool ShowInBrowse { get; set; }
+
     public string RubricVersion { get; set; } = "v5-visible-proof";
 
     /// <summary>

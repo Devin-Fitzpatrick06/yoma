@@ -395,6 +395,72 @@ namespace Yoma.Core.Test.CourseQuality
 
     #region Public card
     [Fact]
+    public async Task Browse_IsOff_ByDefault()
+    {
+      await AssessNow();
+      var result = new Domain.Opportunity.Models.OpportunityInfo { Id = _opportunity.Id };
+
+      Service().SetBrowseStatus([_opportunity], [result]);
+
+      Assert.Null(Service().ListVerifiedForBrowse());
+      Assert.Null(result.QualityStatus);
+      Assert.Null(result.LearnerCard);
+    }
+
+    [Fact]
+    public async Task Browse_ShowsTheStatusAndCard_OfACurrentAssessment()
+    {
+      _options.ShowInBrowse = true;
+      await AssessNow();
+      var result = new Domain.Opportunity.Models.OpportunityInfo { Id = _opportunity.Id };
+
+      Service().SetBrowseStatus([_opportunity], [result]);
+
+      Assert.Equal(_records.Single().Status, result.QualityStatus);
+      Assert.Equal(_opportunity.Id, result.LearnerCard?.OpportunityId);
+    }
+
+    [Fact]
+    public async Task Browse_NeverKeepsABadge_OnAnEditedListing()
+    {
+      _options.ShowInBrowse = true;
+      await AssessNow();
+      _records.Single().Status = CourseQualityStatus.Verified;
+      _records.Single().ContentFingerprint = "edited";
+      var result = new Domain.Opportunity.Models.OpportunityInfo { Id = _opportunity.Id };
+
+      Service().SetBrowseStatus([_opportunity], [result]);
+
+      Assert.Equal(CourseQualityStatus.NeedsReview, result.QualityStatus);
+      Assert.Null(result.LearnerCard);
+    }
+
+    [Fact]
+    public async Task Browse_RanksOnlyCurrentVerifiedAssessments()
+    {
+      _options.ShowInBrowse = true;
+      await AssessNow();
+      var record = _records.Single();
+
+      record.Status = CourseQualityStatus.Verified;
+      Assert.Equal([_opportunity.Id], Service().ListVerifiedForBrowse());
+
+      record.DateAssessed = DateTimeOffset.UtcNow.AddDays(-(_options.CardMaxAgeInDays + 1));
+      Assert.Empty(Service().ListVerifiedForBrowse()!);
+    }
+
+    [Fact]
+    public void Browse_ReadsAsNotYetVerified_WithoutAnAssessment()
+    {
+      _options.ShowInBrowse = true;
+      var result = new Domain.Opportunity.Models.OpportunityInfo { Id = _opportunity.Id };
+
+      Service().SetBrowseStatus([_opportunity], [result]);
+
+      Assert.Equal(CourseQualityStatus.NeedsReview, result.QualityStatus);
+    }
+
+    [Fact]
     public async Task PublicCard_IsReturned_ForAVisibleCourse()
     {
       await AssessNow();
