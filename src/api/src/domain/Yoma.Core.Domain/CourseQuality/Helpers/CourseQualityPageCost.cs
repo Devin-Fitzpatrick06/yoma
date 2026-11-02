@@ -24,8 +24,18 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
 
     private static readonly Dictionary<string, string> CurrencySymbols = new(StringComparer.Ordinal)
     {
-      ["US$"] = "USD", ["A$"] = "AUD", ["AU$"] = "AUD", ["C$"] = "CAD", ["CA$"] = "CAD",
-      ["R"] = "ZAR", ["€"] = "EUR", ["£"] = "GBP", ["₦"] = "NGN", ["KSh"] = "KES", ["GH₵"] = "GHS", ["₹"] = "INR"
+      ["US$"] = "USD",
+      ["A$"] = "AUD",
+      ["AU$"] = "AUD",
+      ["C$"] = "CAD",
+      ["CA$"] = "CAD",
+      ["R"] = "ZAR",
+      ["€"] = "EUR",
+      ["£"] = "GBP",
+      ["₦"] = "NGN",
+      ["KSh"] = "KES",
+      ["GH₵"] = "GHS",
+      ["₹"] = "INR"
     };
     #endregion
 
