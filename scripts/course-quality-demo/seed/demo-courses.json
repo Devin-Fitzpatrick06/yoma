@@ -1,0 +1,116 @@
+{
+  "organizations": [
+    { "key": "partner", "id": "c0a7e000-0000-4000-8000-000000000001", "name": "Demo Learning Partner", "tagline": "Demo data for the Course Quality prototype" },
+    { "key": "alison", "id": "c0a7e000-0000-4000-8000-000000000002", "name": "Alison Learning", "tagline": "Demo record for the Course Quality prototype" }
+  ],
+  "courses": [
+    {
+      "id": "c0a7e000-0000-4000-8000-000000000101",
+      "shows": "Verified, self-paced",
+      "organization": "alison",
+      "provider": "Alison Learning",
+      "title": "Bike Safety and Maintenance Essentials",
+      "liveUrl": "https://alison.com/course/bike-safety-and-maintenance-essentials",
+      "fixture": "bike-safety",
+      "freeOffer": true,
+      "startOffsetDays": -3,
+      "endOffsetDays": null,
+      "commitment": [6, "Hour"],
+      "expect": { "status": "Verified", "selfPaced": true },
+      "page": ["Keep your bike in top shape for every journey with this course.", "Self-paced. Start anytime and learn at your own speed.", "This free online course covers safety checks, basic repairs and riding in traffic."]
+    },
+    {
+      "id": "c0a7e000-0000-4000-8000-000000000102",
+      "shows": "Verified, dates confirmed",
+      "organization": "partner",
+      "title": "Digital Marketing Foundations Cohort Course",
+      "fixture": "digital-marketing-cohort",
+      "freeOffer": true,
+      "startOffsetDays": 14,
+      "endOffsetDays": 56,
+      "commitment": [6, "Week"],
+      "expect": { "status": "Verified", "datesConfirmed": true, "cost": "Free" },
+      "page": ["About this course: six weeks of guided study with a mentor and a small cohort.", "Start date: {{start}}", "End date: {{end}}", "This course is free for all learners."]
+    },
+    {
+      "id": "c0a7e000-0000-4000-8000-000000000103",
+      "shows": "Not yet verified",
+      "organization": "partner",
+      "provider": "Humanitarian OpenStreetMap Team",
+      "title": "Introduction to Open Mapping for Climate Action",
+      "liveUrl": "https://learning.hotosm.org/course/introduction-to-open-mapping-for-climate-action",
+      "fixture": "open-mapping",
+      "freeOffer": true,
+      "startOffsetDays": -200,
+      "endOffsetDays": null,
+      "commitment": [1, "Hour"],
+      "expect": { "status": "NeedsReview" },
+      "page": ["About the course: learn how open map data supports communities preparing for climate risks.", "This course is free.", "It explains what open mapping is, who uses it and how you can take part from your phone or computer."]
+    },
+    {
+      "id": "c0a7e000-0000-4000-8000-000000000104",
+      "shows": "Paid cost",
+      "organization": "partner",
+      "provider": "Tomorrow University of Applied Sciences",
+      "title": "Tomorrow University - Mission Identification",
+      "liveUrl": "https://www.tomorrow.university/mission-identification",
+      "fixture": "mission-identification",
+      "startOffsetDays": -60,
+      "endOffsetDays": 60,
+      "commitment": [1, "Hour"],
+      "expect": { "status": "NeedsReview", "cost": "Paid" },
+      "page": ["This course helps you find the mission you want to work on, with a coach and a small peer group.", "Format: remote first.", "Course fee: EUR 100.", "Enrol below to begin the course with the next group of learners."]
+    },
+    {
+      "id": "c0a7e000-0000-4000-8000-000000000105",
+      "shows": "Unknown cost",
+      "organization": "partner",
+      "provider": "Geoversity",
+      "title": "Earth Observation for Ecosystem Conservation",
+      "liveUrl": "https://www.geoversity.io/courses/earth-obs-ecco/",
+      "fixture": "earth-observation",
+      "startOffsetDays": -140,
+      "endOffsetDays": null,
+      "commitment": [16, "Hour"],
+      "expect": { "cost": "Unknown" },
+      "page": ["This course is self-paced, so you can begin whenever suits you.", "Learn how satellite images help teams watch forests, wetlands and coastlines change.", "The page gives no price, so the cost stays unknown until a person checks it."]
+    },
+    {
+      "id": "c0a7e000-0000-4000-8000-000000000106",
+      "shows": "Webinar",
+      "organization": "partner",
+      "title": "Career Readiness Live Webinar",
+      "fixture": "career-webinar",
+      "freeOffer": "Event",
+      "startOffsetDays": 7,
+      "endOffsetDays": 7,
+      "commitment": [2, "Hour"],
+      "expect": { "format": "Webinar" },
+      "page": ["Join this webinar for a live conversation about CVs, interviews and first jobs.", "Date: {{start}}", "End date: {{start}}", "This webinar is free. Bring your questions for the panel of young professionals."]
+    },
+    {
+      "id": "c0a7e000-0000-4000-8000-000000000107",
+      "shows": "Not verified, with a fix note",
+      "organization": "partner",
+      "title": "Community Health Basics Course",
+      "fixture": "community-health-gone",
+      "fixtureMissing": true,
+      "startOffsetDays": -30,
+      "endOffsetDays": 90,
+      "commitment": [4, "Week"],
+      "expect": { "status": "NotVerified" }
+    },
+    {
+      "id": "c0a7e000-0000-4000-8000-000000000108",
+      "shows": "Pending review: page dates differ",
+      "organization": "partner",
+      "title": "Solar Installation Skills Course",
+      "fixture": "solar-installation",
+      "startOffsetDays": 21,
+      "endOffsetDays": 63,
+      "commitment": [6, "Week"],
+      "expect": { "status": "NeedsReview" },
+      "page": ["About this course: practical skills for installing and looking after small solar systems.", "Start date: {{laterStart}}", "End date: {{laterEnd}}", "The course mixes short lessons with supervised practice on a training rig."]
+    }
+  ]
+}

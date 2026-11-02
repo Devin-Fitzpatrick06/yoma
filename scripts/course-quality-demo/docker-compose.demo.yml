@@ -1,0 +1,153 @@
+# The whole Course Quality demo, under its own project name so it never shares
+# containers or volumes with a developer's stack. Infrastructure extends
+# src/api/docker-compose.yml, so it follows the repo. That file's yoma-api service
+# needs env.secrets, so the API and web are defined here instead.
+name: yoma-course-quality-demo
+
+x-base: &base
+  file: ../../src/api/docker-compose.yml
+
+services:
+  postgres:
+    extends: { <<: *base, service: postgres }
+    container_name: !reset null
+
+  valkey:
+    extends: { <<: *base, service: valkey }
+    container_name: !reset null
+    ports: !reset []
+
+  keycloak-pg:
+    extends: { <<: *base, service: keycloak-pg }
+    container_name: !reset null
+    ports: !reset []
+
+  keycloak-init:
+    extends: { <<: *base, service: keycloak-init }
+    container_name: !reset null
+
+  keycloak:
+    extends: { <<: *base, service: keycloak }
+    container_name: !reset null
+    ports: !override
+      - 127.0.0.1:8080:8080
+    environment:
+      KC_HOSTNAME: "http://localhost:8080"
+      WEBHOOK_HTTP_BASE_PATH: "http://gateway:5000/api/v3/webhook/keycloak"
+    depends_on: !override
+      keycloak-init:
+        condition: service_completed_successfully
+      keycloak-pg:
+        condition: service_healthy
+
+  keycloak-health:
+    extends: { <<: *base, service: keycloak-health }
+    container_name: !reset null
+    depends_on: !override
+      keycloak:
+        condition: service_started
+
+  keycloak-config:
+    extends: { <<: *base, service: keycloak-config }
+    container_name: !reset null
+    environment:
+      CLIENT_YOMA_API_URL: "http://localhost:5050"
+    depends_on: !override
+      keycloak-health:
+        condition: service_completed_successfully
+
+  keycloak-users:
+    extends: { <<: *base, service: keycloak-users }
+    container_name: !reset null
+    profiles: [setup]
+    depends_on: !reset {}
+
+  # Owns the network that the API and web share. Keycloak issues tokens for
+  # http://localhost:8080, the address the browser uses, so the API and web must
+  # reach it at that same address from inside their containers.
+  gateway:
+    image: docker.io/alpine/socat:1.8.0.3
+    command: ["TCP-LISTEN:8080,fork,reuseaddr", "TCP:keycloak:8080"]
+    ports:
+      - 127.0.0.1:5050:5000
+      - 127.0.0.1:3000:3000
+    networks:
+      default:
+      fixtures:
+
+  api:
+    image: yoma-course-quality-demo-api:local
+    build:
+      context: ../../src/api
+      dockerfile: Dockerfile
+    network_mode: service:gateway
+    env_file: demo.env
+    volumes:
+      - data-protection:/root/.aspnet/DataProtection-Keys
+    depends_on:
+      gateway:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      keycloak-config:
+        condition: service_completed_successfully
+
+  web:
+    image: yoma-course-quality-demo-web:local
+    build:
+      context: ../..
+      dockerfile: src/web/Dockerfile
+      args:
+        NEXT_PUBLIC_ENVIRONMENT: local
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: local-demo-placeholder
+        NEXT_PUBLIC_GA_MEASUREMENT_ID: local-demo-placeholder
+    network_mode: service:gateway
+    env_file: demo.env
+    environment:
+      DEMO_BASE_DATE: ${DEMO_BASE_DATE:-}
+      # New on every start, so a browser's sign-in from an earlier demo is simply ignored.
+      NEXTAUTH_SECRET: ${DEMO_NEXTAUTH_SECRET:-}
+    volumes:
+      - .:/demo:ro
+    depends_on:
+      api:
+        condition: service_started
+
+  # Serves the demo's stand-in course pages. It stays on a demo-only network with a
+  # non-private address so the link checker runs unchanged, with its private-address
+  # block still on. See README.md, "How the demo pages reach the link checker".
+  # Port 80 because the link checker accepts only ports 80 and 443.
+  # The name must not end in .localhost, which .NET always resolves to loopback.
+  # localtest.me is public DNS for 127.0.0.1, so the same link opens in a browser,
+  # while this network's alias answers first inside Docker.
+  fixtures:
+    image: docker.io/library/node:24-alpine
+    command: ["node", "/demo/fixtures/server.mjs"]
+    environment:
+      DEMO_BASE_DATE: ${DEMO_BASE_DATE:-}
+    volumes:
+      - .:/demo:ro
+    ports:
+      - 127.0.0.1:80:80
+    networks:
+      default:
+      fixtures:
+        ipv4_address: 11.66.0.10
+        aliases:
+          - demo-fixtures.localtest.me
+
+networks:
+  fixtures:
+    internal: true
+    ipam:
+      config:
+        - subnet: 11.66.0.0/24
+
+volumes:
+  postgres:
+  keycloak:
+  keycloak-themes:
+  keycloak-pg:
+  data-protection:
