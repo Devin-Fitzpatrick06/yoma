@@ -69,6 +69,7 @@
     <None Update="xunit.runner.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="CourseQuality\Fixtures\*.html" CopyToOutputDirectory="PreserveNewest" />
     <!-- Keep source samples available when test build artifacts are outside the checkout. -->
     <None Include="..\..\other\*_Sample*.csv" Link="other\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

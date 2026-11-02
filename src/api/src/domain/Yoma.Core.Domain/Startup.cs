@@ -2,6 +2,7 @@ using FluentValidation;
 using Hangfire;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Reflection;
 using Yoma.Core.Domain.ActionLink.Interfaces;
 using Yoma.Core.Domain.ActionLink.Services;
@@ -14,6 +15,9 @@ using Yoma.Core.Domain.Core.Interfaces.Lookups;
 using Yoma.Core.Domain.Core.Models;
 using Yoma.Core.Domain.Core.Services;
 using Yoma.Core.Domain.Core.Services.Lookups;
+using Yoma.Core.Domain.CourseQuality.Interfaces;
+using Yoma.Core.Domain.CourseQuality.Models;
+using Yoma.Core.Domain.CourseQuality.Services;
 using Yoma.Core.Domain.Entity.Interfaces;
 using Yoma.Core.Domain.Entity.Interfaces.Lookups;
 using Yoma.Core.Domain.Entity.Services;
@@ -105,6 +109,16 @@ namespace Yoma.Core.Domain
       services.AddScoped<IDownloadBackgroundService, DownloadBackgroundService>();
       services.AddScoped<IDelayedExecutionService, DelayedExecutionService>();
       #endregion Core
+
+      #region Course Quality
+      services.AddScoped<ICourseQualityService, CourseQualityService>();
+      services.AddScoped<ICourseQualityBackgroundService, CourseQualityBackgroundService>();
+      services.AddSingleton<ICourseQualityHostResolver, DnsCourseQualityHostResolver>();
+      services.AddSingleton<ICourseQualityLinkChecker>(provider => ActivatorUtilities.CreateInstance<CourseQualityLinkChecker>(provider, CourseQualityLinkChecker.CreatePinnedHandler()));
+
+      // a provider registered later replaces this default
+      services.TryAddScoped<ICourseQualityAIProvider, NoOpCourseQualityAIProvider>();
+      #endregion Course Quality
 
       #region Entity
       #region Lookups
@@ -362,6 +376,12 @@ namespace Yoma.Core.Domain
       RecurringJob.AddOrUpdate<IResumableUploadStoreBackgroundService>(
         "Resumable Upload Store Deletion (Cleanup)",
         s => s.ProcessDeletion(), options.ResumableUploadStoreDeletionSchedule, new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
+
+      //course quality; the job itself does nothing unless enabled
+      var courseQualityOptions = configuration.GetSection(CourseQualityOptions.Section).Get<CourseQualityOptions>() ?? new CourseQualityOptions();
+      RecurringJob.AddOrUpdate<ICourseQualityBackgroundService>(
+        "Course Quality Assessment (published Learning opportunities)",
+        s => s.ProcessAssessments(), courseQualityOptions.Schedule, new RecurringJobOptions { TimeZone = TimeZoneInfo.Utc });
 
       //referral
       RecurringJob.AddOrUpdate<IProgramBackgroundService>(

@@ -18,6 +18,9 @@ using Yoma.Core.Api.Common;
 using Yoma.Core.Api.Middleware;
 using Yoma.Core.Domain;
 using Yoma.Core.Domain.Core.Converters;
+using Yoma.Core.Domain.CourseQuality.Interfaces;
+using Yoma.Core.Domain.CourseQuality.Models;
+using Yoma.Core.Domain.CourseQuality.Services;
 using Yoma.Core.Domain.Core.Extensions;
 using Yoma.Core.Domain.Core.Helpers;
 using Yoma.Core.Domain.Core.Interfaces;
@@ -33,6 +36,7 @@ using Yoma.Core.Infrastructure.Keycloak;
 using Yoma.Core.Infrastructure.SAYouth;
 using Yoma.Core.Infrastructure.SendGrid;
 using Yoma.Core.Infrastructure.Shared;
+using Yoma.Core.Infrastructure.Anthropic;
 using Yoma.Core.Infrastructure.Substack;
 using Yoma.Core.Infrastructure.Twilio;
 using Yoma.Core.Infrastructure.IXO.YellowCard;
@@ -77,6 +81,8 @@ namespace Yoma.Core.Api
           _configuration.GetSection(AppSettings.Section).Bind(options));
       services.Configure<ScheduleJobOptions>(options =>
           _configuration.GetSection(ScheduleJobOptions.Section).Bind(options));
+      services.Configure<CourseQualityOptions>(options =>
+          _configuration.GetSection(CourseQualityOptions.Section).Bind(options));
 
       services.AddSingleton<IEnvironmentProvider>(p => ActivatorUtilities.CreateInstance<EnvironmentProvider>(p, _webHostEnvironment.EnvironmentName));
 
@@ -89,6 +95,7 @@ namespace Yoma.Core.Api
       services.ConfigureServices_RewardProvider(_configuration);
       services.ConfigureServices_PayoutProvider(_configuration);
       services.ConfigureServices_NewsFeedProvider(_configuration);
+      services.ConfigureServices_CourseQualityAIProvider(_configuration);
       ConfigureServices_SyncProviders(services, _configuration);
       #endregion Configuration
 
@@ -149,6 +156,8 @@ namespace Yoma.Core.Api
       services.ConfigureServices_InfrastructureRewardProvider();
       services.ConfigureServices_InfrastructurePayoutProvider();
       services.ConfigureServices_InfrastructureNewsFeedProvider(_configuration, _appSettings);
+      services.AddScoped<ICourseQualityAIProvider, CourseQualitySourcePageReader>();
+      services.ConfigureServices_InfrastructureCourseQualityAIProvider(_configuration);
       ConfigureServices_InfrastructureSyncProviders(services, _configuration, _appSettings);
       #endregion Services & Infrastructure
 

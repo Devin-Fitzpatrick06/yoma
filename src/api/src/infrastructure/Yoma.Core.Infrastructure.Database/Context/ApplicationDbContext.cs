@@ -49,6 +49,10 @@ namespace Yoma.Core.Infrastructure.Database.Context
     public DbSet<DownloadSchedule> DownloadSchedule { get; set; }
     #endregion Core
 
+    #region Course Quality
+    public DbSet<CourseQuality.Entities.CourseQualityAssessment> CourseQualityAssessment { get; set; }
+    #endregion Course Quality
+
     #region Entity
     #region Lookups
     public DbSet<Entity.Entities.Lookups.OrganizationStatus> OrganizationStatus { get; set; }
@@ -483,6 +487,21 @@ namespace Yoma.Core.Infrastructure.Database.Context
           .HasDatabaseName("IX_MyOpportunity_Completed_Aggregation")
           .IsCreatedConcurrently();
       #endregion MyOpportunity
+
+      #region Course Quality
+      builder.Entity<CourseQuality.Entities.CourseQualityAssessment>(entity =>
+      {
+        entity.Property(o => o.Status).HasConversion<string>().HasColumnType("varchar(20)");
+        entity.Property(o => o.ReviewStatus).HasConversion<string>().HasColumnType("varchar(20)");
+        entity.Property(o => o.Format).HasConversion<string>().HasColumnType("varchar(20)");
+
+        // history is kept, so the row that is current is marked; at most one per opportunity
+        entity.HasIndex(o => o.OpportunityId).IsUnique().HasFilter("\"IsLatest\" = true");
+
+        entity.HasOne(o => o.Opportunity).WithMany().HasForeignKey(o => o.OpportunityId).OnDelete(DeleteBehavior.NoAction);
+        entity.HasOne(o => o.Organization).WithMany().HasForeignKey(o => o.OrganizationId).OnDelete(DeleteBehavior.NoAction);
+      });
+      #endregion Course Quality
 
       #region Opportunity
       builder.Entity<Opportunity.Entities.Opportunity>()

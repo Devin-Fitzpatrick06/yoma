@@ -18,7 +18,7 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
     {
 #pragma warning disable 612, 618
       modelBuilder
-        .HasAnnotation("ProductVersion", "10.0.12")
+        .HasAnnotation("ProductVersion", "10.0.13")
         .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
       NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
@@ -497,6 +497,105 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
             .IsUnique();
 
           b.ToTable("ScheduleStatus", "Download");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.CourseQuality.Entities.CourseQualityAssessment", b =>
+        {
+          b.Property<Guid>("Id")
+            .ValueGeneratedOnAdd()
+            .HasColumnType("uuid");
+
+          b.Property<string>("AIModel")
+            .HasColumnType("varchar(100)");
+
+          b.Property<string>("AISummary")
+            .HasColumnType("text");
+
+          b.Property<bool>("AIUsed")
+            .HasColumnType("boolean");
+
+          b.Property<bool>("CardReady")
+            .HasColumnType("boolean");
+
+          b.Property<decimal>("Confidence")
+            .HasColumnType("decimal(4,3)");
+
+          b.Property<string>("ContentFingerprint")
+            .IsRequired()
+            .HasColumnType("varchar(64)");
+
+          b.Property<DateTimeOffset?>("DateConfirmed")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<string>("FinalHost")
+            .HasColumnType("varchar(255)");
+
+          b.Property<string>("Criteria")
+            .IsRequired()
+            .HasColumnType("jsonb");
+
+          b.Property<DateTimeOffset>("DateAssessed")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<DateTimeOffset?>("DateReviewed")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<bool>("DatesSuspect")
+            .HasColumnType("boolean");
+
+          b.Property<string>("FixNote")
+            .HasColumnType("text");
+
+          b.Property<string>("Format")
+            .IsRequired()
+            .HasColumnType("varchar(20)");
+
+          b.Property<bool>("IsLatest")
+            .HasColumnType("boolean");
+
+          b.Property<string>("LearnerCard")
+            .IsRequired()
+            .HasColumnType("jsonb");
+
+          b.Property<DateTimeOffset>("OpportunityDateModified")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<Guid>("OpportunityId")
+            .HasColumnType("uuid");
+
+          b.Property<Guid>("OrganizationId")
+            .HasColumnType("uuid");
+
+          b.Property<string>("ReviewNote")
+            .HasColumnType("varchar(1000)");
+
+          b.Property<string>("ReviewStatus")
+            .IsRequired()
+            .HasColumnType("varchar(20)");
+
+          b.Property<string>("ReviewedByEmail")
+            .HasColumnType("varchar(320)");
+
+          b.Property<string>("RubricVersion")
+            .IsRequired()
+            .HasColumnType("varchar(50)");
+
+          b.Property<int>("Score")
+            .HasColumnType("integer");
+
+          b.Property<string>("Status")
+            .IsRequired()
+            .HasColumnType("varchar(20)");
+
+          b.HasKey("Id");
+
+          b.HasIndex("OpportunityId")
+            .IsUnique()
+            .HasFilter("\"IsLatest\" = true");
+
+          b.HasIndex("OrganizationId", "IsLatest", "ReviewStatus");
+
+          b.ToTable("Assessment", "CourseQuality");
         });
 
       modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Entity.Entities.Lookups.OrganizationProviderType", b =>
@@ -1707,6 +1806,9 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.Property<Guid>("ActionId")
             .HasColumnType("uuid");
 
+          b.Property<string>("City")
+            .HasColumnType("varchar(255)");
+
           b.Property<string>("CommentVerification")
             .HasColumnType("varchar(500)");
 
@@ -1716,14 +1818,8 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.Property<Guid?>("CommitmentIntervalId")
             .HasColumnType("uuid");
 
-          b.Property<string>("City")
-            .HasColumnType("varchar(255)");
-
           b.Property<Guid?>("CountryId")
             .HasColumnType("uuid");
-
-          b.Property<string>("Region")
-            .HasColumnType("varchar(255)");
 
           b.Property<DateTimeOffset?>("DateCompleted")
             .HasColumnType("timestamp with time zone");
@@ -1752,6 +1848,9 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.Property<bool?>("Recommendable")
             .HasColumnType("boolean");
 
+          b.Property<string>("Region")
+            .HasColumnType("varchar(255)");
+
           b.Property<byte?>("StarRating")
             .HasColumnType("smallint");
 
@@ -1768,9 +1867,9 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
 
           b.HasIndex("CommitmentIntervalId");
 
-          b.HasIndex("OpportunityId");
-
           b.HasIndex("CountryId");
+
+          b.HasIndex("OpportunityId");
 
           b.HasIndex("UserId", "OpportunityId", "ActionId")
             .IsUnique();
@@ -2081,10 +2180,10 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
 
           b.HasIndex("Provider");
 
-          b.HasIndex("ProviderCountryId");
-
           NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("Provider"), "gin");
           NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("Provider"), new[] { "gin_trgm_ops" });
+
+          b.HasIndex("ProviderCountryId");
 
           b.HasIndex("StatusId");
 
@@ -3840,6 +3939,25 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.Navigation("User");
         });
 
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.CourseQuality.Entities.CourseQualityAssessment", b =>
+        {
+          b.HasOne("Yoma.Core.Infrastructure.Database.Opportunity.Entities.Opportunity", "Opportunity")
+            .WithMany()
+            .HasForeignKey("OpportunityId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.HasOne("Yoma.Core.Infrastructure.Database.Entity.Entities.Organization", "Organization")
+            .WithMany()
+            .HasForeignKey("OrganizationId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.Navigation("Opportunity");
+
+          b.Navigation("Organization");
+        });
+
       modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Entity.Entities.Organization", b =>
         {
           b.HasOne("Yoma.Core.Infrastructure.Database.Lookups.Entities.Country", "Country")
@@ -4218,9 +4336,9 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
 
           b.Navigation("CommitmentInterval");
 
-          b.Navigation("Opportunity");
-
           b.Navigation("Country");
+
+          b.Navigation("Opportunity");
 
           b.Navigation("User");
 

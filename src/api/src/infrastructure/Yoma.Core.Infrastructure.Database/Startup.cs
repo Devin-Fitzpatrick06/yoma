@@ -8,6 +8,7 @@ using Yoma.Core.Domain.ActionLink.Models.Lookups;
 using Yoma.Core.Domain.Core.Interfaces;
 using Yoma.Core.Domain.Core.Models;
 using Yoma.Core.Domain.Core.Models.Lookups;
+using Yoma.Core.Domain.CourseQuality.Models;
 using Yoma.Core.Domain.Entity.Models;
 using Yoma.Core.Domain.Lookups.Models;
 using Yoma.Core.Domain.Opportunity.Models;
@@ -19,6 +20,7 @@ using Yoma.Core.Infrastructure.Database.Context;
 using Yoma.Core.Infrastructure.Database.Core.Repositories;
 using Yoma.Core.Infrastructure.Database.Core.Repositories.Lookups;
 using Yoma.Core.Infrastructure.Database.Core.Services;
+using Yoma.Core.Infrastructure.Database.CourseQuality.Repositories;
 using Yoma.Core.Infrastructure.Database.Entity.Repositories;
 using Yoma.Core.Infrastructure.Database.Lookups.Repositories;
 using Yoma.Core.Infrastructure.Database.Marketplace.Repositories;
@@ -92,6 +94,10 @@ namespace Yoma.Core.Infrastructure.Database
       services.AddScoped<IRepositoryBatched<DownloadSchedule>, DownloadScheduleRepository>();
       services.AddScoped<IExecutionStrategyService, ExecutionStrategyService>();
       #endregion Core
+
+      #region Course Quality
+      services.AddScoped<IRepository<CourseQualityAssessmentRecord>, CourseQualityAssessmentRepository>();
+      #endregion Course Quality
 
       #region Entity
       #region Lookups
