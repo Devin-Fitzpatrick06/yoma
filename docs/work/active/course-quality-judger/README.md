@@ -105,6 +105,15 @@ rewrite. It lives in the `CourseQuality` appsettings section with `Version`, per
 - **Browsing shows courses as compact learner cards, verified first.** The project lead replaced the
   earlier "no ranking change" decision. `CourseQuality:ShowInBrowse` turns on the status, the card in
   search results and the ranking. It is off by default and on in the demo. An explicit sort is kept.
+- **Popularity orders courses within verified and within the rest.** The score is 0.7 x completed +
+  0.3 x started, tentative and set in `CourseQuality:PopularityCompletedWeight` and
+  `PopularityStartedWeight`. Started means followed the external link or submitted for verification,
+  not completed, each person once. The New section stays newest-first through `newest` on the search.
+- **Colour shows the category, not the status.** Six families from Yoma's palette. Green is kept for
+  verification marks. Career fields and example roles come from a category and skills list in
+  `courseCategoryTheme.ts`, shown as "Could lead towards", never as a job promise.
+- **Future: the Verified rate may be too high.** The project lead flagged about 85% as too many.
+  The criteria stay as they are until the lead asks to change them.
 - **Partner notes are not emailed in the MVP.** They appear in the product. Automatic outbound
   messages to partners need separate sign-off.
 - **Learner-facing text stays factual.** A low score shows as "Not yet verified", never as an

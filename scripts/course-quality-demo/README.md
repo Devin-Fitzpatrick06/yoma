@@ -43,6 +43,12 @@ If the venue's internet is unreliable, use only the local demo pages:
 scripts/course-quality-demo/start.sh --fixtures
 ```
 
+## What browsing shows
+
+Courses appear as compact learner cards, coloured by category family, with verified courses first
+and the most popular first within each group (0.7 x completed + 0.3 x started). The New section is
+newest first. Selecting a card pops out the full learner card with fields and example roles.
+
 ## Sign-ins
 
 | Role | Email | Password |

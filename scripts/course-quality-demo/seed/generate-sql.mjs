@@ -65,7 +65,7 @@ INSERT INTO "Opportunity"."OpportunityLanguages"("Id","OpportunityId","LanguageI
 
 // Views and completions, read by the "Trending & Popular" section. Each learner has one row per course and action,
 // so a count cannot exceed the number of demo learners. Dates fall after the course started, and differ between rows.
-const engaged = courses.filter((course) => course.views || course.completions);
+const engaged = courses.filter((course) => course.views || course.completions || course.started);
 for (const [courseIndex, course] of engaged.entries()) {
   const user = (learner) => `(SELECT "Id" FROM "Entity"."User" WHERE "Email"=${quote(learner.email)})`;
   const daysAgo = (rowIndex) => 1 + ((courseIndex * 2 + rowIndex * 3) % Math.min(21, -course.startOffsetDays));
@@ -83,8 +83,28 @@ VALUES (gen_random_uuid(), ${user(learner)}, ${quote(course.id)}, (SELECT "Id" F
   (SELECT "Id" FROM "Opportunity"."MyOpportunityVerificationStatus" WHERE "Name"='Completed'), ${quote(`${isoDay(dayOffset(base, course.startOffsetDays))} 00:00:00+00`)}, ${when}, ${when}, ${when}, ${when});`);
   });
 
+  // Started but unfinished: clicked through to the course, and not among the learners who completed it.
+  demoLearners.slice(course.completions ?? 0, (course.completions ?? 0) + (course.started ?? 0)).forEach((learner, i) => {
+    const when = stamp(daysAgo(i), 10 + i);
+    out.push(`INSERT INTO "Opportunity"."MyOpportunity"("Id","UserId","OpportunityId","ActionId","DateCreated","DateModified")
+VALUES (gen_random_uuid(), ${user(learner)}, ${quote(course.id)}, (SELECT "Id" FROM "Opportunity"."MyOpportunityAction" WHERE "Name"='NavigatedExternalLink'), ${when}, ${when});`);
+  });
+
   // Search reads a course's completed count from this column, not from the rows above.
   if (course.completions) out.push(`UPDATE "Opportunity"."Opportunity" SET "ParticipantCount" = ${course.completions} WHERE "Id" = ${quote(course.id)};`);
+}
+
+// Skills refine the example roles on a course's learner card.
+const skillNames = [...new Set(courses.flatMap((course) => course.skills ?? []))];
+for (const name of skillNames) {
+  out.push(`INSERT INTO "Lookup"."Skill"("Id","Name","ExternalId","DateCreated","DateModified")
+VALUES (gen_random_uuid(), ${quote(name)}, ${quote(`demo-${name}`)}, ${now}, ${now}) ON CONFLICT DO NOTHING;`);
+}
+for (const course of courses) {
+  for (const name of course.skills ?? []) {
+    out.push(`INSERT INTO "Opportunity"."OpportunitySkills"("Id","OpportunityId","SkillId","DateCreated")
+SELECT gen_random_uuid(), ${quote(course.id)}, "Id", ${now} FROM "Lookup"."Skill" WHERE "Name"=${quote(name)} LIMIT 1;`);
+  }
 }
 
 out.push(`COMMIT;`);
