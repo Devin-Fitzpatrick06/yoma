@@ -6,8 +6,10 @@ import Link from "next/link";
 import { type ParsedUrlQuery } from "querystring";
 import { type ReactElement } from "react";
 import { IoMdArrowRoundBack } from "react-icons/io";
+import type { LearnerCard } from "~/api/models/courseQuality";
 import type { MyOpportunityResponseVerify } from "~/api/models/myOpportunity";
 import { type OpportunityInfo } from "~/api/models/opportunity";
+import { getLearnerCard } from "~/api/services/courseQualityLearner";
 import {
   getVerificationStatus,
   performActionViewed,
@@ -39,6 +41,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   const session = await getServerSession(context.req, context.res, authOptions);
   let errorCode = null;
   let dataOpportunityInfo: OpportunityInfo | null = null;
+  let dataLearnerCard: LearnerCard | null = null;
 
   try {
     // 👇 prefetch queries on server
@@ -58,6 +61,10 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
         context,
       );
     }
+
+    // never throws: without a card the page renders as it does for other types
+    if (dataOpportunityInfo.type === "Learning")
+      dataLearnerCard = await getLearnerCard(opportunityId, context);
 
     if (session)
       dataVerificationStatus = await getVerificationStatus(
@@ -89,6 +96,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       dehydratedState: dehydrate(queryClient),
       user: session?.user ?? null,
       opportunityInfo: dataOpportunityInfo,
+      learnerCard: dataLearnerCard,
       error: errorCode,
     },
   };
@@ -97,8 +105,9 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 const OpportunityDetails: NextPageWithLayout<{
   user: User;
   opportunityInfo: OpportunityInfo;
+  learnerCard: LearnerCard | null;
   error?: number;
-}> = ({ user, opportunityInfo, error }) => {
+}> = ({ user, opportunityInfo, learnerCard, error }) => {
   if (error) {
     if (error === 401) return <Unauthenticated />;
     else if (error === 403) return <Unauthorized />;
@@ -130,6 +139,7 @@ const OpportunityDetails: NextPageWithLayout<{
 
         <OpportunityPublicDetails
           opportunityInfo={opportunityInfo}
+          learnerCard={learnerCard}
           user={user}
           error={error}
           preview={false}

@@ -26,6 +26,7 @@ import {
 } from "react-icons/io5";
 import { toast } from "react-toastify";
 import { SettingType } from "~/api/models/common";
+import type { LearnerCard as LearnerCardData } from "~/api/models/courseQuality";
 import type { MyOpportunityResponseVerify } from "~/api/models/myOpportunity";
 import { type OpportunityInfo } from "~/api/models/opportunity";
 import {
@@ -39,6 +40,7 @@ import {
 import { updateSettings } from "~/api/services/user";
 import { AvatarImage } from "~/components/AvatarImage";
 import ZltoRewardBadge from "~/components/Opportunity/Badges/ZltoRewardBadge";
+import LearnerCard from "~/components/Opportunity/LearnerCard";
 import {
   getCommitmentDisplay,
   getTypeConfig,
@@ -100,6 +102,8 @@ const LOGIN_REQUIRED_MESSAGES: Record<LoginRequiredAction, string> = {
 const OpportunityPublicDetails: React.FC<{
   user: User | null;
   opportunityInfo: OpportunityInfo;
+  /** Learning opportunities only: shown above the start action. The public page passes it. */
+  learnerCard?: LearnerCardData | null;
   error?: number;
   preview: boolean;
   /**
@@ -115,6 +119,7 @@ const OpportunityPublicDetails: React.FC<{
 }> = ({
   user,
   opportunityInfo,
+  learnerCard,
   error,
   preview,
   layout = CUSTOM_FIELDS_ENABLED ? "tabbed" : "classic",
@@ -813,6 +818,9 @@ const OpportunityPublicDetails: React.FC<{
     </>
   );
 
+  const learnerCardPanel = opportunityInfo.type === "Learning" &&
+    learnerCard && <LearnerCard card={learnerCard} />;
+
   if (error) {
     if (error === 401) return <Unauthenticated />;
     else if (error === 403) return <Unauthorized />;
@@ -1187,6 +1195,8 @@ const OpportunityPublicDetails: React.FC<{
         <div className="flex flex-col gap-4">
           {layout === "tabbed" ? (
             <DetailHeaderCard ref={headerCardRef} opportunity={opportunityInfo}>
+              {learnerCardPanel}
+
               {/* BUTTONS — the same elements (see goToButton above). Round 10: the call to
                   action, Save and Share together, Upload right-aligned (on its own line when
                   the row is too narrow, e.g. 768); on mobile Save and Share are circles beside
@@ -1256,6 +1266,8 @@ const OpportunityPublicDetails: React.FC<{
                 </div>
                 <OpportunityMetaTextRow data={opportunityInfo} />
               </div>
+
+              {learnerCardPanel}
 
               {/* BUTTONS — one set of elements, two arrangements (see goToButton above) */}
               <div className="mt-2 flex flex-col gap-4 md:flex-row">
