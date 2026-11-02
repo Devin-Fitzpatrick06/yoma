@@ -31,27 +31,26 @@ import { DATE_FORMAT_HUMAN } from "~/lib/constants";
 const MAX_HIGHLIGHTS = 6;
 
 // Unknown has no entry: the card shows no format rather than guessing one
-const FORMAT_LABELS: Partial<
+export const FORMAT_LABELS: Partial<
   Record<CourseFormat, { label: string; Icon: React.ElementType }>
 > = {
   Course: { label: "Course", Icon: IoBookOutline },
   Webinar: { label: "Webinar", Icon: IoVideocamOutline },
 };
 
-const formatDate = (date: string): string =>
+export const formatDate = (date: string): string =>
   moment.utc(date).format(DATE_FORMAT_HUMAN);
 
 const hasText = (value: string | null | undefined): value is string =>
   !!value?.trim();
 
+export const COST_NOT_CONFIRMED = "Cost not confirmed — check before you enrol";
+
 /** Free or Paid need evidence, so anything without it reads as unconfirmed, never as "Free". */
-const getCostDisplay = (
+export const getCostDisplay = (
   cost: LearnerCardCost,
 ): { value: string; detail: string | null } => {
-  const unconfirmed = {
-    value: "Cost not confirmed — check before you enrol",
-    detail: null,
-  };
+  const unconfirmed = { value: COST_NOT_CONFIRMED, detail: null };
 
   if (!hasText(cost.evidence)) return unconfirmed;
 
@@ -70,12 +69,16 @@ const getCostDisplay = (
 };
 
 /** The summary only: commitmentHours counts a week as 168 hours, so it is not learning time. */
-const getTimeDisplay = (
-  timelineSummary: string | null,
+export const getTimeDisplay = (
+  timelineSummary: string | null | undefined,
 ): { value: string; detail: string | null } =>
   hasText(timelineSummary)
     ? { value: timelineSummary.trim(), detail: null }
     : { value: "Time not confirmed", detail: "Check before you enrol" };
+
+/** Never on a listing that has an end date. */
+export const isStartAnytime = (card: LearnerCardData): boolean =>
+  card.selfPaced && !card.dateEnd;
 
 const FactLabel: React.FC<{
   icon: React.ReactNode;
@@ -105,8 +108,7 @@ const LearnerCard: React.FC<{ card: LearnerCardData }> = ({ card }) => {
   const rail = verified ? "bg-green" : "bg-gray-dark";
   const railBorder = verified ? "border-green" : "border-gray-dark";
   const format = FORMAT_LABELS[card.format];
-  // never on a listing that has an end date
-  const startAnytime = card.selfPaced && !card.dateEnd;
+  const startAnytime = isStartAnytime(card);
   const statusNote = verified
     ? startAnytime
       ? "This listing is live and matches its course page. It is self-paced, so you can start anytime."

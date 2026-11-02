@@ -1,3 +1,4 @@
+import type { CourseQualityStatus, LearnerCard } from "./courseQuality";
 import type {
   EngagementTypeOption,
   PaginationFilter,
@@ -218,6 +219,8 @@ export interface OpportunityInfo extends OpportunityCoreMetadata {
   hidden: boolean;
   published: boolean;
   yomaInfoURL: string;
+  qualityStatus?: CourseQualityStatus | null;
+  learnerCard?: LearnerCard | null;
   isCompletable: boolean;
   nonCompletableReason: string | null;
   syncedInfo: SyncInfoEntity | null;

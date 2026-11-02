@@ -9,7 +9,8 @@ type AnimationStyle =
   | "slide-left"
   | "slide-right"
   | "scale"
-  | "spin";
+  | "spin"
+  | "flip";
 
 interface CustomModalProps {
   isOpen: boolean;
@@ -98,6 +99,9 @@ const CustomModal: FC<CustomModalProps> = ({
       case "spin":
         animationClasses = "motion-safe:animate-spin-once";
         break;
+      case "flip":
+        animationClasses = "motion-safe:animate-flip-in";
+        break;
       case "scale":
       default:
         animationClasses = "motion-safe:animate-enter";
@@ -121,7 +125,8 @@ const CustomModal: FC<CustomModalProps> = ({
         animationClasses = "motion-safe:animate-slide-out-right";
         break;
       case "spin":
-        animationClasses = ""; // No exit animation for spin
+      case "flip":
+        animationClasses = ""; // No exit animation for spin or flip
         break;
       case "scale":
       default:

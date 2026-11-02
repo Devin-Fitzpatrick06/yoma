@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { OpportunityInfo } from "~/api/models/opportunity";
 import { AvatarImage } from "../AvatarImage";
 import ZltoRewardBadge from "./Badges/ZltoRewardBadge";
+import LearnerCardTile from "./LearnerCardTile";
 import {
   getTypeConfig,
   OpportunityMetaTextRow,
@@ -170,6 +171,9 @@ const DefaultCard: React.FC<{ data: OpportunityInfo; preview?: boolean }> = ({
   preview,
 }) => {
   const config = getTypeConfig(data.type);
+
+  // only courses have a quality status, and only when browsing it is turned on in the API
+  if (data.qualityStatus && !preview) return <LearnerCardTile data={data} />;
 
   return (
     <div className="flex h-94 w-80 flex-col rounded-2xl bg-white p-3 max-[370px]:w-64">
