@@ -1207,6 +1207,39 @@ namespace Yoma.Core.Domain.MyOpportunity.Services
       return queryGrouped.ToDictionary(o => o.OpportunityId, o => o.Count);
     }
 
+    public List<MyOpportunityParticipationCounts> ListParticipationCounts()
+    {
+      var actionVerificationId = _myOpportunityActionService.GetByName(Action.Verification.ToString()).Id;
+      var actionNavigatedId = _myOpportunityActionService.GetByName(Action.NavigatedExternalLink.ToString()).Id;
+      var verificationCompletedId = _myOpportunityVerificationStatusService.GetByName(VerificationStatus.Completed.ToString()).Id;
+      var verificationPendingId = _myOpportunityVerificationStatusService.GetByName(VerificationStatus.Pending.ToString()).Id;
+      var opportunityStatusActiveId = _opportunityStatusService.GetByName(Status.Active.ToString()).Id;
+      var organizationStatusActiveId = _organizationStatusService.GetByName(OrganizationStatus.Active.ToString()).Id;
+
+      var query = _myOpportunityRepository.Query(false)
+        .Where(o => o.OpportunityStatusId == opportunityStatusActiveId && o.OrganizationStatusId == organizationStatusActiveId);
+      var completed = query.Where(o => o.ActionId == actionVerificationId && o.VerificationStatusId == verificationCompletedId);
+
+      var countsCompleted = completed
+        .GroupBy(o => o.OpportunityId)
+        .Select(group => new { OpportunityId = group.Key, Count = group.Count() })
+        .ToDictionary(o => o.OpportunityId, o => o.Count);
+
+      var countsStarted = query
+        .Where(o => o.ActionId == actionNavigatedId || (o.ActionId == actionVerificationId && o.VerificationStatusId == verificationPendingId))
+        .Where(o => !completed.Any(c => c.OpportunityId == o.OpportunityId && c.UserId == o.UserId))
+        .GroupBy(o => o.OpportunityId)
+        .Select(group => new { OpportunityId = group.Key, Count = group.Select(o => o.UserId).Distinct().Count() })
+        .ToDictionary(o => o.OpportunityId, o => o.Count);
+
+      return [.. countsCompleted.Keys.Union(countsStarted.Keys).Select(id => new MyOpportunityParticipationCounts
+      {
+        OpportunityId = id,
+        Completed = countsCompleted.GetValueOrDefault(id),
+        Started = countsStarted.GetValueOrDefault(id)
+      })];
+    }
+
     public async Task<MyOpportunityResponseVerifyImportPartnerSync> PerformActionImportVerificationFromPartnerSync(MyOpportunityRequestVerifyImportPartnerSync request)
     {
       ArgumentNullException.ThrowIfNull(request, nameof(request));

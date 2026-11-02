@@ -15,6 +15,11 @@ namespace Yoma.Core.Domain.CourseQuality.Interfaces
     List<Guid>? ListVerifiedForBrowse();
 
     /// <summary>
+    /// Courses with any participation, most popular first. Null when ShowInBrowse is off.
+    /// </summary>
+    List<Guid>? RankByPopularity(List<MyOpportunity.Models.MyOpportunityParticipationCounts> counts);
+
+    /// <summary>
     /// Sets the status and learner card shown in search on each course, by the same rules as the public card. A course with no current card reads as NeedsReview, never as Verified.
     /// </summary>
     void SetBrowseStatus(List<Opportunity.Models.Opportunity>? opportunities, List<Opportunity.Models.OpportunityInfo>? results);

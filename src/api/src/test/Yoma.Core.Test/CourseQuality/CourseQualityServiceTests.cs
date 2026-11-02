@@ -395,6 +395,29 @@ namespace Yoma.Core.Test.CourseQuality
 
     #region Public card
     [Fact]
+    public void Popularity_WeighsCompletedAboveStarted()
+    {
+      _options.ShowInBrowse = true;
+      var mostlyStarted = Guid.NewGuid();
+      var mostlyCompleted = Guid.NewGuid();
+
+      // 0.7 * 3 + 0.3 * 0 = 2.1 against 0.7 * 0 + 0.3 * 6 = 1.8
+      var ranked = Service().RankByPopularity(
+      [
+        new() { OpportunityId = mostlyStarted, Started = 6 },
+        new() { OpportunityId = mostlyCompleted, Completed = 3 }
+      ]);
+
+      Assert.Equal([mostlyCompleted, mostlyStarted], ranked);
+    }
+
+    [Fact]
+    public void Popularity_IsOff_ByDefault()
+    {
+      Assert.Null(Service().RankByPopularity([]));
+    }
+
+    [Fact]
     public async Task Browse_IsOff_ByDefault()
     {
       await AssessNow();

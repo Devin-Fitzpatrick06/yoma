@@ -20,6 +20,11 @@ namespace Yoma.Core.Domain.Opportunity.Models
     /// </summary>
     public bool? MostCompleted { get; set; }
 
+    /// <summary>
+    /// Keeps the default newest-first order where browsing would otherwise order by popularity
+    /// </summary>
+    public bool? Newest { get; set; }
+
     public override void NormalizeForHashing()
     {
       base.NormalizeForHashing();

@@ -210,10 +210,19 @@ namespace Yoma.Core.Domain.Opportunity.Services
         ];
       }
 
-      //verified courses first within any default or popularity order; an explicit sort stays as the user asked
+      //verified courses first, then most popular unless a section has its own order; an explicit sort stays as the user asked
       var verified = filter.Ordering == null ? _courseQualityService.ListVerifiedForBrowse() : null;
-      if (verified?.Count > 0)
+      if (verified != null)
+      {
+        var ranked = mostViewed || mostCompleted || filter.Newest == true ? null : _courseQualityService.RankByPopularity(_myOpportunityService.ListParticipationCounts());
+        if (ranked?.Count > 0)
+        {
+          filterInternal.OrderInstructions.Insert(0, new() { OrderBy = opportunity => ranked.Contains(opportunity.Id), SortOrder = FilterSortOrder.Descending });
+          filterInternal.OrderInstructions.Insert(1, new() { OrderBy = opportunity => ranked.IndexOf(opportunity.Id), SortOrder = FilterSortOrder.Ascending });
+        }
+
         filterInternal.OrderInstructions.Insert(0, new() { OrderBy = opportunity => verified.Contains(opportunity.Id), SortOrder = FilterSortOrder.Descending });
+      }
 
       var searchResult = _opportunityService.Search(filterInternal, false);
       if (filter.TotalCountOnly)

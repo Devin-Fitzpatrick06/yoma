@@ -17,6 +17,13 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     /// </summary>
     public bool ShowInBrowse { get; set; }
 
+    /// <summary>
+    /// Weights of the popularity score that orders courses within verified and within the rest. Tentative, set by the project lead.
+    /// </summary>
+    public decimal PopularityCompletedWeight { get; set; } = 0.7m;
+
+    public decimal PopularityStartedWeight { get; set; } = 0.3m;
+
     public string RubricVersion { get; set; } = "v5-visible-proof";
 
     /// <summary>

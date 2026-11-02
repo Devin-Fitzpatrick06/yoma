@@ -103,6 +103,18 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         .Select(o => o.OpportunityId)];
     }
 
+    public List<Guid>? RankByPopularity(List<MyOpportunity.Models.MyOpportunityParticipationCounts> counts)
+    {
+      ArgumentNullException.ThrowIfNull(counts, nameof(counts));
+      if (!_options.ShowInBrowse) return null;
+
+      return [.. counts
+        .OrderByDescending(o => o.Completed * _options.PopularityCompletedWeight + o.Started * _options.PopularityStartedWeight)
+        .ThenByDescending(o => o.Completed)
+        .ThenBy(o => o.OpportunityId)
+        .Select(o => o.OpportunityId)];
+    }
+
     public void SetBrowseStatus(List<Opportunity.Models.Opportunity>? opportunities, List<Opportunity.Models.OpportunityInfo>? results)
     {
       if (!_options.ShowInBrowse || opportunities == null || results == null) return;
