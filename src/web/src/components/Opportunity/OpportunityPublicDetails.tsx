@@ -819,7 +819,13 @@ const OpportunityPublicDetails: React.FC<{
   );
 
   const learnerCardPanel = opportunityInfo.type === "Learning" &&
-    learnerCard && <LearnerCard card={learnerCard} />;
+    learnerCard && (
+      <LearnerCard
+        card={learnerCard}
+        categories={opportunityInfo?.categories}
+        skills={opportunityInfo?.skills}
+      />
+    );
 
   if (error) {
     if (error === 401) return <Unauthenticated />;

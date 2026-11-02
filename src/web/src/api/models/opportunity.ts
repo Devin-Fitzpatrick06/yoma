@@ -243,6 +243,7 @@ export interface OpportunitySearchFilter extends OpportunitySearchFilterBase {
   zltoReward: OpportunitySearchFilterZltoReward | null;
   mostViewed: boolean | null;
   mostCompleted: boolean | null;
+  newest?: boolean | null;
 }
 
 export interface OpportunitySearchFilterBase extends PaginationFilter {
@@ -412,6 +413,7 @@ export interface OpportunitySearchRequest extends OpportunitySearchRequestBase {
   publishedStates?: PublishedState[] | string[] | null;
   mostViewed?: boolean | null;
   mostCompleted?: boolean | null;
+  newest?: boolean | null;
 }
 
 /** `POST /opportunity/search/admin`. */

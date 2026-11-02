@@ -10,6 +10,7 @@ import {
 import type { OpportunityInfo } from "~/api/models/opportunity";
 import CustomModal from "../Common/CustomModal";
 import LearnerCard, {
+  CareerPaths,
   COST_NOT_CONFIRMED,
   FORMAT_LABELS,
   formatDate,
@@ -17,6 +18,7 @@ import LearnerCard, {
   getTimeDisplay,
   isStartAnytime,
 } from "./LearnerCard";
+import { getCategoryColour, getCategoryName } from "./courseCategoryTheme";
 import {
   OpportunityOrgCountriesRow,
   OpportunityTitleRow,
@@ -69,19 +71,26 @@ const LearnerCardPopup: React.FC<{
         </div>
 
         {data.learnerCard ? (
-          <LearnerCard card={data.learnerCard} />
+          <LearnerCard
+            card={data.learnerCard}
+            categories={data.categories}
+            skills={data.skills}
+          />
         ) : (
-          <p className="bg-gray-light mt-4 rounded-2xl p-4 text-sm text-black">
-            Yoma has not confirmed these details yet. Check them on the course
-            page before you start.
-          </p>
+          <div className="mt-4 flex flex-col gap-3">
+            <p className="bg-gray-light rounded-2xl p-4 text-sm text-black">
+              Yoma has not confirmed these details yet. Check them on the course
+              page before you start.
+            </p>
+            <CareerPaths categories={data.categories} skills={data.skills} />
+          </div>
         )}
 
         <Link
           href={`/opportunities/${data.id}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="bg-green hover:bg-green-dark mt-4 flex h-10 w-full items-center justify-center rounded-lg text-sm font-semibold text-white duration-300"
+          className="bg-purple hover:bg-purple-shade mt-4 flex h-10 w-full items-center justify-center rounded-lg text-sm font-semibold text-white duration-300"
         >
           View course details
         </Link>
@@ -103,6 +112,7 @@ const LearnerCardTile: React.FC<{ data: OpportunityInfo }> = ({ data }) => {
   const costValue =
     !cost || cost.value === COST_NOT_CONFIRMED ? "Not confirmed" : cost.value;
   const format = card ? FORMAT_LABELS[card.format] : undefined;
+  const colour = getCategoryColour(data.categories);
 
   const close = () => {
     setOpen(false);
@@ -112,32 +122,25 @@ const LearnerCardTile: React.FC<{ data: OpportunityInfo }> = ({ data }) => {
   return (
     <>
       <article className="relative flex h-94 w-80 flex-col overflow-hidden rounded-2xl bg-white max-[370px]:w-64">
-        {/* STATUS: the words and the icon carry the state, the colour only supports them */}
+        {/* CATEGORY colour; the status pill keeps the only green, and its words carry the state */}
         <div
-          className={`flex h-14 shrink-0 items-center gap-2 px-3 ${
-            verified ? "bg-green text-white" : "bg-gray-light text-black"
-          }`}
+          className={`flex h-14 shrink-0 items-center gap-2 px-3 ${colour.band} ${colour.bandText}`}
         >
-          {verified ? (
-            <IoShieldCheckmark
-              aria-hidden="true"
-              className="h-6 w-6 shrink-0"
-            />
-          ) : (
-            <IoHourglassOutline
-              aria-hidden="true"
-              className="text-gray-dark h-6 w-6 shrink-0"
-            />
-          )}
-          <span className="font-nunito min-w-0 grow truncate text-base font-black">
-            {verified ? "Verified by Yoma" : "Not yet verified"}
+          <span className="font-nunito line-clamp-2 min-w-0 grow text-sm leading-tight font-black">
+            {getCategoryName(data.categories)}
           </span>
-          {format && (
-            <span className="text-purple inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-bold">
-              <format.Icon aria-hidden="true" className="h-3.5 w-3.5" />
-              {format.label}
-            </span>
-          )}
+          <span
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-2 py-1 text-xs font-bold ${
+              verified ? "text-green" : "text-gray-dark"
+            }`}
+          >
+            {verified ? (
+              <IoShieldCheckmark aria-hidden="true" className="h-4 w-4" />
+            ) : (
+              <IoHourglassOutline aria-hidden="true" className="h-4 w-4" />
+            )}
+            {verified ? "Verified" : "Not yet verified"}
+          </span>
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
@@ -174,18 +177,22 @@ const LearnerCardTile: React.FC<{ data: OpportunityInfo }> = ({ data }) => {
           </p>
 
           <div className="mt-auto space-y-2">
-            {card && (
-              <p className="text-gray-dark text-xs">
-                Checked {formatDate(card.dateAssessed)}
-              </p>
-            )}
+            <div className="text-gray-dark flex items-center justify-between gap-2 text-xs">
+              {card && <span>Checked {formatDate(card.dateAssessed)}</span>}
+              {format && (
+                <span className="text-purple inline-flex items-center gap-1 font-bold">
+                  <format.Icon aria-hidden="true" className="h-3.5 w-3.5" />
+                  {format.label}
+                </span>
+              )}
+            </div>
             {/* stretched over the tile, so the whole card opens the pop-up from one control */}
             <button
               ref={openButton}
               type="button"
               aria-haspopup="dialog"
               onClick={() => setOpen(true)}
-              className="bg-green hover:bg-green-dark flex h-10 w-full items-center justify-center rounded-lg text-sm font-semibold text-white duration-300 after:absolute after:inset-0"
+              className="bg-purple hover:bg-purple-shade flex h-10 w-full items-center justify-center rounded-lg text-sm font-semibold text-white duration-300 after:absolute after:inset-0"
             >
               See learner card
             </button>

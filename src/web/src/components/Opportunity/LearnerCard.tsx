@@ -2,6 +2,7 @@ import moment from "moment";
 import { useId } from "react";
 import {
   IoBookOutline,
+  IoBriefcaseOutline,
   IoCheckmarkCircle,
   IoChevronDown,
   IoEllipse,
@@ -17,6 +18,10 @@ import type {
   LearnerCardCost,
 } from "~/api/models/courseQuality";
 import { DATE_FORMAT_HUMAN } from "~/lib/constants";
+import {
+  getCareerPaths,
+  getCategoryColour,
+} from "~/components/Opportunity/courseCategoryTheme";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // What a learner reads before starting a course: is it verified, how long does it take, when
@@ -94,8 +99,40 @@ const FACT_VALUE =
   "font-nunito text-base leading-snug font-black wrap-break-word text-black md:text-xl";
 const FACT_DETAIL = "text-gray-dark text-sm wrap-break-word md:mt-0.5";
 
-const LearnerCard: React.FC<{ card: LearnerCardData }> = ({ card }) => {
+/** Where a course could lead: guidance, so the wording never promises a job. */
+export const CareerPaths: React.FC<{
+  categories?: { name: string }[] | null;
+  skills?: { name: string }[] | null;
+}> = ({ categories, skills }) => {
+  const { fields, roles } = getCareerPaths(categories, skills);
+
+  return (
+    <div className="bg-gray-light rounded-xl p-3">
+      <h6 className="flex items-center gap-1.5 text-sm font-bold text-black">
+        <IoBriefcaseOutline aria-hidden="true" className="h-4 w-4" />
+        Could lead towards
+      </h6>
+      <dl className="mt-1.5 grid gap-1 text-sm leading-snug md:grid-cols-[auto_minmax(0,1fr)] md:gap-x-3">
+        <dt className="text-gray-dark text-xs font-semibold md:mt-0.5">
+          Fields
+        </dt>
+        <dd className="text-black">{fields.join(", ")}</dd>
+        <dt className="text-gray-dark text-xs font-semibold md:mt-0.5">
+          Example roles
+        </dt>
+        <dd className="text-black">{roles.join(", ")}</dd>
+      </dl>
+    </div>
+  );
+};
+
+const LearnerCard: React.FC<{
+  card: LearnerCardData;
+  categories?: { name: string }[] | null;
+  skills?: { name: string }[] | null;
+}> = ({ card, categories, skills }) => {
   const headingId = useId();
+  const colour = getCategoryColour(categories);
   // Anything other than Verified reads as "Not yet verified", so a new status cannot overclaim
   const verified = card.status === "Verified";
   const time = getTimeDisplay(card.timelineSummary);
@@ -148,20 +185,22 @@ const LearnerCard: React.FC<{ card: LearnerCardData }> = ({ card }) => {
     >
       {/* STATUS: the words and the icon carry the state, the colour only supports them */}
       <div
-        className={`flex items-center gap-2.5 px-3 py-2 md:items-start md:gap-3 md:px-5 md:py-3 ${
-          verified ? "bg-green text-white" : "bg-gray-light text-black"
-        }`}
+        className={`flex items-center gap-2.5 px-3 py-2 md:items-start md:gap-3 md:px-5 md:py-3 ${colour.band} ${colour.bandText}`}
       >
         {verified ? (
-          <IoShieldCheckmark
-            aria-hidden="true"
-            className="h-6 w-6 shrink-0 md:mt-0.5"
-          />
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white md:mt-0.5">
+            <IoShieldCheckmark
+              aria-hidden="true"
+              className="text-green h-5 w-5"
+            />
+          </span>
         ) : (
-          <IoHourglassOutline
-            aria-hidden="true"
-            className="text-gray-dark h-6 w-6 shrink-0 md:mt-0.5"
-          />
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white md:mt-0.5">
+            <IoHourglassOutline
+              aria-hidden="true"
+              className="text-gray-dark h-5 w-5"
+            />
+          </span>
         )}
         <div className="min-w-0 grow">
           <h5
@@ -300,6 +339,9 @@ const LearnerCard: React.FC<{ card: LearnerCardData }> = ({ card }) => {
           </div>
           {highlightList}
         </div>
+
+        {/* a pop-up shows it itself, so it also reaches courses with no card */}
+        {categories && <CareerPaths categories={categories} skills={skills} />}
       </div>
     </section>
   );

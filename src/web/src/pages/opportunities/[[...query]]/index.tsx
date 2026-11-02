@@ -213,6 +213,7 @@ export const getStaticProps: GetStaticProps = async (context) => {
   const opportunities_allOpportunities = await searchOpportunities(
     {
       pageNumber: 1,
+      newest: true,
       pageSize: PAGE_SIZE_MINIMUM,
       categories: null,
       countries: null,
@@ -606,6 +607,7 @@ const Opportunities: NextPageWithLayout<{
     queryFn: async () =>
       await searchOpportunities({
         pageNumber: 1,
+        newest: true,
         pageSize: PAGE_SIZE_MINIMUM,
         categories: null,
         countries: landingCountryIds,
@@ -1750,6 +1752,7 @@ const Opportunities: NextPageWithLayout<{
         ["allOpportunities", landingCacheKey, pageNumber.toString()],
         {
           pageNumber: pageNumber,
+          newest: true,
           pageSize: PAGE_SIZE_MINIMUM,
           categories: null,
           countries: landingCountryIds,

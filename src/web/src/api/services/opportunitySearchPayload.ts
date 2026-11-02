@@ -66,11 +66,12 @@ const NOT_ON_ENDPOINT: Record<
   readonly (keyof AllMembers)[]
 > = {
   youth: ["statuses", "startDate", "endDate"],
-  admin: ["publishedStates", "mostViewed", "mostCompleted"],
+  admin: ["publishedStates", "mostViewed", "mostCompleted", "newest"],
   adminCSV: [
     "publishedStates",
     "mostViewed",
     "mostCompleted",
+    "newest",
     "totalCountOnly",
   ],
 };
@@ -91,6 +92,7 @@ interface SearchInputMembers {
   valueContains?: string | null;
   mostViewed?: boolean | null;
   mostCompleted?: boolean | null;
+  newest?: boolean | null;
   totalCountOnly?: boolean;
   groups?: OpportunitySearchGroup[];
   ordering?: OpportunitySearchOrdering[];
@@ -238,6 +240,7 @@ export const toSearchFilterPayload = <E extends OpportunitySearchEndpoint>(
     valueContains: input.valueContains,
     mostViewed: input.mostViewed,
     mostCompleted: input.mostCompleted,
+    newest: input.newest,
     totalCountOnly: input.totalCountOnly,
     groups: nonEmpty(input.groups),
     ordering: nonEmpty(input.ordering),
