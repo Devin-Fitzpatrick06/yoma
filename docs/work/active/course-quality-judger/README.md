@@ -102,7 +102,9 @@ rewrite. It lives in the `CourseQuality` appsettings section with `Version`, per
 - **Courses means `Type.Learning`.** Other opportunity types are not assessed.
 - **Upfront cost is never guessed.** Yoma has no cost field. Cost comes from AI extraction with an
   evidence quote, and otherwise shows as `Unknown`. A course is never called free without evidence.
-- **Search ranking does not change in the MVP.** Courses show a verification state only.
+- **Browsing shows courses as compact learner cards, verified first.** The project lead replaced the
+  earlier "no ranking change" decision. `CourseQuality:ShowInBrowse` turns on the status, the card in
+  search results and the ranking. It is off by default and on in the demo. An explicit sort is kept.
 - **Partner notes are not emailed in the MVP.** They appear in the product. Automatic outbound
   messages to partners need separate sign-off.
 - **Learner-facing text stays factual.** A low score shows as "Not yet verified", never as an

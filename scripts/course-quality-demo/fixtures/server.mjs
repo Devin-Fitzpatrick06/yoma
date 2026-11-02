@@ -1,9 +1,8 @@
 // Stand-in course pages for the demo. Each page says that it is demo data.
-import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
+import { courses } from "../seed/courses.mjs";
 import { dayOffset, longDay } from "../seed/dates.mjs";
 
-const { courses } = JSON.parse(readFileSync(new URL("../seed/demo-courses.json", import.meta.url)));
 const base = process.env.DEMO_BASE_DATE;
 if (!base) throw new Error("DEMO_BASE_DATE is not set");
 

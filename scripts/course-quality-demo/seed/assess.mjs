@@ -1,8 +1,7 @@
 // Signs in as the seeded admin and runs the real assessment on each demo course.
 // Usage: assess.mjs [--ids id,id]   Prints one JSON line per course to stdout, progress to stderr.
-import { readFileSync } from "node:fs";
+import { courses } from "./courses.mjs";
 
-const { courses } = JSON.parse(readFileSync(new URL("./demo-courses.json", import.meta.url)));
 const api = "http://localhost:5000/api/v3";
 const idsArg = process.argv.indexOf("--ids");
 const only = idsArg > 0 ? new Set(process.argv[idsArg + 1].split(",")) : null;

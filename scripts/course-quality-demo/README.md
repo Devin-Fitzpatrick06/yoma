@@ -26,8 +26,8 @@ scripts/course-quality-demo/start.sh
 ```
 
 The first start builds the API and website, and took about 13 minutes on this Mac. Later starts
-took 1 to 2 minutes, or about 6 if much of the code had changed. When it finishes, it prints the links, the test sign-ins, and a table
-of the demo courses.
+took 1 to 2 minutes, or about 6 if much of the code had changed. When it finishes, it prints the links, the test sign-ins, and a summary
+of the 58 demo courses. Wait for this before opening the course list, because the page keeps what it first loaded for 5 minutes.
 
 To stop it and delete all demo data:
 
@@ -49,7 +49,7 @@ scripts/course-quality-demo/start.sh --fixtures
 | ---- | ----- | -------- |
 | Reviewer | `testadminuser@gmail.com` | `P@ssword12` |
 | Partner | `testorgadminuser@gmail.com` | `P@ssword12` |
-| Learner | `testuser@gmail.com` | `P@ssword12` |
+| Learner, in the United States | `testuser@gmail.com` | `P@ssword12` |
 
 These are the public local defaults from `src/api/docker-compose.yml`, not real accounts.
 
@@ -62,7 +62,8 @@ choose Log out. Each `start.sh` also signs every browser out of the previous dem
 
 ## The demo courses
 
-Each listing's summary starts with "Demo data". The address of a learner card is
+There are 58 Learning courses: the 8 named below, which the walkthrough uses, and 50 in the catalogue. Each listing's
+summary starts with "Demo data". The address of a learner card is
 `http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000` followed by the number.
 
 | No. | Course | Shows | Page |
@@ -88,25 +89,53 @@ its demo page, and the table it prints says "demo page". Demo pages carry a bann
 are stand-ins, not a provider's page. In a real-listing sample, no page confirmed its listing's
 dates, so 102 uses a demo page. No real webinar was in that sample either, so 106 does too.
 
+## The catalogue
+
+Courses 109 to 158 fill the browse page, so that it looks like real Yoma. Every one uses a demo page and is demo data.
+Providers are the Alison demo organisation and fictional organisations with "Demo" in their names.
+
+- **Categories:** all 16 have at least 3 courses. Technology, Agriculture and Business have 5 or 6.
+- **Expected results across all 58:** 35 Verified, 20 Not yet verified, 3 Not verified. 3 are paid and 5 are webinars.
+- **Sections:** 9 courses are Featured. 44 are Worldwide, 8 United States and 6 South Africa.
+- **Trending & Popular:** 12 courses have views and completions from 10 demo-only learners, who cannot sign in. The section
+  ranks by completions, with verified courses first.
+
+To change a course, edit `seed/catalogue.json`. The named courses are in `seed/demo-courses.json`. Both are read through
+`seed/courses.mjs`, which builds each page from a pattern that copies a named course. If you add one, keep to these rules:
+
+- **Titles:** no list words such as courses, classes, series, tracks, paths, topics or library, because the page then
+  reads as a catalogue. Titles must be unique.
+- **Verified with dates:** the page needs labelled start and end dates that match the listing, and an end date still ahead.
+- **Verified, self-paced:** the Alison organisation, a start date in the past, no end date, and no dates, cohorts or
+  schedule words on the page.
+- **Free:** needs the schema.org data, and no digits beside fee or cost wording.
+- **Any page:** no wording that it is closed, full or over, and no words such as "registration" or "deadline" just before
+  a date.
+
+The link checker waits between requests to one host, and almost every page is on one host, so `demo.env` shortens that
+wait to 100 ms. This belongs to the demo only.
+
 ## Five-minute walkthrough
 
-**1. Learner card (2 minutes).** Stay signed out, or use a private window.
+**1. Browse and learner card (2 minutes).** Stay signed out, or use a private window.
 
-1. Open 101. Point out "Verified by Yoma" and "Start anytime". This badge means live and matching its
+1. Open `http://localhost:3000/opportunities`. Browse the course tiles: verified courses come first, and each tile shows
+   status, time and cost. Select one to pop out the full card.
+2. Open 101. Point out "Verified by Yoma" and "Start anytime". This badge means live and matching its
    page, not that dates were confirmed.
-2. Open 102. Point out "Verified by Yoma" with start and end dates, and "Dates checked" under What
+3. Open 102. Point out "Verified by Yoma" with start and end dates, and "Dates checked" under What
    we checked. The cost shows Free.
-3. Open 104. It shows "Not yet verified" and the paid cost, EUR 100, read from the page. Open 105 to
+4. Open 104. It shows "Not yet verified" and the paid cost, EUR 100, read from the page. Open 105 to
    show "Cost not confirmed — check before you enrol". The product never guesses "free".
-4. Open 106. The listing is marked Webinar, not Course.
-5. Open 103. "Not yet verified" is factual, and makes no accusation against the partner.
+5. Open 106. The listing is marked Webinar, not Course.
+6. Open 103. "Not yet verified" is factual, and makes no accusation against the partner.
 
 **2. Reviewer queue and coverage (2 minutes).** Sign in as the reviewer and open
 `http://localhost:3000/admin/course-quality`.
 
-1. Start with the coverage boxes at the top: Total courses 8, Assessed 8, Missing or suspect dates,
+1. Start with the coverage boxes at the top: Total courses 58, Assessed 58, Missing or suspect dates,
    Course, Webinar, Unknown and Card ready.
-2. Scroll the Pending list to Solar Installation Skills Course. "Dates are accurate" says the dates on
+2. Find Solar Installation Skills Course near the top of the Pending list, which has about 20 courses, oldest first. "Dates are accurate" says the dates on
    the course page differ from the listing, so a person decides. The "Page reader" notice says no AI ran.
 3. Choose Mark Not verified. The dialog has a Format picker (Course or Webinar) and a Note. Leave
    Format as Course and choose Save decision. The course leaves Pending and becomes a partner fix note.
@@ -114,7 +143,7 @@ dates, so 102 uses a demo page. No real webinar was in that sample either, so 10
 **3. Partner fix note (1 minute).** Sign out, sign in as the partner, and open
 `http://localhost:3000/organisations/c0a7e000-0000-4000-8000-000000000001/course-quality`.
 
-1. Community Health Basics shows "Why it is held back" and "Steps to improve its visibility": its link
+1. Three courses are listed. Community Health Basics shows "Why it is held back" and "Steps to improve its visibility": its link
    returned page not found (404).
 2. Solar Installation appears here too, if you resolved it in step 2.
 3. A reviewer's note does not appear here, and the page says that notes are not emailed.
@@ -136,5 +165,6 @@ runtime on macOS cannot.
 ## Troubleshooting
 
 - **Something failed:** run `stop.sh`, then `start.sh`. Logs are in `scripts/course-quality-demo/.logs/`.
-- **A table row says "NOT AS EXPECTED":** check that course before presenting it.
+- **A row says "NOT AS EXPECTED":** check that course before presenting it. The summary lists only the named courses and
+  any that missed.
 - **Port in use:** the message names the app. Quit it and start again.

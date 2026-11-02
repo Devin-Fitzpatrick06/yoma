@@ -1,12 +1,17 @@
 {
   "organizations": [
     { "key": "partner", "id": "c0a7e000-0000-4000-8000-000000000001", "name": "Demo Learning Partner", "tagline": "Demo data for the Course Quality prototype" },
-    { "key": "alison", "id": "c0a7e000-0000-4000-8000-000000000002", "name": "Alison Learning", "tagline": "Demo record for the Course Quality prototype" }
+    { "key": "alison", "id": "c0a7e000-0000-4000-8000-000000000002", "name": "Alison Learning", "tagline": "Demo record for the Course Quality prototype" },
+    { "key": "green", "id": "c0a7e000-0000-4000-8000-000000000003", "name": "Demo Green Futures Academy", "tagline": "Fictional organisation: demo data for the Course Quality prototype" },
+    { "key": "digital", "id": "c0a7e000-0000-4000-8000-000000000004", "name": "Demo Digital Skills Hub", "tagline": "Fictional organisation: demo data for the Course Quality prototype" },
+    { "key": "community", "id": "c0a7e000-0000-4000-8000-000000000005", "name": "Demo Community College", "tagline": "Fictional organisation: demo data for the Course Quality prototype" }
   ],
   "courses": [
     {
       "id": "c0a7e000-0000-4000-8000-000000000101",
       "shows": "Verified, self-paced",
+      "category": "Health, Safety & Wellbeing",
+      "summary": "Demo data: Keep your bike safe and roadworthy with simple checks and repairs.",
       "organization": "alison",
       "provider": "Alison Learning",
       "title": "Bike Safety and Maintenance Essentials",
@@ -22,6 +27,8 @@
     {
       "id": "c0a7e000-0000-4000-8000-000000000102",
       "shows": "Verified, dates confirmed",
+      "category": "Business, Finance & Marketing",
+      "summary": "Demo data: Plan and run simple online campaigns with mentor support.",
       "organization": "partner",
       "title": "Digital Marketing Foundations Cohort Course",
       "fixture": "digital-marketing-cohort",
@@ -35,6 +42,8 @@
     {
       "id": "c0a7e000-0000-4000-8000-000000000103",
       "shows": "Not yet verified",
+      "category": "Agriculture, Food, Environment and Climate",
+      "summary": "Demo data: See how open map data helps communities prepare for climate risks.",
       "organization": "partner",
       "provider": "Humanitarian OpenStreetMap Team",
       "title": "Introduction to Open Mapping for Climate Action",
@@ -44,12 +53,16 @@
       "startOffsetDays": -200,
       "endOffsetDays": null,
       "commitment": [1, "Hour"],
+      "views": 4,
+      "completions": 1,
       "expect": { "status": "NeedsReview" },
       "page": ["About the course: learn how open map data supports communities preparing for climate risks.", "This course is free.", "It explains what open mapping is, who uses it and how you can take part from your phone or computer."]
     },
     {
       "id": "c0a7e000-0000-4000-8000-000000000104",
       "shows": "Paid cost",
+      "category": "Personal Development & Career Readiness",
+      "summary": "Demo data: Find the mission you want to work on, with a coach and peers.",
       "organization": "partner",
       "provider": "Tomorrow University of Applied Sciences",
       "title": "Tomorrow University - Mission Identification",
@@ -64,6 +77,8 @@
     {
       "id": "c0a7e000-0000-4000-8000-000000000105",
       "shows": "Unknown cost",
+      "category": "Agriculture, Food, Environment and Climate",
+      "summary": "Demo data: Use satellite images to watch forests, wetlands and coasts change.",
       "organization": "partner",
       "provider": "Geoversity",
       "title": "Earth Observation for Ecosystem Conservation",
@@ -78,6 +93,8 @@
     {
       "id": "c0a7e000-0000-4000-8000-000000000106",
       "shows": "Webinar",
+      "category": "Personal Development & Career Readiness",
+      "summary": "Demo data: Get live advice on CVs, interviews and first jobs.",
       "organization": "partner",
       "title": "Career Readiness Live Webinar",
       "fixture": "career-webinar",
@@ -91,6 +108,8 @@
     {
       "id": "c0a7e000-0000-4000-8000-000000000107",
       "shows": "Not verified, with a fix note",
+      "category": "Health, Safety & Wellbeing",
+      "summary": "Demo data: Learn the basics of keeping your community healthy.",
       "organization": "partner",
       "title": "Community Health Basics Course",
       "fixture": "community-health-gone",
@@ -103,6 +122,8 @@
     {
       "id": "c0a7e000-0000-4000-8000-000000000108",
       "shows": "Pending review: page dates differ",
+      "category": "Engineering, Science & Mathematics",
+      "summary": "Demo data: Build practical skills for installing small solar systems.",
       "organization": "partner",
       "title": "Solar Installation Skills Course",
       "fixture": "solar-installation",

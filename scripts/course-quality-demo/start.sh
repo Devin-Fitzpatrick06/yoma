@@ -135,7 +135,7 @@ printf '\n=========================================================\n'
 printf ' Course Quality demo is running (took %dm %02ds)\n' $((SECONDS / 60)) $((SECONDS % 60))
 printf '=========================================================\n\n'
 printf '  Course list:      %s/opportunities\n' "$web"
-printf '  Learner cards:    %s/opportunities/c0a7e000-0000-4000-8000-000000000101  (ids end 101 to 108)\n' "$web"
+printf '  Learner cards:    %s/opportunities/c0a7e000-0000-4000-8000-000000000101  (the named courses end 101 to 108)\n' "$web"
 printf '  Reviewer queue:   %s/admin/course-quality\n' "$web"
 printf '  Partner fix notes: %s/organisations/%s/course-quality\n' "$web" "$ORG_ID"
 printf '\nLocal test sign-ins, the public seed defaults from src/api/docker-compose.yml:\n'
