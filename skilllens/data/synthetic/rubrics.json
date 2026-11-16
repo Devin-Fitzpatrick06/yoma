@@ -1,0 +1,89 @@
+{
+  "note": "SYNTHETIC PLACEHOLDER. Educators: replace with approved rubrics (3-4 criteria, scored 1-4). Pidgin text needs native-speaker review.",
+  "items": [
+    {
+      "id": "fl-rubric",
+      "courseId": "financial-literacy",
+      "criteria": [
+        {
+          "id": "cause",
+          "name": { "en": "Names the problem", "pcm": "Talk the wahala" },
+          "levels": [
+            "Does not name the problem",
+            "Names the problem vaguely",
+            "Names the main cause",
+            "Names the cause and explains how it affects money"
+          ],
+          "strength": { "en": "You clearly explained what is causing the problem.", "pcm": "You explain well wetin dey cause the wahala." },
+          "improve": { "en": "Start by saying what is causing the problem, in one sentence.", "pcm": "First talk wetin dey cause the wahala, for one sentence." }
+        },
+        {
+          "id": "action",
+          "name": { "en": "Practical change", "pcm": "Correct change" },
+          "levels": [
+            "No change suggested",
+            "A general idea with no clear step",
+            "One concrete step",
+            "Concrete steps that fit the local situation"
+          ],
+          "strength": { "en": "Your plan has clear steps someone could really do.", "pcm": "Your plan get clear steps wey person fit really do." },
+          "improve": { "en": "Add one specific step: what will they do, and when?", "pcm": "Add one clear step: wetin dem go do, and when?" }
+        },
+        {
+          "id": "numbers",
+          "name": { "en": "Uses money reasoning", "pcm": "Use money calculation" },
+          "levels": [
+            "No numbers or money reasoning",
+            "Mentions money without working it out",
+            "Uses a simple calculation",
+            "Compares options using numbers"
+          ],
+          "strength": { "en": "You used numbers to back up your idea.", "pcm": "You use number take support your idea." },
+          "improve": { "en": "Use a number: for example, how much money is earned, saved or lost?", "pcm": "Use number: like how much money dem go make, save or lose?" }
+        }
+      ]
+    },
+    {
+      "id": "jr-rubric",
+      "courseId": "job-readiness",
+      "criteria": [
+        {
+          "id": "understanding",
+          "name": { "en": "Understands the situation", "pcm": "Understand the matter" },
+          "levels": [
+            "Misreads or ignores the situation",
+            "Notices the situation but not why it matters",
+            "Explains what the other person needs",
+            "Explains what the other person needs and why"
+          ],
+          "strength": { "en": "You understood what the employer or customer needs.", "pcm": "You understand wetin the oga or customer need." },
+          "improve": { "en": "Think about what the other person needs, and say it.", "pcm": "Think wetin the other person need, then talk am." }
+        },
+        {
+          "id": "steps",
+          "name": { "en": "Clear next steps", "pcm": "Clear next steps" },
+          "levels": [
+            "No useful step, or a harmful one",
+            "A general intention",
+            "One clear, useful step",
+            "Several clear steps in a sensible order"
+          ],
+          "strength": { "en": "You listed clear steps in a sensible order.", "pcm": "You list clear steps one by one." },
+          "improve": { "en": "Write your steps in order: first, then, finally.", "pcm": "Arrange your steps: first, after, last." }
+        },
+        {
+          "id": "communication",
+          "name": { "en": "Respectful, professional tone", "pcm": "Respect and professional talk" },
+          "levels": [
+            "No communication, or rude",
+            "A general instruction like 'be nice'",
+            "Describes polite communication",
+            "Shows the exact polite words to use"
+          ],
+          "strength": { "en": "Your words are polite and professional.", "pcm": "Your talk get respect and e professional." },
+          "improve": { "en": "Show the exact polite words you would say or text.", "pcm": "Show the exact polite words wey you go talk or text." }
+        }
+      ]
+    }
+  ]
+}

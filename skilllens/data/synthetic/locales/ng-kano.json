@@ -1,0 +1,20 @@
+{
+  "note": "SYNTHETIC PLACEHOLDER local details for the Nigeria demo. Every list has the same length and is index-aligned (item[i] goes with unit[i] and price[i]). Prices are illustrative, not current market prices.",
+  "id": "ng-kano",
+  "city": "Kano",
+  "slots": {
+    "name": ["Amina", "Musa", "Hauwa", "Ibrahim", "Zainab"],
+    "item": ["tomatoes", "peppers", "onions", "oranges", "groundnuts"],
+    "unit": ["basket", "basket", "bag", "bucket", "bag"],
+    "price": ["₦500", "₦800", "₦1,200", "₦600", "₦900"],
+    "wage": ["₦5,000", "₦7,000", "₦6,000", "₦8,000", "₦4,500"],
+    "job": ["washing cars", "selling recharge cards", "tailoring", "delivering food", "braiding hair"],
+    "snack": ["puff-puff", "kosai", "chin-chin", "meat pie", "masa"],
+    "snackPrice": ["₦50", "₦100", "₦50", "₦300", "₦100"],
+    "loan": ["₦20,000", "₦15,000", "₦30,000", "₦10,000", "₦25,000"],
+    "repay": ["₦30,000", "₦22,000", "₦45,000", "₦15,000", "₦37,000"],
+    "employer": ["a supermarket", "a phone shop", "a pharmacy", "a restaurant", "a tailoring shop"],
+    "role": ["sales assistant", "shop attendant", "cashier", "waiter", "apprentice"],
+    "fee": ["₦5,000", "₦3,000", "₦10,000", "₦2,000", "₦7,500"]
+  }
+}

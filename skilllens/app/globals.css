@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* P2E look (Passport to Earning site): blue #0a59a7, yellow #ffcb03, light-blue tints, Oswald headings, Jost body,
+   pill buttons with round icons, rounded cards. All brand values live here so a Yoma theme is a swap of this block. */
+@theme {
+  --color-brand: #0a59a7; /* P2E blue: white text on it is 7.0:1 */
+  --color-brand-mid: #5283be; /* P2E wave tint: decoration only */
+  --color-brand-soft: #abc2df; /* P2E wave tint: decoration only */
+  --color-brand-tint: #eaf1f9; /* card background: brand text on it is 6.1:1 */
+  --color-yellow: #ffcb03; /* P2E accent: brand text on it is 4.6:1; never white text on yellow */
+  --color-surface: #f5f7fb;
+  --color-ink: #1f2937; /* body text: 14.7:1 on white */
+  --color-coral: #c2410c; /* safety/error accent: 5.2:1 on white */
+  --font-heading: var(--font-oswald), "Arial Narrow", sans-serif;
+  --font-sans: var(--font-jost), -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Large tap targets for cheap phones; pill shape like P2E's "Go to Courses". */
+@utility btn {
+  @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brand px-6 font-heading text-lg tracking-wide text-white shadow-sm transition hover:brightness-110 disabled:opacity-50;
+}
+@utility btn-secondary {
+  @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-brand bg-white px-6 font-heading text-lg tracking-wide text-brand transition hover:bg-brand-tint disabled:opacity-50;
+}
+@utility btn-yellow {
+  @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-yellow px-6 font-heading text-lg tracking-wide text-brand shadow-sm transition hover:brightness-105 disabled:opacity-50;
+}
+@utility card {
+  @apply rounded-2xl bg-surface p-4;
+}
+@utility card-brand {
+  @apply rounded-2xl bg-brand-tint p-4;
+}
+@utility card-yellow {
+  @apply rounded-2xl border-2 border-yellow bg-yellow/15 p-4;
+}
+@utility card-alert {
+  @apply rounded-2xl border-2 border-coral/40 bg-coral/5 p-4;
+}
+@utility chip {
+  @apply rounded-full bg-brand-tint px-3 py-1 text-sm font-medium text-brand;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  letter-spacing: 0.01em;
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-brand); /* 7.0:1 on white; yellow would fail 3:1 */
+  outline-offset: 2px;
+}

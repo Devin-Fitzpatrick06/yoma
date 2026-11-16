@@ -1,0 +1,45 @@
+{
+  "note": "SYNTHETIC PLACEHOLDER. Answer fragments used by scripts/generate-samples.ts to build scored sample answers. For each template and criterion there are 4 fragments, for scores 1-4. Replace the generated samples with real educator-scored answers when available.",
+  "items": {
+    "fl-rainy-sales": {
+      "cause": ["I don't know.", "Rain is bad for business.", "Fewer people come to the market when it rains, so {name} sells fewer {item}.", "When it rains, customers stay home and the {item} spoil before {name} can sell them, so she loses money on unsold stock."],
+      "action": ["She should pray.", "She should try something different.", "{name} can buy fewer {item} on days when rain is forecast.", "{name} can check the weather each morning, buy smaller stock on rainy days, and take WhatsApp orders so regular customers can still buy."],
+      "numbers": ["", "She will lose money.", "If she sells 4 fewer baskets at {price}, she loses ₦2,000 that day.", "Buying 6 baskets instead of 10 on a rainy day means less waste, so even selling at {price} she keeps more profit than throwing away 4 spoiled baskets."]
+    },
+    "fl-weekly-saving": {
+      "cause": ["Money finishes.", "{name} spends too much.", "{name} spends small amounts every day without tracking them, so the money from {job} disappears.", "{name} has no plan for the {wage} each week, so small daily spending on snacks and data uses it all before month end."],
+      "action": ["Save money.", "{name} should spend less.", "{name} can put some money aside on the day she is paid.", "On payday {name} can put money in a separate savings box or a mobile wallet first, then plan spending for the rest of the week."],
+      "numbers": ["", "Saving even a little helps.", "Saving ₦1,000 from {wage} each week gives ₦4,000 in a month.", "If {name} saves ₦1,000 of {wage} weekly, that is ₦4,000 a month, and cutting ₦200 a day on snacks would add about ₦6,000 more."]
+    },
+    "fl-ingredient-costs": {
+      "cause": ["Prices.", "Things are costly now.", "The ingredients cost more, so {name} makes less profit on each {snack}.", "Flour and oil now cost more, so at {snackPrice} each {name} may be selling {snack} for almost what it costs to make."],
+      "action": ["Stop selling.", "{name} should change something about the price.", "{name} can raise the price a little or make each {snack} slightly smaller.", "{name} can buy flour and oil in bulk with another seller to get a better price, and tell regular customers early before a small price rise."],
+      "numbers": ["", "She needs more money per {snack}.", "If each {snack} now costs ₦40 to make, selling at {snackPrice} leaves only ₦10 profit.", "Costs went from ₦30 to ₦40, so profit fell from ₦20 to ₦10; selling at ₦60 brings profit back to ₦20 per {snack}."]
+    },
+    "fl-loan-offer": {
+      "cause": ["Loan is good.", "Loans can be risky.", "The friend wants back more than {name} borrowed, so the loan has a high cost.", "{name} must repay {repay} for a {loan} loan in one month, which is a very high cost, and if sales are slow she could fall into debt."],
+      "action": ["Take it.", "{name} should think about it.", "{name} should only take it if she is sure she can sell enough to repay.", "{name} should work out expected sales first, ask for a smaller loan or longer time, or save for a few weeks instead."],
+      "numbers": ["", "She will pay back more money.", "She pays back {repay} for {loan}, which is ₦10,000 extra.", "Paying ₦10,000 extra on {loan} in one month is 50% interest, so the new stock must make more than ₦10,000 profit just to break even."]
+    },
+    "jr-interview-prep": {
+      "understanding": ["Go there.", "Interviews are important.", "{employer} wants a {role} who is reliable and good with customers.", "{employer} will want to see that {name} is on time, friendly with customers and can handle money carefully as a {role}."],
+      "steps": ["Just go.", "{name} should get ready.", "{name} can choose clean clothes tonight and plan the route to arrive early.", "First, {name} can learn what {employer} sells; then practise answers with a friend; finally, prepare clothes and leave 30 minutes early."],
+      "communication": ["", "Be nice.", "{name} should greet the interviewer politely and say thank you.", "{name} can say, 'Good morning, thank you for inviting me. I am excited to work with your customers.'"]
+    },
+    "jr-late-first-day": {
+      "understanding": ["Traffic happens.", "Being late is bad.", "The manager at {employer} expects {name} on time and will worry if she does not come.", "On the first day, the manager at {employer} is planning the shift, so being late without warning looks unreliable."],
+      "steps": ["Do nothing.", "{name} should hurry.", "{name} should call or text the manager before the start time.", "First, {name} should message the manager now; then share the arrival time; finally, apologise in person and plan to leave earlier tomorrow."],
+      "communication": ["", "Say sorry.", "{name} should politely explain the traffic and apologise.", "{name} can text, 'Good morning sir, I am sorry, I am stuck in traffic and will arrive by 8:30. I will leave earlier from tomorrow.'"]
+    },
+    "jr-angry-customer": {
+      "understanding": ["Customer is wrong.", "The customer is upset.", "The customer is upset because they did not get what they paid for.", "The customer paid for something and got the wrong thing, so they want the problem fixed quickly and to feel respected."],
+      "steps": ["Ignore them.", "{name} should help the customer.", "{name} should check the order and replace the wrong item.", "First, {name} should listen without arguing; then check the receipt; finally, replace the item or call the manager if needed."],
+      "communication": ["", "Talk calmly.", "{name} should stay calm and apologise to the customer.", "{name} can say, 'I am very sorry about this. Let me fix your order for you right now.'"]
+    },
+    "jr-fee-scam": {
+      "understanding": ["It is a job.", "The advert seems strange.", "Real employers do not ask people to pay to apply, so this may be a scam.", "Asking {fee} to apply is a common scam sign; real employers like {employer} do not charge applicants."],
+      "steps": ["Pay the fee.", "{name} should be careful.", "{name} should not pay and should check with {employer} directly.", "First, {name} should not send money; then visit or call {employer} to check; finally, warn friends and report the advert."],
+      "communication": ["", "Tell people.", "{name} should politely ask {employer} if the advert is real.", "{name} can ask, 'Good afternoon, I saw a {role} advert asking for {fee}. Is this from your company?'"]
+    }
+  }
+}

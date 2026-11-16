@@ -1,0 +1,42 @@
+{
+  "name": "skilllens",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint",
+    "seed": "tsx scripts/generate-samples.ts",
+    "test": "vitest run",
+    "eval": "tsx --env-file-if-exists=.env.local scripts/eval.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm test && npm run eval:mock && npm run build",
+    "yoma:sync": "tsx scripts/yoma-sync.ts",
+    "scenarios": "tsx --env-file-if-exists=.env.local scripts/scenarios.ts",
+    "setup": "tsx scripts/setup.ts",
+    "eval:mock": "AI_PROVIDER=mock CONTENT_SAFETY_PROVIDER=stub tsx scripts/eval.ts"
+  },
+  "dependencies": {
+    "next": "15.5.28",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.28",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^3.2.7"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

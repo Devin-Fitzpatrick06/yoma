@@ -1,0 +1,77 @@
+{
+  "note": "SYNTHETIC PLACEHOLDER challenge templates. Educators approve these; the AI only fills the {slots} with local details from data/synthetic/locales. Pidgin text needs native-speaker review.",
+  "items": [
+    {
+      "id": "fl-rainy-sales",
+      "courseId": "financial-literacy",
+      "rubricId": "fl-rubric",
+      "text": {
+        "en": "{name} sells {item} in {city} for {price} a {unit}. Sales drop on rainy days. What should {name} change?",
+        "pcm": "{name} dey sell {item} for {city}, {price} for one {unit}. When rain fall, market no dey move. Wetin {name} suppose change?"
+      }
+    },
+    {
+      "id": "fl-weekly-saving",
+      "courseId": "financial-literacy",
+      "rubricId": "fl-rubric",
+      "text": {
+        "en": "{name} earns {wage} a week from {job} in {city}. By the end of the month, nothing is left. How can {name} start saving?",
+        "pcm": "{name} dey make {wage} every week from {job} for {city}. Before month end, money don finish. How {name} fit start to save?"
+      }
+    },
+    {
+      "id": "fl-ingredient-costs",
+      "courseId": "financial-literacy",
+      "rubricId": "fl-rubric",
+      "text": {
+        "en": "{name} makes {snack} in {city} and sells each one for {snackPrice}. This month the ingredients cost more. What should {name} do?",
+        "pcm": "{name} dey make {snack} for {city}, e dey sell one for {snackPrice}. This month, the things wey dem take make am don cost pass before. Wetin {name} go do?"
+      }
+    },
+    {
+      "id": "fl-loan-offer",
+      "courseId": "financial-literacy",
+      "rubricId": "fl-rubric",
+      "text": {
+        "en": "A friend in {city} offers {name} a loan of {loan} to buy more stock, but wants {repay} back after one month. Should {name} take it? Explain why.",
+        "pcm": "{name} friend for {city} wan borrow am {loan} make e buy more market, but e wan collect {repay} back after one month. {name} suppose collect am? Talk why."
+      }
+    },
+    {
+      "id": "jr-interview-prep",
+      "courseId": "job-readiness",
+      "rubricId": "jr-rubric",
+      "text": {
+        "en": "{name} has an interview tomorrow for a {role} job at {employer} in {city}. What should {name} do to prepare?",
+        "pcm": "{name} get interview tomorrow for {role} work for {employer} for {city}. Wetin {name} go do to prepare?"
+      }
+    },
+    {
+      "id": "jr-late-first-day",
+      "courseId": "job-readiness",
+      "rubricId": "jr-rubric",
+      "text": {
+        "en": "It is {name}'s first day as a {role} at {employer} in {city}. Traffic means {name} will be 30 minutes late. What should {name} do?",
+        "pcm": "Today na {name} first day as {role} for {employer} for {city}. Go-slow go make {name} late reach by 30 minutes. Wetin {name} suppose do?"
+      }
+    },
+    {
+      "id": "jr-angry-customer",
+      "courseId": "job-readiness",
+      "rubricId": "jr-rubric",
+      "text": {
+        "en": "{name} works as a {role} at {employer} in {city}. A customer is angry because their order is wrong. How should {name} respond?",
+        "pcm": "{name} dey work as {role} for {employer} for {city}. One customer vex because dem give am wrong thing. How {name} go take handle am?"
+      }
+    },
+    {
+      "id": "jr-fee-scam",
+      "courseId": "job-readiness",
+      "rubricId": "jr-rubric",
+      "text": {
+        "en": "{name} in {city} sees a WhatsApp advert for a {role} job at {employer}. It asks for {fee} to apply. What should {name} do?",
+        "pcm": "{name} for {city} see advert for WhatsApp say {employer} need {role}. Dem say make person pay {fee} before e apply. Wetin {name} go do?"
+      }
+    }
+  ]
+}

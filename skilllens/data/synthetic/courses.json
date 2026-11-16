@@ -1,0 +1,23 @@
+{
+  "note": "SYNTHETIC PLACEHOLDER. Not real P2E content. Educators: replace with the real course learning objectives. Pidgin text needs native-speaker review.",
+  "items": [
+    {
+      "id": "financial-literacy",
+      "title": { "en": "Financial Literacy", "pcm": "How to Manage Money" },
+      "objectives": [
+        { "en": "Explain what causes a drop in income or profit.", "pcm": "Explain wetin dey make money or profit reduce." },
+        { "en": "Plan simple, practical changes to a small business or budget.", "pcm": "Plan small, correct changes for business or budget." },
+        { "en": "Use basic calculations to compare money choices.", "pcm": "Use simple calculation take compare money choices." }
+      ]
+    },
+    {
+      "id": "job-readiness",
+      "title": { "en": "Job Readiness", "pcm": "Ready for Work" },
+      "objectives": [
+        { "en": "Understand what employers and customers expect.", "pcm": "Understand wetin oga and customers dey expect." },
+        { "en": "Plan clear next steps in workplace situations.", "pcm": "Plan clear next steps for work matter." },
+        { "en": "Communicate politely and professionally.", "pcm": "Talk with respect and professional way." }
+      ]
+    }
+  ]
+}

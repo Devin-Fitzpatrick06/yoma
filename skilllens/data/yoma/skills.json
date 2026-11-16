@@ -1,0 +1,38 @@
+{
+  "source": "https://v3api.stage.yoma.world/api/v3",
+  "fetchedAt": "2026-11-16",
+  "skills": [
+    {
+      "id": "fef70fbe-c48b-4c6e-80c0-c20d80503e51",
+      "name": "Budgeting"
+    },
+    {
+      "id": "98c0322f-54c5-4094-ad9e-44bd17f3e293",
+      "name": "Business Planning"
+    },
+    {
+      "id": "88d92269-800e-442a-9474-8762d3dcd363",
+      "name": "Customer Service"
+    },
+    {
+      "id": "075168d9-27b0-4035-995c-18326b0436c5",
+      "name": "Decision Making"
+    },
+    {
+      "id": "e2fc4e8b-d6c5-4f5a-be08-4410289b77bb",
+      "name": "Financial Literacy"
+    },
+    {
+      "id": "7860aacb-cbba-4c0b-8cad-8dc824375961",
+      "name": "Problem Solving"
+    },
+    {
+      "id": "c4ff7fc2-5034-49ee-b68c-4cceaeeb629d",
+      "name": "Professionalism"
+    },
+    {
+      "id": "1ff6d173-f2a8-475b-9696-f22bb2f54e99",
+      "name": "Written Communication"
+    }
+  ]
+}
