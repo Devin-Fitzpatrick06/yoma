@@ -106,7 +106,7 @@ const CourseFeedbackSummaryPanel: React.FC<{
   return (
     <section
       aria-labelledby={headingId}
-      className="border-gray flex flex-col gap-3 rounded-lg border bg-white p-3 md:p-4"
+      className="border-gray @container flex flex-col gap-3 rounded-lg border bg-white p-3 md:p-4"
     >
       <h4 id={headingId} className="text-sm font-semibold text-black">
         What learners said
@@ -116,7 +116,7 @@ const CourseFeedbackSummaryPanel: React.FC<{
         <p className="text-gray-dark text-sm">No learner answers yet</p>
       ) : (
         <>
-          <dl className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          <dl className="grid grid-cols-2 gap-2 @lg:grid-cols-4">
             <Stat label="Answers" value={view.responses} />
             <Stat
               label="Average rating"
@@ -147,12 +147,12 @@ const CourseFeedbackSummaryPanel: React.FC<{
             />
           </dl>
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-3 @md:grid-cols-2">
             <Split label="Would recommend it" split={view.recommend} />
             <Split label="Matched what Yoma said" split={view.matched} />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 @md:grid-cols-2">
             <TagBars
               title="What was good"
               tags={view.good}

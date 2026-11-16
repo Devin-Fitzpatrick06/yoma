@@ -16,7 +16,6 @@ import {
 } from "react";
 import {
   IoArrowBack,
-  IoArrowForward,
   IoCheckmarkCircle,
   IoCloseCircle,
   IoEllipseOutline,
@@ -28,7 +27,6 @@ import { toast } from "react-toastify";
 import type {
   CourseQualityAssessment,
   CourseQualityCriterionResult,
-  PartnerFixNote,
 } from "~/api/models/courseQuality";
 import {
   searchCourseQualityReviews,
@@ -42,8 +40,8 @@ import {
 import CourseFeedbackLazySummary from "~/components/CourseQuality/CourseFeedbackLazySummary";
 import CourseFeedbackSummaryPanel from "~/components/CourseQuality/CourseFeedbackSummaryPanel";
 import { STICKY_ACTION_BAR } from "~/components/CourseQuality/DemoViewSwitcher";
-import FixNoteCard from "~/components/CourseQuality/FixNoteCard";
 import GradeBreakdown, {
+  GradeCaps,
   WAITING_FOR_REVIEW_TEXT,
 } from "~/components/CourseQuality/GradeBreakdown";
 import GradeChip from "~/components/CourseQuality/GradeChip";
@@ -60,7 +58,6 @@ import {
   STATUS_LABELS,
 } from "~/components/CourseQuality/reviewLabels";
 import MainLayout from "~/components/Layout/Main";
-import LearnerCard from "~/components/Opportunity/LearnerCard";
 import { ApiErrors } from "~/components/Status/ApiErrors";
 import { InternalServerError } from "~/components/Status/InternalServerError";
 import { Unauthenticated } from "~/components/Status/Unauthenticated";
@@ -109,21 +106,6 @@ const CHECK_RESULT_STYLES: Record<
   Partly: { Icon: IoRemoveCircle, className: "text-yellow" },
   Fail: { Icon: IoCloseCircle, className: "text-orange" },
 };
-
-/** What the partner would read if the course were marked Not verified. */
-const previewFixNote = (item: CourseQualityAssessment): PartnerFixNote => ({
-  assessmentId: item.id,
-  opportunityId: item.opportunityId,
-  opportunityTitle: item.opportunityTitle,
-  status: "NotVerified",
-  score: item.score,
-  summary:
-    "Preview only. The partner's note is written when the course is marked Not verified.",
-  issues: item.criteria.filter(
-    (result) => result.hardGateFailed || result.score < 100,
-  ),
-  dateAssessed: item.dateAssessed,
-});
 
 const Section: React.FC<{
   title: string;
@@ -260,7 +242,8 @@ const ReviewCard: React.FC<{
         </nav>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      {/* left to right: why it's here, the grade, and what holds it back with what learners said */}
+      <div className="grid gap-6 lg:grid-cols-3">
         <div className="flex min-w-0 flex-col gap-6">
           {/* WHY IT'S HERE */}
           <Section title="Why it's here">
@@ -366,8 +349,14 @@ const ReviewCard: React.FC<{
             <GradeBreakdown
               grade={grade}
               waitingForReview={item.status === "NeedsReview"}
+              showCaps={false}
             />
           </Section>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-6">
+          {/* WHY IT HAS NO GRADE, or what held it down */}
+          <GradeCaps grade={grade} standalone={true} />
 
           {/* LEARNER FEEDBACK: the search carries it; otherwise fetch it */}
           {item.feedback ? (
@@ -382,61 +371,6 @@ const ReviewCard: React.FC<{
             />
           )}
         </div>
-      </div>
-
-      {/* WHAT EACH SIDE SEES */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Section
-          title="What the learner sees"
-          aside={
-            <Link
-              href={learnerHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-theme text-xs font-semibold hover:underline"
-            >
-              Open
-              <span className="sr-only"> the learner page (new tab)</span>
-            </Link>
-          }
-        >
-          <div className="bg-gray-light -mt-2 min-w-0 rounded-2xl px-2 pb-2 md:px-3 md:pb-3">
-            <LearnerCard card={item.learnerCard} />
-          </div>
-        </Section>
-        <Section
-          title="What the partner sees"
-          aside={
-            <Link
-              href={partnerHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-theme text-xs font-semibold hover:underline"
-            >
-              Open
-              <span className="sr-only"> the partner page (new tab)</span>
-            </Link>
-          }
-        >
-          {item.fixNote ? (
-            <FixNoteCard
-              note={item.fixNote}
-              className="border-gray border shadow-none"
-            />
-          ) : (
-            <div className="flex flex-col gap-2">
-              <p className="text-gray-dark text-sm">
-                No note yet: while it waits for review the course shows as
-                &ldquo;Being reviewed&rdquo;. If you mark it Not verified, the
-                partner reads:
-              </p>
-              <FixNoteCard
-                note={previewFixNote(item)}
-                className="border-gray border opacity-90 shadow-none"
-              />
-            </div>
-          )}
-        </Section>
       </div>
     </article>
   );
@@ -463,7 +397,6 @@ const ShortcutHelp: React.FC<{ onClose: () => void }> = ({ onClose }) => (
         ["V", "Verify"],
         ["N", "Not verified"],
         ["S", "Skip"],
-        ["←  →", "Previous and next course"],
         ["?", "Show or hide this list"],
       ].map(([key, label]) => (
         <div key={key} className="contents">
@@ -763,16 +696,26 @@ const CourseQualityReviewMode: NextPageWithLayout<{ error?: number }> = ({
     },
   });
 
+  // one click decides and the next course slides in; the dialog only opens when Verified still
+  // needs a format, which the API requires
+  const { mutate: submitDecision, isPending: isDeciding } = decisionMutation;
   const decide = useCallback(
     (target: FinalStatus) => {
-      if (!current || isDecided(outcomes[current.id])) return;
+      if (!current || isDeciding || isDecided(outcomes[current.id])) return;
       setShowHelp(false);
-      setDecision({ item: current, target });
+      if (target === "Verified" && current.learnerCard.format === "Unknown")
+        setDecision({ item: current, target });
+      else
+        submitDecision({
+          item: current,
+          target,
+          input: { format: null, note: null },
+        });
     },
-    [current, outcomes],
+    [current, outcomes, isDeciding, submitDecision],
   );
 
-  // KEYBOARD: V, N, S, arrows, ?
+  // KEYBOARD: V, N, S, ?
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
@@ -797,12 +740,6 @@ const CourseQualityReviewMode: NextPageWithLayout<{ error?: number }> = ({
         case "S":
           skip();
           break;
-        case "ArrowRight":
-          if (index < items.length) goTo(index + 1);
-          break;
-        case "ArrowLeft":
-          if (index > 0) goTo(index - 1);
-          break;
         case "?":
           setShowHelp((shown) => !shown);
           break;
@@ -816,7 +753,7 @@ const CourseQualityReviewMode: NextPageWithLayout<{ error?: number }> = ({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [decision, decide, skip, goTo, index, items.length]);
+  }, [decision, decide, skip]);
 
   const searchErrorStatus = axios.isAxiosError(searchError)
     ? searchError.response?.status
@@ -850,7 +787,7 @@ const CourseQualityReviewMode: NextPageWithLayout<{ error?: number }> = ({
         }}
       />
 
-      <div className="container mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-24 pb-6">
+      <div className="container mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 pt-24 pb-6">
         {/* PROGRESS */}
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -930,11 +867,6 @@ const CourseQualityReviewMode: NextPageWithLayout<{ error?: number }> = ({
                   : "motion-safe:animate-slide-in-left"
               }`}
             >
-              {currentOutcome && isDecided(currentOutcome) && (
-                <p className="bg-blue-light mb-3 rounded-lg px-3 py-2 text-sm">
-                  You marked this course {OUTCOME_LABELS[currentOutcome]}.
-                </p>
-              )}
               <ReviewCard item={current} headingRef={headingRef} />
             </div>
           </div>
@@ -969,23 +901,6 @@ const CourseQualityReviewMode: NextPageWithLayout<{ error?: number }> = ({
             className={`sticky ${STICKY_ACTION_BAR} z-30 -mx-1 flex flex-col gap-2 rounded-2xl bg-white/95 p-2 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between`}
           >
             <div className="flex items-center justify-between gap-2 sm:justify-start">
-              <button
-                type="button"
-                className="btn btn-sm btn-circle bg-gray-light text-gray-dark border-none"
-                aria-label="Previous course"
-                disabled={index === 0}
-                onClick={() => goTo(index - 1)}
-              >
-                <IoArrowBack aria-hidden="true" className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm btn-circle bg-gray-light text-gray-dark border-none"
-                aria-label="Next course"
-                onClick={() => goTo(index + 1)}
-              >
-                <IoArrowForward aria-hidden="true" className="h-4 w-4" />
-              </button>
               <div className="relative">
                 <button
                   type="button"

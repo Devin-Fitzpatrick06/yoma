@@ -20,7 +20,9 @@ const GradeBreakdown: React.FC<{
   grade: CourseGradeResult | null;
   /** The course is waiting for review: an ungraded or missing grade is explained by that. */
   waitingForReview?: boolean;
-}> = ({ grade, waitingForReview = false }) => {
+  /** False when the page shows the caps elsewhere, with GradeCaps. */
+  showCaps?: boolean;
+}> = ({ grade, waitingForReview = false, showCaps = true }) => {
   if (!grade)
     return (
       <p className="bg-gray-light text-gray-dark rounded-lg px-3 py-2 text-sm">
@@ -96,25 +98,47 @@ const GradeBreakdown: React.FC<{
         ))}
       </ul>
 
-      {grade.caps.length > 0 && (
-        <div className="bg-yellow-tint flex flex-col gap-1 rounded-lg px-3 py-2">
-          <h5 className="text-sm font-semibold">
-            {ungraded ? "Why it has no grade" : "Held down by"}
-          </h5>
-          <ul className="text-gray-dark ml-5 list-disc text-sm">
-            {grade.caps.map((cap) => (
-              <li key={cap} className="break-words">
-                {cap}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {showCaps && <GradeCaps grade={grade} />}
 
       <p className="text-gray-dark text-xs">
         A listing and learner-evidence grade, not a certification of the course
         content. Rubric {grade.rubricVersion}.
       </p>
+    </div>
+  );
+};
+
+/** What held a grade down, or why there is none. Nothing when no cap applied. */
+export const GradeCaps: React.FC<{
+  grade: CourseGradeResult | null;
+  /** Renders the title as a heading outside the box, for use as its own section. */
+  standalone?: boolean;
+}> = ({ grade, standalone = false }) => {
+  if (!grade || grade.caps.length === 0) return null;
+  const title =
+    grade.grade === "Ungraded" ? "Why it has no grade" : "Held down by";
+  const list = (
+    <ul className="text-gray-dark ml-5 list-disc text-sm">
+      {grade.caps.map((cap) => (
+        <li key={cap} className="break-words">
+          {cap}
+        </li>
+      ))}
+    </ul>
+  );
+
+  if (standalone)
+    return (
+      <section className="flex flex-col gap-2">
+        <h3 className="font-nunito text-base font-black text-black">{title}</h3>
+        <div className="bg-yellow-tint rounded-lg px-3 py-2">{list}</div>
+      </section>
+    );
+
+  return (
+    <div className="bg-yellow-tint flex flex-col gap-1 rounded-lg px-3 py-2">
+      <h5 className="text-sm font-semibold">{title}</h5>
+      {list}
     </div>
   );
 };
