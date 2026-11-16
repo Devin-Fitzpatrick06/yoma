@@ -138,6 +138,11 @@ Proof rules: a strong match needs a visible h1 equal to the listing title, struc
 counts when visible page text agrees, and Claude can only lower the reader's result. Text hidden
 by CSS is not detected.
 
+## Iteration 2
+
+Course grades, the editable rubric, a click-through reviewer mode, the "did you take it?" learner survey and the full
+live catalogue in the demo. See `iteration-2.md`.
+
 ## Open items
 
 - [x] Self-paced courses: the project lead chose `Verified` with "Start anytime" in place of dates.
