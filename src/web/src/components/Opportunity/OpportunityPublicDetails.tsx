@@ -37,6 +37,7 @@ import {
   removeMySavedOpportunity,
   saveMyOpportunity,
 } from "~/api/services/myOpportunities";
+import { recordCourseLeft } from "~/api/services/courseQualityLearner";
 import { updateSettings } from "~/api/services/user";
 import { AvatarImage } from "~/components/AvatarImage";
 import ZltoRewardBadge from "~/components/Opportunity/Badges/ZltoRewardBadge";
@@ -382,6 +383,12 @@ const OpportunityPublicDetails: React.FC<{
       window.open(redirectUrl, "_blank");
     }
 
+    // 📝 courses only: note that the learner left, so Yoma can ask on their return whether they
+    // took it. Fire and forget, after the navigation, and it never throws.
+    // The editor preview never records.
+    if (opportunityInfo.type === "Learning" && !preview)
+      recordCourseLeft(opportunityInfo.id);
+
     // 📊 ANALYTICS: track external link navigation
     analytics.opportunity.externalLinkClicked(
       opportunityInfo.id,
@@ -393,6 +400,8 @@ const OpportunityPublicDetails: React.FC<{
     opportunityInfo.url,
     opportunityInfo.title,
     opportunityInfo.syncedInfo,
+    opportunityInfo.type,
+    preview,
     user,
     blockPartnerHandoff,
     showLoginDialog,

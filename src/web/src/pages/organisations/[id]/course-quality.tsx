@@ -3,16 +3,8 @@ import axios from "axios";
 import { type GetServerSidePropsContext } from "next";
 import { getServerSession } from "next-auth";
 import Head from "next/head";
-import Link from "next/link";
 import { type ParsedUrlQuery } from "querystring";
 import { useMemo, type ReactElement } from "react";
-import Moment from "react-moment";
-import type {
-  CourseQualityCriterion,
-  CourseQualityCriterionResult,
-  CourseQualityStatus,
-  PartnerFixNote,
-} from "~/api/models/courseQuality";
 import { getCourseQualityFixNotes } from "~/api/services/courseQualityAdmin";
 import { getOrganisationById } from "~/api/services/organisations";
 import { BTN_SECONDARY } from "~/components/Common/buttonStyles";
@@ -22,12 +14,15 @@ import {
   ListPageShell,
 } from "~/components/Common/ListPage/ListPageHeader";
 import { ListPageResults } from "~/components/Common/ListPage/ListPageResults";
+import CourseFeedbackLazySummary from "~/components/CourseQuality/CourseFeedbackLazySummary";
+import FixNoteCard, {
+  hasHardGateIssue,
+} from "~/components/CourseQuality/FixNoteCard";
 import MainLayout from "~/components/Layout/Main";
 import NoRowsMessage from "~/components/NoRowsMessage";
 import { ApiErrors } from "~/components/Status/ApiErrors";
 import { Unauthenticated } from "~/components/Status/Unauthenticated";
 import { Unauthorized } from "~/components/Status/Unauthorized";
-import { DATE_FORMAT_HUMAN } from "~/lib/constants";
 import { getThemeFromRole } from "~/lib/utils";
 import { type NextPageWithLayout } from "~/pages/_app";
 import { authOptions } from "~/server/auth";
@@ -35,106 +30,6 @@ import { authOptions } from "~/server/auth";
 interface IParams extends ParsedUrlQuery {
   id: string;
 }
-
-const CRITERION_LABELS: Record<CourseQualityCriterion, string> = {
-  ListingLive: "Listing status",
-  LinkWorks: "Course link",
-  DatesAccurate: "Course dates",
-  DataComplete: "Course details",
-  FormatIdentified: "Course format",
-};
-
-const STATUS_LABELS: Record<CourseQualityStatus, string> = {
-  Verified: "Verified",
-  NeedsReview: "Being reviewed",
-  NotVerified: "Not yet verified",
-};
-
-const hasHardGateIssue = (note: PartnerFixNote) =>
-  note.issues.some((issue) => issue.hardGateFailed);
-
-// highest priority first: the issues that keep a course from being verified at any score
-const sortIssues = (issues: CourseQualityCriterionResult[]) =>
-  [...issues].sort(
-    (a, b) => Number(b.hardGateFailed) - Number(a.hardGateFailed),
-  );
-
-const FixNoteCard: React.FC<{
-  note: PartnerFixNote;
-  organisationId: string;
-}> = ({ note, organisationId }) => {
-  const issues = sortIssues(note.issues);
-  const steps = issues.filter((issue) => issue.recommendation);
-
-  return (
-    <article className="flex flex-col gap-4 rounded-lg bg-white p-4 shadow-sm md:p-6">
-      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-        <Link
-          href={`/organisations/${organisationId}/opportunities/${note.opportunityId}`}
-          className="text-theme text-base font-semibold break-words hover:underline"
-        >
-          {note.opportunityTitle}
-        </Link>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          {hasHardGateIssue(note) && (
-            <span className="badge bg-orange-light text-orange border-none text-xs font-semibold">
-              Fix first
-            </span>
-          )}
-          <span className="badge bg-gray-light text-gray-dark border-none text-xs font-semibold">
-            {STATUS_LABELS[note.status]}
-          </span>
-        </div>
-      </div>
-
-      {/* WHY */}
-      <div className="flex flex-col gap-1">
-        <h4 className="text-sm font-semibold">Why it is held back</h4>
-        <p className="text-gray-dark text-sm break-words whitespace-pre-line">
-          {note.summary}
-        </p>
-        {issues.length > 0 && (
-          <ul className="mt-1 flex flex-col gap-1">
-            {issues.map((issue) => (
-              <li
-                key={issue.criterion}
-                className="text-gray-dark text-sm break-words"
-              >
-                <span className="font-semibold">
-                  {CRITERION_LABELS[issue.criterion] ?? issue.criterion}:
-                </span>{" "}
-                {issue.reason}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      {/* STEPS */}
-      {steps.length > 0 && (
-        <div className="flex flex-col gap-1">
-          <h4 className="text-sm font-semibold">
-            Steps to improve its visibility
-          </h4>
-          <ol className="text-gray-dark ml-5 flex list-decimal flex-col gap-1 text-sm">
-            {steps.map((issue) => (
-              <li key={issue.criterion} className="break-words">
-                {issue.recommendation}
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-
-      <div className="text-gray-dark text-xs">
-        Last checked{" "}
-        <Moment format={DATE_FORMAT_HUMAN} utc={true}>
-          {note.dateAssessed}
-        </Moment>
-      </div>
-    </article>
-  );
-};
 
 // ⚠️ SSR
 export async function getServerSideProps(context: GetServerSidePropsContext) {
@@ -249,8 +144,15 @@ const CourseQualityFixNotes: NextPageWithLayout<{
                     <FixNoteCard
                       key={note.assessmentId}
                       note={note}
-                      organisationId={id}
-                    />
+                      titleHref={`/organisations/${id}/opportunities/${note.opportunityId}`}
+                      learnerHref={`/opportunities/${note.opportunityId}`}
+                    >
+                      {/* what learners liked and disliked; never their comments */}
+                      <CourseFeedbackLazySummary
+                        opportunityId={note.opportunityId}
+                        showComments={false}
+                      />
+                    </FixNoteCard>
                   ))}
                 </div>
               ) : (

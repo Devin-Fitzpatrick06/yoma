@@ -9,6 +9,7 @@ import {
 } from "react-icons/io5";
 import type { OpportunityInfo } from "~/api/models/opportunity";
 import CustomModal from "../Common/CustomModal";
+import GradeChip from "../CourseQuality/GradeChip";
 import LearnerCard, {
   CareerPaths,
   COST_NOT_CONFIRMED,
@@ -178,13 +179,20 @@ const LearnerCardTile: React.FC<{ data: OpportunityInfo }> = ({ data }) => {
 
           <div className="mt-auto space-y-2">
             <div className="text-gray-dark flex items-center justify-between gap-2 text-xs">
-              {card && <span>Checked {formatDate(card.dateAssessed)}</span>}
-              {format && (
-                <span className="text-purple inline-flex items-center gap-1 font-bold">
-                  <format.Icon aria-hidden="true" className="h-3.5 w-3.5" />
-                  {format.label}
+              {card && (
+                <span className="min-w-0 truncate">
+                  Checked {formatDate(card.dateAssessed)}
                 </span>
               )}
+              <span className="flex shrink-0 items-center gap-2">
+                <GradeChip grade={card?.grade} label={card?.gradeLabel} />
+                {format && (
+                  <span className="text-purple inline-flex items-center gap-1 font-bold">
+                    <format.Icon aria-hidden="true" className="h-3.5 w-3.5" />
+                    {format.label}
+                  </span>
+                )}
+              </span>
             </div>
             {/* stretched over the tile, so the whole card opens the pop-up from one control */}
             <button

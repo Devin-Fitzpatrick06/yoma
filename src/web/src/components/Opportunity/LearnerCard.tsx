@@ -17,6 +17,7 @@ import type {
   LearnerCard as LearnerCardData,
   LearnerCardCost,
 } from "~/api/models/courseQuality";
+import GradeChip from "~/components/CourseQuality/GradeChip";
 import { DATE_FORMAT_HUMAN } from "~/lib/constants";
 import {
   getCareerPaths,
@@ -211,12 +212,22 @@ const LearnerCard: React.FC<{
           </h5>
           <p className="hidden text-sm leading-snug md:block">{statusNote}</p>
         </div>
-        {format && (
-          <span className="text-purple inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-sm font-bold md:mt-0.5">
-            <format.Icon aria-hidden="true" className="h-4 w-4" />
-            <span className="sr-only">Format: </span>
-            {format.label}
-          </span>
+        {(format || (card.grade && card.grade !== "Ungraded")) && (
+          <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2 md:mt-0.5">
+            <GradeChip
+              grade={card.grade}
+              label={card.gradeLabel}
+              size="sm"
+              tone="white"
+            />
+            {format && (
+              <span className="text-purple inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-sm font-bold">
+                <format.Icon aria-hidden="true" className="h-4 w-4" />
+                <span className="sr-only">Format: </span>
+                {format.label}
+              </span>
+            )}
+          </div>
         )}
       </div>
 

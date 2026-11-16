@@ -12,16 +12,14 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactElement } from "react";
-import { IoMdCheckmarkCircle, IoMdCloseCircle } from "react-icons/io";
+import { IoMdArrowForward } from "react-icons/io";
 import Moment from "react-moment";
 import { toast } from "react-toastify";
 import type {
-  CourseFormat,
+  CourseGrade,
   CourseQualityAssessment,
-  CourseQualityCriterion,
   CourseQualityReviewSearchFilter,
   CourseQualityReviewStatus,
-  CourseQualityStatus,
 } from "~/api/models/courseQuality";
 import {
   getCourseQualityCoverage,
@@ -33,7 +31,6 @@ import {
   BTN_PRIMARY,
   BTN_SECONDARY,
 } from "~/components/Common/buttonStyles";
-import CustomModal from "~/components/Common/CustomModal";
 import {
   ListPageBody,
   ListPageHeader,
@@ -44,12 +41,20 @@ import {
   ListPageResults,
 } from "~/components/Common/ListPage/ListPageResults";
 import ListPageTabs from "~/components/Common/ListPage/ListPageTabs";
+import { WAITING_FOR_REVIEW_TEXT } from "~/components/CourseQuality/GradeBreakdown";
+import GradeChip from "~/components/CourseQuality/GradeChip";
+import ReviewDecisionDialog, {
+  type PendingDecision,
+  type ReviewDecisionInput,
+} from "~/components/CourseQuality/ReviewDecisionDialog";
 import {
-  MODAL_ACTION_WIDTH,
-  ModalActions,
-  ModalBody,
-  ModalHeader,
-} from "~/components/Common/ModalChrome";
+  CRITERION_LABELS,
+  type FinalStatus,
+  FORMAT_LABELS,
+  getDecisionLabel,
+  STATUS_BADGES,
+  STATUS_LABELS,
+} from "~/components/CourseQuality/reviewLabels";
 import MainLayout from "~/components/Layout/Main";
 import NoRowsMessage from "~/components/NoRowsMessage";
 import { ApiErrors } from "~/components/Status/ApiErrors";
@@ -71,9 +76,9 @@ const ALL_STATUSES = "All";
 const COURSE_QUALITY_QUERY_KEY = ["courseQuality"];
 const REVIEW_QUERY_KEY = [...COURSE_QUALITY_QUERY_KEY, "review"];
 const COVERAGE_QUERY_KEY = [...COURSE_QUALITY_QUERY_KEY, "coverage"];
-const MAX_NOTE_LENGTH = 1000;
+const PENDING_COUNT_QUERY_KEY = [...REVIEW_QUERY_KEY, "pendingCount"];
+const ALL_GRADES = "";
 
-type FinalStatus = Exclude<CourseQualityStatus, "NeedsReview">;
 type ReviewTab = CourseQualityReviewStatus | typeof ALL_STATUSES;
 
 const REVIEW_TABS: { value: ReviewTab; label: string }[] = [
@@ -84,44 +89,24 @@ const REVIEW_TABS: { value: ReviewTab; label: string }[] = [
   { value: ALL_STATUSES, label: "All" },
 ];
 
-const CRITERION_LABELS: Record<CourseQualityCriterion, string> = {
-  ListingLive: "Listing is live",
-  LinkWorks: "Link works",
-  DatesAccurate: "Dates are accurate",
-  DataComplete: "Data is complete",
-  FormatIdentified: "Format is identified",
-};
+const GRADE_FILTERS: {
+  value: CourseGrade | typeof ALL_GRADES;
+  label: string;
+}[] = [
+  { value: ALL_GRADES, label: "All grades" },
+  { value: "A", label: "A" },
+  { value: "B", label: "B" },
+  { value: "C", label: "C" },
+  { value: "D", label: "D" },
+  { value: "Ungraded", label: "Not graded" },
+];
 
-const FORMAT_LABELS: Record<CourseFormat, string> = {
-  Course: "Course",
-  Webinar: "Webinar",
-  Unknown: "Format not identified",
-};
-
-const STATUS_LABELS: Record<CourseQualityStatus, string> = {
-  Verified: "Verified",
-  NeedsReview: "Needs review",
-  NotVerified: "Not verified",
-};
-
-const STATUS_BADGES: Record<CourseQualityStatus, string> = {
-  Verified: "bg-green-light text-green",
-  NeedsReview: "bg-yellow-tint text-yellow",
-  NotVerified: "bg-orange-light text-orange",
-};
+const parseGrade = (value: unknown): CourseGrade | null =>
+  (GRADE_FILTERS.find((grade) => grade.value && grade.value === value)
+    ?.value as CourseGrade | undefined) ?? null;
 
 const parseReviewTab = (value: unknown): ReviewTab =>
   REVIEW_TABS.find((tab) => tab.value === value)?.value ?? "Pending";
-
-const getDecisionLabel = (
-  item: CourseQualityAssessment,
-  target: FinalStatus,
-): string => {
-  const label = STATUS_LABELS[target];
-  if (item.status === target) return `Confirm ${label}`;
-  if (item.status === "NeedsReview") return `Mark ${label}`;
-  return `Override to ${label}`;
-};
 
 const Metric: React.FC<{ label: string; value: string }> = ({
   label,
@@ -211,6 +196,17 @@ const AssessmentCard: React.FC<{
         </Link>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <GradeChip
+          grade={item.grade?.grade ?? item.learnerCard?.grade}
+          label={item.grade?.gradeLabel ?? item.learnerCard?.gradeLabel}
+        />
+        {item.status === "NeedsReview" &&
+          (!(item.grade?.grade ?? item.learnerCard?.grade) ||
+            (item.grade?.grade ?? item.learnerCard?.grade) === "Ungraded") && (
+            <span className="badge bg-gray-light text-gray-dark h-auto border-none text-xs font-semibold">
+              {WAITING_FOR_REVIEW_TEXT}
+            </span>
+          )}
         <span className="badge bg-gray-light text-gray-dark border-none text-xs font-semibold">
           {FORMAT_LABELS[item.learnerCard?.format] ?? FORMAT_LABELS.Unknown}
         </span>
@@ -317,7 +313,7 @@ const AssessmentCard: React.FC<{
           disabled={disabled}
           onClick={() => onDecide(item, "NotVerified")}
         >
-          {getDecisionLabel(item, "NotVerified")}
+          {getDecisionLabel(item.status, "NotVerified")}
         </button>
         <button
           type="button"
@@ -325,7 +321,7 @@ const AssessmentCard: React.FC<{
           disabled={disabled}
           onClick={() => onDecide(item, "Verified")}
         >
-          {getDecisionLabel(item, "Verified")}
+          {getDecisionLabel(item.status, "Verified")}
         </button>
       </div>
     ) : (
@@ -380,16 +376,12 @@ const CourseQualityReview: NextPageWithLayout<{
 }> = ({ error }) => {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [decision, setDecision] = useState<{
-    item: CourseQualityAssessment;
-    target: FinalStatus;
-  } | null>(null);
-  const [note, setNote] = useState("");
-  const [format, setFormat] = useState<CourseFormat>("Unknown");
+  const [decision, setDecision] = useState<PendingDecision | null>(null);
 
   // 👇 filters are driven by the querystring
   const reviewTab = parseReviewTab(router.query.reviewStatus);
   const organizationId = router.query.organisation?.toString() || null;
+  const grade = parseGrade(router.query.grade);
   const parsedPage = parseInt(router.query.page?.toString() ?? "", 10);
   const pageNumber = parsedPage > 0 ? parsedPage : 1;
 
@@ -397,11 +389,27 @@ const CourseQualityReview: NextPageWithLayout<{
     () => ({
       reviewStatus: reviewTab === ALL_STATUSES ? null : reviewTab,
       organizationId,
+      grade,
       pageNumber,
       pageSize: PAGE_SIZE,
     }),
-    [reviewTab, organizationId, pageNumber],
+    [reviewTab, organizationId, grade, pageNumber],
   );
+
+  // how many are waiting, for the "Start reviewing" call to action
+  const { data: pendingCount } = useQuery({
+    queryKey: PENDING_COUNT_QUERY_KEY,
+    queryFn: async () =>
+      (
+        await searchCourseQualityReviews({
+          reviewStatus: "Pending",
+          organizationId: null,
+          pageNumber: 1,
+          pageSize: 1,
+        })
+      ).totalCount,
+    enabled: !error,
+  });
 
   const { data: organisations } = useAdminOpportunityOrganisationsQuery({
     enabled: !error,
@@ -422,10 +430,16 @@ const CourseQualityReview: NextPageWithLayout<{
   });
 
   const buildUrl = useCallback(
-    (tab: ReviewTab, organisation: string | null, page: number) => {
+    (
+      tab: ReviewTab,
+      organisation: string | null,
+      page: number,
+      gradeFilter: CourseGrade | null,
+    ) => {
       const params = new URLSearchParams();
       if (tab !== "Pending") params.set("reviewStatus", tab);
       if (organisation) params.set("organisation", organisation);
+      if (gradeFilter) params.set("grade", gradeFilter);
       if (page > 1) params.set("page", page.toString());
       const query = params.toString();
       return query ? `${BASE_PATH}?${query}` : BASE_PATH;
@@ -442,11 +456,19 @@ const CourseQualityReview: NextPageWithLayout<{
   useEffect(() => {
     if (isPageEmpty)
       void router.replace(
-        buildUrl(reviewTab, organizationId, pageNumber - 1),
+        buildUrl(reviewTab, organizationId, pageNumber - 1, grade),
         undefined,
         { scroll: false },
       );
-  }, [isPageEmpty, router, buildUrl, reviewTab, organizationId, pageNumber]);
+  }, [
+    isPageEmpty,
+    router,
+    buildUrl,
+    reviewTab,
+    organizationId,
+    pageNumber,
+    grade,
+  ]);
 
   const decisionMutation = useMutation({
     mutationFn: ({
@@ -457,7 +479,7 @@ const CourseQualityReview: NextPageWithLayout<{
     }: {
       assessmentId: string;
       status: FinalStatus;
-      reviewFormat: CourseFormat | null;
+      reviewFormat: ReviewDecisionInput["format"];
       reviewNote: string | null;
     }) =>
       submitCourseQualityReview(assessmentId, {
@@ -471,7 +493,6 @@ const CourseQualityReview: NextPageWithLayout<{
         queryKey: COURSE_QUALITY_QUERY_KEY,
       });
       setDecision(null);
-      setNote("");
       toast.success(`Decision saved: ${STATUS_LABELS[status]}`, {
         toastId: "courseQualityDecision",
       });
@@ -487,32 +508,23 @@ const CourseQualityReview: NextPageWithLayout<{
   });
 
   const onDecide = useCallback(
-    (item: CourseQualityAssessment, target: FinalStatus) => {
-      setNote("");
-      setFormat(item.learnerCard.format);
-      setDecision({ item, target });
-    },
+    (item: CourseQualityAssessment, target: FinalStatus) =>
+      setDecision({ item, target }),
     [],
   );
 
-  const onCloseDecision = useCallback(() => {
-    if (!decisionMutation.isPending) setDecision(null);
-  }, [decisionMutation.isPending]);
-
-  const onSubmitDecision = useCallback(() => {
-    if (!decision) return;
-    decisionMutation.mutate({
-      assessmentId: decision.item.id,
-      status: decision.target,
-      // null keeps the detected format
-      reviewFormat: format === decision.item.learnerCard.format ? null : format,
-      reviewNote: note.trim() || null,
-    });
-  }, [decision, decisionMutation, format, note]);
-
-  // the API rejects Verified while the format is still Unknown
-  const isFormatRequired = decision?.target === "Verified";
-  const isFormatMissing = isFormatRequired && format === "Unknown";
+  const onSubmitDecision = useCallback(
+    ({ format, note }: ReviewDecisionInput) => {
+      if (!decision) return;
+      decisionMutation.mutate({
+        assessmentId: decision.item.id,
+        status: decision.target,
+        reviewFormat: format,
+        reviewNote: note,
+      });
+    },
+    [decision, decisionMutation],
+  );
 
   const searchErrorStatus = axios.isAxiosError(searchError)
     ? searchError.response?.status
@@ -530,87 +542,12 @@ const CourseQualityReview: NextPageWithLayout<{
       </Head>
 
       {/* DECISION POPUP */}
-      <CustomModal
-        isOpen={decision != null}
-        shouldCloseOnOverlayClick={!decisionMutation.isPending}
-        onRequestClose={onCloseDecision}
-        className="md:max-h-[540px] md:w-[500px]"
-      >
-        {decision && (
-          <div className="flex h-full flex-col overflow-y-auto">
-            <ModalHeader
-              title={getDecisionLabel(decision.item, decision.target)}
-              icon={
-                decision.target === "Verified" ? (
-                  <IoMdCheckmarkCircle className="text-success h-5 w-5" />
-                ) : (
-                  <IoMdCloseCircle className="text-error h-5 w-5" />
-                )
-              }
-              onClose={onCloseDecision}
-            />
-            <ModalBody className="flex flex-col gap-3">
-              <p className="text-sm break-words">
-                {decision.item.opportunityTitle}
-              </p>
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="font-semibold">
-                  Format{isFormatRequired ? "" : " (optional)"}
-                </span>
-                <select
-                  className="select select-sm w-full"
-                  value={format}
-                  disabled={decisionMutation.isPending}
-                  aria-invalid={isFormatMissing}
-                  onChange={(e) => setFormat(e.target.value as CourseFormat)}
-                >
-                  {decision.item.learnerCard.format === "Unknown" && (
-                    <option value="Unknown">Select a format</option>
-                  )}
-                  <option value="Course">Course</option>
-                  <option value="Webinar">Webinar</option>
-                </select>
-                {isFormatMissing && (
-                  <span className="text-error text-xs">
-                    Choose Course or Webinar before marking this Verified.
-                  </span>
-                )}
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                <span className="font-semibold">Note (optional)</span>
-                <textarea
-                  className="textarea textarea-bordered w-full"
-                  rows={3}
-                  maxLength={MAX_NOTE_LENGTH}
-                  value={note}
-                  disabled={decisionMutation.isPending}
-                  onChange={(e) => setNote(e.target.value)}
-                />
-              </label>
-            </ModalBody>
-            <ModalActions>
-              <button
-                type="button"
-                className={`${BTN_SECONDARY} ${MODAL_ACTION_WIDTH}`}
-                disabled={decisionMutation.isPending}
-                onClick={onCloseDecision}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={`${
-                  decision.target === "Verified" ? BTN_PRIMARY : BTN_DANGER
-                } ${MODAL_ACTION_WIDTH}`}
-                disabled={decisionMutation.isPending || isFormatMissing}
-                onClick={onSubmitDecision}
-              >
-                {decisionMutation.isPending ? "Saving..." : "Save decision"}
-              </button>
-            </ModalActions>
-          </div>
-        )}
-      </CustomModal>
+      <ReviewDecisionDialog
+        decision={decision}
+        isPending={decisionMutation.isPending}
+        onClose={() => setDecision(null)}
+        onSubmit={onSubmitDecision}
+      />
 
       <ListPageShell>
         <ListPageHeader
@@ -622,38 +559,108 @@ const CourseQualityReview: NextPageWithLayout<{
             tabs={REVIEW_TABS.map((tab) => ({
               key: `course_quality_tab_${tab.value}`,
               label: tab.label,
-              href: buildUrl(tab.value, organizationId, 1),
+              href: buildUrl(tab.value, organizationId, 1, grade),
               selected: reviewTab === tab.value,
             }))}
           />
         </ListPageHeader>
 
         <ListPageBody>
+          {/* START REVIEWING: one course at a time */}
+          <section
+            aria-label="Reviewer mode"
+            className="flex flex-col gap-3 rounded-lg bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between md:p-5"
+          >
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <h2 className="font-nunito text-lg font-black text-black">
+                {pendingCount == null
+                  ? "Courses waiting for review"
+                  : pendingCount === 1
+                    ? "1 course is waiting for review"
+                    : `${pendingCount} courses are waiting for review`}
+              </h2>
+              <p className="text-gray-dark text-sm">
+                Go through them one at a time, with why each is here, its grade
+                and what learners and partners see.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center">
+              <Link
+                href={`${BASE_PATH}/rubric`}
+                className="text-gray-dark text-sm font-semibold hover:underline"
+              >
+                Grading rubric
+              </Link>
+              <Link
+                href={`${BASE_PATH}/review`}
+                aria-disabled={pendingCount === 0}
+                className={`${BTN_PRIMARY} gap-2 ${
+                  pendingCount === 0 ? "pointer-events-none opacity-60" : ""
+                }`}
+              >
+                Start reviewing
+                {pendingCount != null && pendingCount > 0 && (
+                  <span className="rounded-full bg-white/25 px-2 text-xs font-bold">
+                    {pendingCount}
+                  </span>
+                )}
+                <IoMdArrowForward aria-hidden="true" className="h-4 w-4" />
+              </Link>
+            </div>
+          </section>
+
           {/* COVERAGE */}
           <CoverageSummary enabled={!error} />
 
-          {/* FILTER */}
-          <label className="flex flex-col gap-1 text-sm md:max-w-sm">
-            <span className="font-semibold">Organisation</span>
-            <select
-              className="select select-sm w-full"
-              value={organizationId ?? ""}
-              onChange={(e) =>
-                void router.push(
-                  buildUrl(reviewTab, e.target.value || null, 1),
-                  undefined,
-                  { scroll: false },
-                )
-              }
-            >
-              <option value="">All organisations</option>
-              {organisations?.map((organisation) => (
-                <option key={organisation.id} value={organisation.id}>
-                  {organisation.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {/* FILTERS */}
+          <div className="flex flex-col gap-3 md:flex-row">
+            <label className="flex flex-col gap-1 text-sm md:max-w-sm md:flex-1">
+              <span className="font-semibold">Organisation</span>
+              <select
+                className="select select-sm w-full"
+                value={organizationId ?? ""}
+                onChange={(e) =>
+                  void router.push(
+                    buildUrl(reviewTab, e.target.value || null, 1, grade),
+                    undefined,
+                    { scroll: false },
+                  )
+                }
+              >
+                <option value="">All organisations</option>
+                {organisations?.map((organisation) => (
+                  <option key={organisation.id} value={organisation.id}>
+                    {organisation.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm md:w-44">
+              <span className="font-semibold">Grade</span>
+              <select
+                className="select select-sm w-full"
+                value={grade ?? ALL_GRADES}
+                onChange={(e) =>
+                  void router.push(
+                    buildUrl(
+                      reviewTab,
+                      organizationId,
+                      1,
+                      parseGrade(e.target.value),
+                    ),
+                    undefined,
+                    { scroll: false },
+                  )
+                }
+              >
+                {GRADE_FILTERS.map((option) => (
+                  <option key={option.value || "all"} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
 
           {/* RESULTS */}
           {isError ? (
@@ -697,7 +704,7 @@ const CourseQualityReview: NextPageWithLayout<{
                     isShowingPreviousResults={isShowingPreviousResults}
                     onClick={(page) =>
                       void router.push(
-                        buildUrl(reviewTab, organizationId, page),
+                        buildUrl(reviewTab, organizationId, page, grade),
                         undefined,
                         { scroll: false },
                       )

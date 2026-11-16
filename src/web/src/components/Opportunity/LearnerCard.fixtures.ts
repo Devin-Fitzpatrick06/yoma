@@ -19,6 +19,8 @@ const base: Omit<LearnerCard, "status" | "cost"> = {
     "Format confirmed",
   ],
   dateAssessed: "2026-10-28T09:30:00Z",
+  grade: null,
+  gradeLabel: null,
 };
 
 export const LEARNER_CARD_FIXTURES: { name: string; card: LearnerCard }[] = [
@@ -27,6 +29,8 @@ export const LEARNER_CARD_FIXTURES: { name: string; card: LearnerCard }[] = [
     card: {
       ...base,
       status: "Verified",
+      grade: "A",
+      gradeLabel: "Top pick",
       cost: {
         type: "Free",
         amount: null,

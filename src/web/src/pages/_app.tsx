@@ -7,7 +7,7 @@ import {
 import { Provider } from "jotai";
 import type { NextPage } from "next";
 import { type Session } from "next-auth";
-import { SessionProvider } from "next-auth/react";
+import { SessionProvider, useSession } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import type { AppProps } from "next/app";
 import { Nunito, Open_Sans } from "next/font/google";
@@ -17,6 +17,10 @@ import { useState } from "react";
 import { ToastContainer } from "react-toastify";
 import { Navbar } from "~/components/NavBar/Navbar";
 import { Global } from "~/components/Global";
+import DemoViewSwitcher, {
+  DemoPageFade,
+} from "~/components/CourseQuality/DemoViewSwitcher";
+import dynamic from "next/dynamic";
 import ConfirmationModalContextProvider from "~/context/modalConfirmationContext";
 import { config } from "~/lib/react-query-config";
 import "~/styles/globals.css";
@@ -40,6 +44,18 @@ const nunito = Nunito({
   display: "swap",
   weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
+
+// "Did you take the course?" prompt: loaded after the page, client-side only, for signed-in learners
+const CourseFeedbackPrompt = dynamic(
+  () => import("~/components/CourseQuality/CourseFeedbackPrompt"),
+  { ssr: false },
+);
+
+/** Signed-in only, so anonymous visitors never download the prompt's chunk. */
+const SignedInCourseFeedbackPrompt = () => {
+  const { status } = useSession();
+  return status === "authenticated" ? <CourseFeedbackPrompt /> : null;
+};
 
 //#region Configure NProgress
 NProgress.configure({ showSpinner: false });
@@ -96,8 +112,10 @@ const MyApp = ({
               >
                 <ConfirmationModalContextProvider>
                   <Global />
+                  <SignedInCourseFeedbackPrompt />
                   <Navbar theme={theme} />
-                  {getLayout(component)}
+                  <DemoPageFade>{getLayout(component)}</DemoPageFade>
+                  <DemoViewSwitcher />
                   <ToastContainer theme="colored" closeOnClick={true} />
                   <GoogleAnalytics />
                 </ConfirmationModalContextProvider>

@@ -39,6 +39,9 @@ export const env = createEnv({
     NEXT_PUBLIC_GA_MEASUREMENT_ID: z.string().optional(),
     NEXT_PUBLIC_PASSPORT_ENABLED: z.boolean(),
     NEXT_PUBLIC_REFERRALS_ENABLED: z.boolean(),
+    // Course Quality demo: the Learner · Reviewer · Partner view switcher, and its partner organisation
+    NEXT_PUBLIC_COURSE_QUALITY_DEMO: z.boolean(),
+    NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID: z.string().optional(),
     NEXT_PUBLIC_DD_RUM_APP_ID: z.string().optional(),
     NEXT_PUBLIC_DD_RUM_TOKEN: z.string().optional(),
     NEXT_PUBLIC_DD_RUM_SESSION_SAMPLE_RATE: z
@@ -92,6 +95,10 @@ export const env = createEnv({
       (process.env.NEXT_PUBLIC_REFERRALS_ENABLED ?? "").toLowerCase() === "true"
         ? true
         : false,
+    NEXT_PUBLIC_COURSE_QUALITY_DEMO:
+      process.env.NEXT_PUBLIC_COURSE_QUALITY_DEMO === "true",
+    NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID:
+      process.env.NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.
