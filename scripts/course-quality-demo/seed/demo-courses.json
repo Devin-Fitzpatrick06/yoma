@@ -1,10 +1,7 @@
 {
   "organizations": [
     { "key": "partner", "id": "c0a7e000-0000-4000-8000-000000000001", "name": "Demo Learning Partner", "tagline": "Demo data for the Course Quality prototype" },
-    { "key": "alison", "id": "c0a7e000-0000-4000-8000-000000000002", "name": "Alison Learning", "tagline": "Demo record for the Course Quality prototype" },
-    { "key": "green", "id": "c0a7e000-0000-4000-8000-000000000003", "name": "Demo Green Futures Academy", "tagline": "Fictional organisation: demo data for the Course Quality prototype" },
-    { "key": "digital", "id": "c0a7e000-0000-4000-8000-000000000004", "name": "Demo Digital Skills Hub", "tagline": "Fictional organisation: demo data for the Course Quality prototype" },
-    { "key": "community", "id": "c0a7e000-0000-4000-8000-000000000005", "name": "Demo Community College", "tagline": "Fictional organisation: demo data for the Course Quality prototype" }
+    { "key": "alison", "id": "019e072e-dbf5-7098-83c6-d0bf7d88a87a", "name": "Alison Learning", "live": true }
   ],
   "courses": [
     {
@@ -14,7 +11,7 @@
       "summary": "Demo data: Keep your bike safe and roadworthy with simple checks and repairs.",
       "organization": "alison",
       "provider": "Alison Learning",
-      "title": "Bike Safety and Maintenance Essentials",
+      "title": "Bike Safety and Maintenance Essentials (walkthrough copy)",
       "liveUrl": "https://alison.com/course/bike-safety-and-maintenance-essentials",
       "fixture": "bike-safety",
       "freeOffer": true,
@@ -81,7 +78,7 @@
       "summary": "Demo data: Use satellite images to watch forests, wetlands and coasts change.",
       "organization": "partner",
       "provider": "Geoversity",
-      "title": "Earth Observation for Ecosystem Conservation",
+      "title": "Earth Observation for Ecosystem Conservation (walkthrough copy)",
       "liveUrl": "https://www.geoversity.io/courses/earth-obs-ecco/",
       "fixture": "earth-observation",
       "startOffsetDays": -140,

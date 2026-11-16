@@ -98,11 +98,15 @@ services:
     image: yoma-course-quality-demo-web:local
     build:
       context: ../..
-      dockerfile: src/web/Dockerfile
+      # src/web/Dockerfile plus the demo's build-time NEXT_PUBLIC_ switches. start.sh writes it from that file on every
+      # build, because NEXT_PUBLIC_ values are fixed when the site is built and that Dockerfile has no ARG for them.
+      dockerfile: scripts/course-quality-demo/.cache/web.Dockerfile
       args:
         NEXT_PUBLIC_ENVIRONMENT: local
         NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: local-demo-placeholder
         NEXT_PUBLIC_GA_MEASUREMENT_ID: local-demo-placeholder
+        NEXT_PUBLIC_COURSE_QUALITY_DEMO: "true"
+        NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID: c0a7e000-0000-4000-8000-000000000001
     network_mode: service:gateway
     env_file: demo.env
     environment:
@@ -113,6 +117,24 @@ services:
       - .:/demo:ro
     depends_on:
       api:
+        condition: service_started
+
+  # Runs the demo's seed and assessment scripts. It shares the gateway's network like the API and web, so the API is
+  # localhost:5000 and Keycloak localhost:8080, the addresses its tokens name. It can write .cache, for the run's progress.
+  runner:
+    image: docker.io/library/node:24-alpine
+    command: ["sleep", "infinity"]
+    init: true
+    network_mode: service:gateway
+    env_file: demo.env
+    environment:
+      DEMO_BASE_DATE: ${DEMO_BASE_DATE:-}
+    volumes:
+      - .:/demo
+      # Read-only, for the learner feedback tag keys while the API does not serve them yet.
+      - ../../src/api/src/application/Yoma.Core.Api/appsettings.json:/appsettings.json:ro
+    depends_on:
+      gateway:
         condition: service_started
 
   # Serves the demo's stand-in course pages. It stays on a demo-only network with a
