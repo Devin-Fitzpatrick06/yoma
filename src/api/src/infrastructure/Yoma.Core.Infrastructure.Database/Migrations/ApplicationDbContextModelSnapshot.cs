@@ -524,12 +524,6 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
             .IsRequired()
             .HasColumnType("varchar(64)");
 
-          b.Property<DateTimeOffset?>("DateConfirmed")
-            .HasColumnType("timestamp with time zone");
-
-          b.Property<string>("FinalHost")
-            .HasColumnType("varchar(255)");
-
           b.Property<string>("Criteria")
             .IsRequired()
             .HasColumnType("jsonb");
@@ -537,11 +531,17 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.Property<DateTimeOffset>("DateAssessed")
             .HasColumnType("timestamp with time zone");
 
+          b.Property<DateTimeOffset?>("DateConfirmed")
+            .HasColumnType("timestamp with time zone");
+
           b.Property<DateTimeOffset?>("DateReviewed")
             .HasColumnType("timestamp with time zone");
 
           b.Property<bool>("DatesSuspect")
             .HasColumnType("boolean");
+
+          b.Property<string>("FinalHost")
+            .HasColumnType("varchar(255)");
 
           b.Property<string>("FixNote")
             .HasColumnType("text");
@@ -566,8 +566,14 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.Property<Guid>("OrganizationId")
             .HasColumnType("uuid");
 
+          b.Property<string>("PageEvidence")
+            .HasColumnType("text");
+
           b.Property<string>("ReviewNote")
             .HasColumnType("varchar(1000)");
+
+          b.Property<string>("ReviewReasons")
+            .HasColumnType("text");
 
           b.Property<string>("ReviewStatus")
             .IsRequired()
@@ -596,6 +602,148 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.HasIndex("OrganizationId", "IsLatest", "ReviewStatus");
 
           b.ToTable("Assessment", "CourseQuality");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.CourseQuality.Entities.CourseQualityGrade", b =>
+        {
+          b.Property<Guid>("Id")
+            .ValueGeneratedOnAdd()
+            .HasColumnType("uuid");
+
+          b.Property<string>("Caps")
+            .IsRequired()
+            .HasColumnType("jsonb");
+
+          b.Property<DateTimeOffset>("DateGraded")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<string>("Factors")
+            .IsRequired()
+            .HasColumnType("jsonb");
+
+          b.Property<int>("FeedbackResponses")
+            .HasColumnType("integer");
+
+          b.Property<string>("Grade")
+            .IsRequired()
+            .HasColumnType("varchar(20)");
+
+          b.Property<string>("GradeLabel")
+            .IsRequired()
+            .HasColumnType("varchar(50)");
+
+          b.Property<Guid>("OpportunityId")
+            .HasColumnType("uuid");
+
+          b.Property<int>("Percentile")
+            .HasColumnType("integer");
+
+          b.Property<string>("RubricVersion")
+            .IsRequired()
+            .HasColumnType("varchar(50)");
+
+          b.Property<int>("Score")
+            .HasColumnType("integer");
+
+          b.Property<string>("Status")
+            .IsRequired()
+            .HasColumnType("varchar(20)");
+
+          b.HasKey("Id");
+
+          b.HasIndex("Grade");
+
+          b.HasIndex("OpportunityId")
+            .IsUnique();
+
+          b.ToTable("Grade", "CourseQuality");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.CourseQuality.Entities.CourseQualityGradeRubric", b =>
+        {
+          b.Property<Guid>("Id")
+            .ValueGeneratedOnAdd()
+            .HasColumnType("uuid");
+
+          b.Property<DateTimeOffset>("DateCreated")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<string>("Rubric")
+            .HasColumnType("text");
+
+          b.Property<string>("UpdatedByEmail")
+            .IsRequired()
+            .HasColumnType("varchar(320)");
+
+          b.HasKey("Id");
+
+          b.HasIndex("DateCreated");
+
+          b.ToTable("GradeRubric", "CourseQuality");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.CourseQuality.Entities.CourseQualityLearnerFeedback", b =>
+        {
+          b.Property<Guid>("Id")
+            .ValueGeneratedOnAdd()
+            .HasColumnType("uuid");
+
+          b.Property<string>("Answer")
+            .IsRequired()
+            .HasColumnType("varchar(20)");
+
+          b.Property<string>("Bad")
+            .IsRequired()
+            .HasColumnType("jsonb");
+
+          b.Property<string>("Comment")
+            .HasColumnType("text");
+
+          b.Property<bool?>("Completed")
+            .HasColumnType("boolean");
+
+          b.Property<DateTimeOffset?>("DateAsked")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<DateTimeOffset>("DateCreated")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<DateTimeOffset>("DateLeft")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<DateTimeOffset>("DateModified")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<string>("Good")
+            .IsRequired()
+            .HasColumnType("jsonb");
+
+          b.Property<bool?>("MatchedDescription")
+            .HasColumnType("boolean");
+
+          b.Property<Guid>("OpportunityId")
+            .HasColumnType("uuid");
+
+          b.Property<int?>("Rating")
+            .HasColumnType("integer");
+
+          b.Property<DateTimeOffset?>("SnoozeUntil")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<Guid>("UserId")
+            .HasColumnType("uuid");
+
+          b.Property<bool?>("WouldRecommend")
+            .HasColumnType("boolean");
+
+          b.HasKey("Id");
+
+          b.HasIndex("OpportunityId");
+
+          b.HasIndex("UserId", "OpportunityId")
+            .IsUnique();
+
+          b.ToTable("LearnerFeedback", "CourseQuality");
         });
 
       modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Entity.Entities.Lookups.OrganizationProviderType", b =>
@@ -3956,6 +4104,36 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.Navigation("Opportunity");
 
           b.Navigation("Organization");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.CourseQuality.Entities.CourseQualityGrade", b =>
+        {
+          b.HasOne("Yoma.Core.Infrastructure.Database.Opportunity.Entities.Opportunity", "Opportunity")
+            .WithMany()
+            .HasForeignKey("OpportunityId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.Navigation("Opportunity");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.CourseQuality.Entities.CourseQualityLearnerFeedback", b =>
+        {
+          b.HasOne("Yoma.Core.Infrastructure.Database.Opportunity.Entities.Opportunity", "Opportunity")
+            .WithMany()
+            .HasForeignKey("OpportunityId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.HasOne("Yoma.Core.Infrastructure.Database.Entity.Entities.User", "User")
+            .WithMany()
+            .HasForeignKey("UserId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.Navigation("Opportunity");
+
+          b.Navigation("User");
         });
 
       modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Entity.Entities.Organization", b =>

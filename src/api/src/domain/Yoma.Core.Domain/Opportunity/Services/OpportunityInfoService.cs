@@ -210,16 +210,22 @@ namespace Yoma.Core.Domain.Opportunity.Services
         ];
       }
 
-      //verified courses first, then most popular unless a section has its own order; an explicit sort stays as the user asked
+      //verified courses first, then by grade (A to D, ungraded last) and most popular unless a section has its own order; an explicit sort stays as the user asked
       var verified = filter.Ordering == null ? _courseQualityService.ListVerifiedForBrowse() : null;
       if (verified != null)
       {
-        var ranked = mostViewed || mostCompleted || filter.Newest == true ? null : _courseQualityService.RankByPopularity(_myOpportunityService.ListParticipationCounts());
+        var sectioned = mostViewed || mostCompleted || filter.Newest == true;
+
+        var ranked = sectioned ? null : _courseQualityService.RankByPopularity(_myOpportunityService.ListParticipationCounts());
         if (ranked?.Count > 0)
         {
           filterInternal.OrderInstructions.Insert(0, new() { OrderBy = opportunity => ranked.Contains(opportunity.Id), SortOrder = FilterSortOrder.Descending });
           filterInternal.OrderInstructions.Insert(1, new() { OrderBy = opportunity => ranked.IndexOf(opportunity.Id), SortOrder = FilterSortOrder.Ascending });
         }
+
+        // A to D, then ungraded, joined to the grade table in SQL; popularity still orders the courses within each grade
+        var gradeRank = sectioned ? null : _courseQualityService.GradeRankForBrowse();
+        if (gradeRank != null) filterInternal.OrderInstructions.Insert(0, new() { OrderBy = gradeRank, SortOrder = FilterSortOrder.Ascending });
 
         filterInternal.OrderInstructions.Insert(0, new() { OrderBy = opportunity => verified.Contains(opportunity.Id), SortOrder = FilterSortOrder.Descending });
       }

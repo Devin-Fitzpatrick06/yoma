@@ -108,6 +108,16 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public List<string> Highlights { get; set; } = [];
 
     public DateTimeOffset DateAssessed { get; set; }
+
+    /// <summary>
+    /// The course's grade, or null when it has none yet. Ungraded is never sent to learners: it reads as null.
+    /// </summary>
+    public CourseGrade? Grade { get; set; }
+
+    /// <summary>
+    /// The grade band's label from the rubric, for example "Top pick". Null with Grade.
+    /// </summary>
+    public string? GradeLabel { get; set; }
   }
 
   public class PartnerFixNote
@@ -173,6 +183,22 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public DateTimeOffset? DateReviewed { get; set; }
 
     public DateTimeOffset DateAssessed { get; set; }
+
+    /// <summary>
+    /// Why the result is unsure, in plain words for the reviewer, for example "The course page could not be read, so confidence is capped at 0.69".
+    /// Empty when confidence met the threshold.
+    /// </summary>
+    public List<string> ReviewReasons { get; set; } = [];
+
+    /// <summary>
+    /// The course's current grade, or null before the first grading run.
+    /// </summary>
+    public CourseGradeResult? Grade { get; set; }
+
+    /// <summary>
+    /// What learners said, or null when nobody has answered.
+    /// </summary>
+    public CourseFeedbackSummary? Feedback { get; set; }
   }
 
   public class CourseQualityReviewSearchFilter
@@ -180,6 +206,11 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public CourseQualityReviewStatus? ReviewStatus { get; set; }
 
     public Guid? OrganizationId { get; set; }
+
+    /// <summary>
+    /// Only courses with this grade.
+    /// </summary>
+    public CourseGrade? Grade { get; set; }
 
     public int PageNumber { get; set; } = 1;
 

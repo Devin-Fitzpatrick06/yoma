@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Yoma.Core.Domain.CourseQuality.Models;
 
 namespace Yoma.Core.Domain.CourseQuality.Interfaces
@@ -15,6 +16,11 @@ namespace Yoma.Core.Domain.CourseQuality.Interfaces
     List<Guid>? ListVerifiedForBrowse();
 
     /// <summary>
+    /// Null when ShowInBrowse is off. Otherwise a sort key to rank by after verified: A first, ungraded last. Translates to SQL.
+    /// </summary>
+    Expression<Func<Opportunity.Models.Opportunity, object>>? GradeRankForBrowse();
+
+    /// <summary>
     /// Courses with any participation, most popular first. Null when ShowInBrowse is off.
     /// </summary>
     List<Guid>? RankByPopularity(List<MyOpportunity.Models.MyOpportunityParticipationCounts> counts);
@@ -24,7 +30,15 @@ namespace Yoma.Core.Domain.CourseQuality.Interfaces
     /// </summary>
     void SetBrowseStatus(List<Opportunity.Models.Opportunity>? opportunities, List<Opportunity.Models.OpportunityInfo>? results);
 
+    /// <summary>
+    /// Assesses one course now and regrades the catalogue when anything grading reads changed.
+    /// </summary>
     Task<CourseQualityAssessment> Assess(Guid opportunityId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// For the batch job: assesses one course without regrading, and says whether anything grading reads changed.
+    /// </summary>
+    Task<bool> AssessDue(Guid opportunityId, CancellationToken cancellationToken);
 
     CourseQualityReviewSearchResults SearchReviews(CourseQualityReviewSearchFilter filter);
 

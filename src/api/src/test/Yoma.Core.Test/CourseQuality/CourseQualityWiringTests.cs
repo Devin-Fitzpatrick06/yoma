@@ -19,6 +19,7 @@ using Yoma.Core.Domain;
 using Yoma.Core.Domain.Core;
 using Yoma.Core.Domain.Core.Interfaces;
 using Yoma.Core.Domain.Core.Models;
+using Yoma.Core.Domain.CourseQuality.Helpers;
 using Yoma.Core.Domain.CourseQuality.Interfaces;
 using Yoma.Core.Domain.CourseQuality.Models;
 using Yoma.Core.Domain.CourseQuality.Services;
@@ -152,6 +153,32 @@ namespace Yoma.Core.Test.CourseQuality
     }
 
     [Fact]
+    public void AppSettings_BindTheGradingRubric_ToTheDefaults()
+    {
+      var configured = CourseQualityGrading.Configured(ShippedOptions());
+      var defaults = CourseQualityGrading.Configured(new CourseQualityOptions());
+
+      Assert.Equal(CourseQualityGrading.Serialize(defaults), CourseQualityGrading.Serialize(configured));
+      Assert.Equal(4, configured.Bands.Count);
+      Assert.Equal(CourseGrade.Ungraded, configured.NeedsReviewMaxGrade);
+      Assert.Empty(CourseQualityGrading.Validate(configured));
+    }
+
+    [Fact]
+    public void AppSettings_BindLearnerFeedback_OffByDefault()
+    {
+      var feedback = ShippedOptions().LearnerFeedback;
+
+      Assert.False(feedback.Enabled);
+      Assert.Equal(1440, feedback.PromptDelayInMinutes);
+      Assert.Equal(3, feedback.SnoozeInDays);
+      Assert.Equal(500, feedback.CommentMaxLength);
+      Assert.Equal(CourseQualityLearnerFeedbackOptions.DefaultGood.Select(o => o.Key), feedback.ListGood().Select(o => o.Key));
+      Assert.Equal(CourseQualityLearnerFeedbackOptions.DefaultBad.Select(o => o.Key), feedback.ListBad().Select(o => o.Key));
+      Assert.Equal(7, new CourseQualityLearnerFeedbackOptions().ListBad().Count);
+    }
+
+    [Fact]
     public void AppSettings_ListTheReaderSwitch()
     {
       var configuration = new ConfigurationBuilder().AddJsonFile(ApiAppSettings()).Build();
@@ -187,6 +214,70 @@ namespace Yoma.Core.Test.CourseQuality
     }
 
     [Fact]
+    public void Model_HasTheGradeRubricAndFeedbackTables()
+    {
+      using var context = Context();
+
+      var grade = context.Model.FindEntityType(typeof(Infrastructure.Database.CourseQuality.Entities.CourseQualityGrade))!;
+      Assert.Equal("Grade", grade.GetTableName());
+      Assert.Equal("CourseQuality", grade.GetSchema());
+      Assert.Equal("OpportunityId", grade.GetIndexes().Single(o => o.IsUnique).Properties.Single().Name);
+      Assert.Equal("varchar(20)", grade.FindProperty("Grade")!.GetColumnType());
+      Assert.Equal("jsonb", grade.FindProperty("Factors")!.GetColumnType());
+
+      var rubric = context.Model.FindEntityType(typeof(Infrastructure.Database.CourseQuality.Entities.CourseQualityGradeRubric))!;
+      Assert.Equal("GradeRubric", rubric.GetTableName());
+      Assert.True(rubric.FindProperty("Rubric")!.IsNullable);
+
+      var feedback = context.Model.FindEntityType(typeof(Infrastructure.Database.CourseQuality.Entities.CourseQualityLearnerFeedback))!;
+      Assert.Equal("LearnerFeedback", feedback.GetTableName());
+      Assert.Equal(["UserId", "OpportunityId"], feedback.GetIndexes().Single(o => o.IsUnique).Properties.Select(o => o.Name));
+      Assert.Contains(feedback.GetIndexes(), o => !o.IsUnique && o.Properties.Single().Name == "OpportunityId");
+      Assert.Equal("varchar(20)", feedback.FindProperty("Answer")!.GetColumnType());
+
+      var assessment = context.Model.FindEntityType(typeof(Infrastructure.Database.CourseQuality.Entities.CourseQualityAssessment))!;
+      Assert.True(assessment.FindProperty("PageEvidence")!.IsNullable);
+      Assert.True(assessment.FindProperty("ReviewReasons")!.IsNullable);
+    }
+
+    [Fact]
+    public void Repository_GradeFilter_TranslatesToOneQuery()
+    {
+      using var context = Context();
+      var assessments = new CourseQualityAssessmentRepository(context);
+      var grades = new CourseQualityGradeRepository(context);
+
+      var withGrade = grades.Query().Where(o => o.Grade == CourseGrade.A).Select(o => o.OpportunityId);
+      var sql = assessments.Query().Where(o => o.IsLatest && withGrade.Contains(o.OpportunityId)).ToQueryString();
+
+      Assert.Contains("\"CourseQuality\".\"Grade\"", sql);
+      Assert.Contains("'A'", sql);
+
+      var feedback = new CourseQualityLearnerFeedbackRepository(context).Query().Where(o => o.Answer == CourseFeedbackAnswer.Taken).ToQueryString();
+      Assert.Contains("'Taken'", feedback);
+
+      Assert.Contains("ORDER BY", new CourseQualityGradeRubricRepository(context).Query().OrderByDescending(o => o.DateCreated).Take(1).ToQueryString());
+    }
+
+    [Fact]
+    public void BrowseGradeRank_JoinsTheGradeTableInSql_WithoutIdParameters()
+    {
+      using var context = Context();
+      var grades = new CourseQualityGradeRepository(context);
+      var grading = new CourseQualityGradingService(NullLogger<CourseQualityGradingService>.Instance, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
+        Options.Create(new CourseQualityOptions()), Mock.Of<Domain.Core.Interfaces.IRepositoryBatchedValueContainsWithNavigationAndCustomFieldFilter<Domain.Opportunity.Models.Opportunity>>(),
+        Mock.Of<IRepository<Domain.Opportunity.Models.OpportunitySkill>>(), Mock.Of<IRepository<Domain.Opportunity.Models.OpportunityLanguage>>(), Mock.Of<Domain.Lookups.Interfaces.ILanguageService>(),
+        Mock.Of<Domain.MyOpportunity.Interfaces.IMyOpportunityService>(), Mock.Of<IRepository<CourseQualityAssessmentRecord>>(), grades, Mock.Of<IRepository<CourseQualityGradeRubricRecord>>(),
+        Mock.Of<IRepository<CourseQualityLearnerFeedbackRecord>>(), Mock.Of<IDistributedLockService>(), Mock.Of<IExecutionStrategyService>(), Mock.Of<Hangfire.IBackgroundJobClient>());
+
+      var sql = new Infrastructure.Database.Opportunity.Repositories.OpportunityRepository(context).Query().OrderBy(grading.GradeRank()).Take(20).ToQueryString();
+
+      Assert.Contains("\"CourseQuality\".\"Grade\"", sql);
+      Assert.Contains("CASE", sql);
+      Assert.DoesNotContain("= ANY", sql);
+    }
+
+    [Fact]
     public void Repository_LatestQuery_TranslatesToSql()
     {
       using var context = Context();
@@ -215,12 +306,13 @@ namespace Yoma.Core.Test.CourseQuality
     public async Task Job_DoesNothing_WhenTurnedOff()
     {
       var service = new Mock<ICourseQualityService>(MockBehavior.Strict);
+      var grading = new Mock<ICourseQualityGradingService>(MockBehavior.Strict);
       var locks = new Mock<IDistributedLockService>();
       locks.Setup(o => o.TryAcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<string>())).ReturnsAsync(true);
       var lifetime = new Mock<IHostApplicationLifetime>();
       lifetime.SetupGet(o => o.ApplicationStopping).Returns(CancellationToken.None);
       var job = new CourseQualityBackgroundService(NullLogger<CourseQualityBackgroundService>.Instance,
-        Options.Create(new ScheduleJobOptions { DefaultScheduleMaxIntervalInHours = 2 }), Options.Create(new CourseQualityOptions { Enabled = false }), service.Object, locks.Object, lifetime.Object);
+        Options.Create(new ScheduleJobOptions { DefaultScheduleMaxIntervalInHours = 2 }), Options.Create(new CourseQualityOptions { Enabled = false }), service.Object, grading.Object, locks.Object, lifetime.Object);
 
       await job.ProcessAssessments();
 
@@ -233,19 +325,60 @@ namespace Yoma.Core.Test.CourseQuality
       var ids = new[] { Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid() };
       var service = new Mock<ICourseQualityService>();
       service.Setup(o => o.QueryDue(It.IsAny<DateTimeOffset>())).Returns(ids.AsQueryable());
-      service.Setup(o => o.Assess(ids[0], It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("bad row"));
+      service.Setup(o => o.AssessDue(ids[0], It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("bad row"));
+      service.Setup(o => o.AssessDue(ids[1], It.IsAny<CancellationToken>())).ReturnsAsync(true);
+      var grading = new Mock<ICourseQualityGradingService>();
       var locks = new Mock<IDistributedLockService>();
       locks.Setup(o => o.TryAcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>(), It.IsAny<string>())).ReturnsAsync(true);
       var lifetime = new Mock<IHostApplicationLifetime>();
       lifetime.SetupGet(o => o.ApplicationStopping).Returns(CancellationToken.None);
       var job = new CourseQualityBackgroundService(NullLogger<CourseQualityBackgroundService>.Instance,
-        Options.Create(new ScheduleJobOptions { DefaultScheduleMaxIntervalInHours = 2 }), Options.Create(new CourseQualityOptions { Enabled = true, BatchSize = 2 }), service.Object, locks.Object, lifetime.Object);
+        Options.Create(new ScheduleJobOptions { DefaultScheduleMaxIntervalInHours = 2 }), Options.Create(new CourseQualityOptions { Enabled = true, BatchSize = 2 }), service.Object, grading.Object, locks.Object, lifetime.Object);
 
       await job.ProcessAssessments();
 
-      service.Verify(o => o.Assess(ids[0], It.IsAny<CancellationToken>()), Times.Once);
-      service.Verify(o => o.Assess(ids[1], It.IsAny<CancellationToken>()), Times.Once);
-      service.Verify(o => o.Assess(ids[2], It.IsAny<CancellationToken>()), Times.Never);
+      service.Verify(o => o.AssessDue(ids[0], It.IsAny<CancellationToken>()), Times.Once);
+      service.Verify(o => o.AssessDue(ids[1], It.IsAny<CancellationToken>()), Times.Once);
+      service.Verify(o => o.AssessDue(ids[2], It.IsAny<CancellationToken>()), Times.Never);
+
+      // one requested regrade for the batch, because a course changed; the job does not wait for it
+      grading.Verify(o => o.RequestRegrade(), Times.Once);
+      grading.Verify(o => o.Regrade(), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegradeJob_Runs_EvenWhenAssessmentIsTurnedOff()
+    {
+      var grading = new Mock<ICourseQualityGradingService>();
+      var lifetime = new Mock<IHostApplicationLifetime>();
+      lifetime.SetupGet(o => o.ApplicationStopping).Returns(CancellationToken.None);
+      var job = new CourseQualityBackgroundService(NullLogger<CourseQualityBackgroundService>.Instance,
+        Options.Create(new ScheduleJobOptions()), Options.Create(new CourseQualityOptions { Enabled = false, BatchSize = 0 }), Mock.Of<ICourseQualityService>(), grading.Object,
+        Mock.Of<IDistributedLockService>(), lifetime.Object);
+
+      await job.ProcessRegrade();
+
+      grading.Verify(o => o.RunRequestedRegrade(), Times.Once);
+    }
+
+    [Fact]
+    public async Task RegradeJob_LogsAFailure_WithoutThrowing()
+    {
+      var grading = new Mock<ICourseQualityGradingService>();
+      grading.Setup(o => o.RunRequestedRegrade()).ThrowsAsync(new TimeoutException("lock"));
+      var lifetime = new Mock<IHostApplicationLifetime>();
+      lifetime.SetupGet(o => o.ApplicationStopping).Returns(CancellationToken.None);
+      var job = new CourseQualityBackgroundService(NullLogger<CourseQualityBackgroundService>.Instance,
+        Options.Create(new ScheduleJobOptions()), Options.Create(new CourseQualityOptions()), Mock.Of<ICourseQualityService>(), grading.Object,
+        Mock.Of<IDistributedLockService>(), lifetime.Object);
+
+      await job.ProcessRegrade();
+    }
+
+    [Fact]
+    public void ShippedRegradeDelay_IsShort()
+    {
+      Assert.Equal(30, ShippedOptions().RegradeDelayInSeconds);
     }
     #endregion
 
@@ -259,6 +392,17 @@ namespace Yoma.Core.Test.CourseQuality
     [InlineData(nameof(CourseQualityController.Review), "POST", "review/{assessmentId}")]
     [InlineData(nameof(CourseQualityController.ListFixNotes), "GET", "organization/{organizationId}/fixNotes")]
     [InlineData(nameof(CourseQualityController.GetCoverage), "GET", "coverage")]
+    [InlineData(nameof(CourseQualityController.GetGradeRubric), "GET", "grading/rubric")]
+    [InlineData(nameof(CourseQualityController.SaveGradeRubric), "PUT", "grading/rubric")]
+    [InlineData(nameof(CourseQualityController.ResetGradeRubric), "DELETE", "grading/rubric")]
+    [InlineData(nameof(CourseQualityController.ListGradeFactors), "GET", "grading/factors")]
+    [InlineData(nameof(CourseQualityController.RunGrading), "POST", "grading/run")]
+    [InlineData(nameof(CourseQualityController.GetGrade), "GET", "opportunity/{opportunityId}/grade")]
+    [InlineData(nameof(CourseQualityController.GetFeedbackOptions), "GET", "feedback/options")]
+    [InlineData(nameof(CourseQualityController.RecordFeedbackLeft), "POST", "opportunity/{opportunityId}/feedback/left")]
+    [InlineData(nameof(CourseQualityController.ListPendingFeedback), "GET", "feedback/pending")]
+    [InlineData(nameof(CourseQualityController.SubmitFeedback), "POST", "opportunity/{opportunityId}/feedback")]
+    [InlineData(nameof(CourseQualityController.GetFeedbackSummary), "GET", "opportunity/{opportunityId}/feedback/summary")]
     public void Routes_MatchTheContract(string action, string method, string template)
     {
       var attribute = Action(action).GetCustomAttribute<HttpMethodAttribute>()!;
@@ -273,18 +417,28 @@ namespace Yoma.Core.Test.CourseQuality
     [InlineData(nameof(CourseQualityController.SearchReviews), "Admin")]
     [InlineData(nameof(CourseQualityController.Review), "Admin")]
     [InlineData(nameof(CourseQualityController.GetCoverage), "Admin")]
+    [InlineData(nameof(CourseQualityController.GetGradeRubric), "Admin")]
+    [InlineData(nameof(CourseQualityController.SaveGradeRubric), "Admin")]
+    [InlineData(nameof(CourseQualityController.ResetGradeRubric), "Admin")]
+    [InlineData(nameof(CourseQualityController.ListGradeFactors), "Admin")]
+    [InlineData(nameof(CourseQualityController.RunGrading), "Admin")]
+    [InlineData(nameof(CourseQualityController.GetGrade), "Admin")]
     [InlineData(nameof(CourseQualityController.ListFixNotes), "Admin, OrganisationAdmin")]
+    [InlineData(nameof(CourseQualityController.RecordFeedbackLeft), "User")]
+    [InlineData(nameof(CourseQualityController.ListPendingFeedback), "User")]
+    [InlineData(nameof(CourseQualityController.SubmitFeedback), "User")]
+    [InlineData(nameof(CourseQualityController.GetFeedbackSummary), "Admin, OrganisationAdmin")]
     public void Roles_MatchTheContract(string action, string roles)
     {
       Assert.Equal(roles, Action(action).GetCustomAttribute<AuthorizeAttribute>()!.Roles);
     }
 
     [Fact]
-    public void OnlyTheCardIsAnonymous()
+    public void OnlyTheCardAndFeedbackOptionsAreAnonymous()
     {
       Assert.NotNull(typeof(CourseQualityController).GetCustomAttribute<AuthorizeAttribute>()?.Policy);
-      Assert.NotNull(Action(nameof(CourseQualityController.GetCard)).GetCustomAttribute<AllowAnonymousAttribute>());
-      Assert.Single(typeof(CourseQualityController).GetMethods(), o => o.GetCustomAttribute<AllowAnonymousAttribute>() != null);
+      Assert.Equal([nameof(CourseQualityController.GetCard), nameof(CourseQualityController.GetFeedbackOptions)],
+        typeof(CourseQualityController).GetMethods().Where(o => o.GetCustomAttribute<AllowAnonymousAttribute>() != null).Select(o => o.Name).Order());
     }
     #endregion
 
@@ -384,7 +538,8 @@ namespace Yoma.Core.Test.CourseQuality
       var expected = new[]
       {
         "id", "opportunityId", "opportunityTitle", "organizationId", "organizationName", "rubricVersion", "score", "confidence", "status",
-        "reviewStatus", "criteria", "aiUsed", "aiModel", "aiSummary", "learnerCard", "fixNote", "reviewedByEmail", "reviewNote", "dateReviewed", "dateAssessed"
+        "reviewStatus", "criteria", "aiUsed", "aiModel", "aiSummary", "learnerCard", "fixNote", "reviewedByEmail", "reviewNote", "dateReviewed", "dateAssessed",
+        "reviewReasons", "grade", "feedback"
       };
       Assert.Equal(expected.Order(), json.Properties().Select(o => o.Name).Order());
 
@@ -392,7 +547,7 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.Equal("Pending", json["reviewStatus"]!.Value<string>());
       Assert.Equal("LinkWorks", json["criteria"]![0]!["criterion"]!.Value<string>());
       Assert.Equal("Unknown", json["learnerCard"]!["cost"]!["type"]!.Value<string>());
-      Assert.Equal(["cost", "commitmentHours", "dateAssessed", "dateEnd", "datesConfirmed", "dateStart", "format", "highlights", "opportunityId", "selfPaced", "status", "timelineSummary"],
+      Assert.Equal(["cost", "commitmentHours", "dateAssessed", "dateEnd", "datesConfirmed", "dateStart", "format", "grade", "gradeLabel", "highlights", "opportunityId", "selfPaced", "status", "timelineSummary"],
         ((JObject)json["learnerCard"]!).Properties().Select(o => o.Name).OrderBy(o => o == "cost" ? "" : o));
     }
     #endregion

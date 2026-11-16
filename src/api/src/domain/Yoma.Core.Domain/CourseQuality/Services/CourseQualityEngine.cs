@@ -85,6 +85,22 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
       var (status, reviewStatus) = Route(score, confidence, criteria.Any(o => o.HardGateFailed), definite, needsPerson, options);
 
+      List<string> reasons = reviewStatus != CourseQualityReviewStatus.Pending ? [] : ReviewReasons(new CourseQualityReviewFacts
+      {
+        Link = link,
+        AI = ai,
+        HasPageEvidence = hasPageEvidence,
+        Format = format,
+        EndDateDisputed = endDateDisputed,
+        DatesDiffer = hasPageEvidence && opportunity.DateEnd.HasValue && dates.Score < options.AIHardGateFailScore,
+        SelfPacedHeld = selfPacedHeld,
+        DatesCurrent = datesCurrent,
+        SelfPaced = selfPaced,
+        PageDoubted = pageDoubted,
+        Judged = judged,
+        Confidence = confidence
+      }, options);
+
       var assessment = new CourseQualityAssessment
       {
         Id = Guid.NewGuid(),
@@ -102,6 +118,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         AIModel = ai?.Model,
         AISummary = ai == null ? null : Trim(ai.Summary, MaxTextLength),
         DateAssessed = now,
+        ReviewReasons = reasons,
         LearnerCard = new LearnerCard
         {
           OpportunityId = opportunity.Id,
@@ -169,6 +186,76 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     #endregion
 
     #region Private Members
+    private sealed class CourseQualityReviewFacts
+    {
+      public CourseQualityLinkCheckResult Link { get; init; } = null!;
+      public CourseQualityAIResult? AI { get; init; }
+      public bool HasPageEvidence { get; init; }
+      public CourseFormat Format { get; init; }
+      public bool EndDateDisputed { get; init; }
+      public bool DatesDiffer { get; init; }
+      public bool SelfPacedHeld { get; init; }
+      public bool DatesCurrent { get; init; }
+      public bool SelfPaced { get; init; }
+      public bool PageDoubted { get; init; }
+      public bool Judged { get; init; }
+      public decimal Confidence { get; init; }
+    }
+
+    /// <summary>
+    /// Reviewer-facing: why this result went to a person, one fact per line, in the order a reviewer would check them.
+    /// </summary>
+    private static List<string> ReviewReasons(CourseQualityReviewFacts facts, CourseQualityOptions options)
+    {
+      var reasons = new List<string>();
+      var inconclusive = facts.Link.Outcome == CourseQualityLinkOutcome.Inconclusive;
+
+      if (inconclusive)
+        reasons.Add($"The course link could not be confirmed either way ({LinkFailure(facts.Link)}), so confidence was lowered by {options.InconclusiveLinkConfidencePenalty.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}.");
+
+      if (!facts.HasPageEvidence && !inconclusive)
+        reasons.Add($"The course page could not be read, so confidence is capped at {options.RuleOnlyConfidenceCap.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}.");
+      else if (facts.HasPageEvidence && facts.AI == null)
+        reasons.Add("The course page was fetched, but no page reader checked it.");
+
+      if (facts.AI?.PageGone == true) reasons.Add("The course page says the course is closed or cannot be found.");
+
+      if (facts.HasPageEvidence && facts.AI != null && !facts.AI.StrongMatch && facts.AI.PageGone != true)
+        reasons.Add("The course page's title does not clearly match the listing title.");
+      else if (facts.PageDoubted) reasons.Add("The course page may not be this listing's page.");
+      else if (facts.HasPageEvidence && facts.AI?.StrongMatch == true && !facts.Judged) reasons.Add("The page reader did not judge the dates and details.");
+
+      if (facts.Format == CourseFormat.Unknown) reasons.Add("The format, course or webinar, could not be told from the listing or the page.");
+      if (facts.AI?.FormatDisputed == true) reasons.Add("The page reader and the fixed checks read a different format.");
+
+      if (facts.EndDateDisputed) reasons.Add("The listing has no end date, and the dates on the course page differ from it.");
+      else if (facts.DatesDiffer) reasons.Add("The dates on the course page differ from the listing.");
+
+      if (facts.SelfPacedHeld) reasons.Add("The page reads as self-paced, but the listing has an end date, starts later or did not pass every check.");
+
+      if (facts.HasPageEvidence && !facts.SelfPaced && !facts.DatesCurrent && !facts.EndDateDisputed && !facts.DatesDiffer && facts.AI?.StrongMatch == true)
+        reasons.Add("The course page does not confirm the listing's dates, and the course is not self-paced.");
+
+      if (facts.Confidence < options.ReviewConfidenceThreshold)
+        reasons.Add($"Confidence is {facts.Confidence.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}, below the review threshold of {options.ReviewConfidenceThreshold.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}.");
+
+      return reasons;
+    }
+
+    private static string LinkFailure(CourseQualityLinkCheckResult link)
+    {
+      return link.Failure switch
+      {
+        CourseQualityLinkFailure.Timeout => "it timed out",
+        CourseQualityLinkFailure.AccessBlocked => "the site blocked the check",
+        CourseQualityLinkFailure.RateLimited => "the site asked to slow down",
+        CourseQualityLinkFailure.ServerError => $"the site had a server error{(link.StatusCode.HasValue ? $", {link.StatusCode}" : string.Empty)}",
+        CourseQualityLinkFailure.EmptyResponse => "the page was empty",
+        CourseQualityLinkFailure.ConnectionError => "the connection failed",
+        _ => link.StatusCode.HasValue ? $"status {link.StatusCode}" : "no clear answer"
+      };
+    }
+
     private static CourseQualityCriterionResult Combine(CourseQualityRuleResult rule, Opportunity.Models.Opportunity opportunity, CourseQualityAIResult? ai, bool hasPageEvidence, CourseQualityOptions options)
     {
       var result = new CourseQualityCriterionResult

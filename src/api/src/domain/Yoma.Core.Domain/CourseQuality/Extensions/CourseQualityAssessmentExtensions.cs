@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 using Yoma.Core.Domain.CourseQuality.Models;
 
 namespace Yoma.Core.Domain.CourseQuality.Extensions
@@ -39,8 +40,41 @@ namespace Yoma.Core.Domain.CourseQuality.Extensions
         ReviewedByEmail = value.ReviewedByEmail,
         ReviewNote = value.ReviewNote,
         DateReviewed = value.DateReviewed,
-        DateAssessed = value.DateAssessed
+        DateAssessed = value.DateAssessed,
+        ReviewReasons = string.IsNullOrEmpty(value.ReviewReasons) ? [] : Deserialize<List<string>>(value.ReviewReasons)
       };
+    }
+
+    /// <summary>
+    /// Whether a fresh row changes anything grading reads, so an unchanged batch does not regrade the catalogue.
+    /// </summary>
+    public static bool DiffersForGrading(this CourseQualityAssessmentRecord prior, CourseQualityAssessmentRecord next)
+    {
+      ArgumentNullException.ThrowIfNull(prior, nameof(prior));
+      ArgumentNullException.ThrowIfNull(next, nameof(next));
+
+      if (prior.Status != next.Status || prior.ReviewStatus != next.ReviewStatus || prior.Score != next.Score
+        || prior.Confidence != next.Confidence || prior.Format != next.Format) return true;
+
+      if (!SameJson(prior.Criteria, next.Criteria) || !SameJson(prior.PageEvidence, next.PageEvidence)) return true;
+
+      var priorCard = Deserialize<LearnerCard>(prior.LearnerCard);
+      var nextCard = Deserialize<LearnerCard>(next.LearnerCard);
+      return priorCard.Cost?.Type != nextCard.Cost?.Type || priorCard.SelfPaced != nextCard.SelfPaced;
+    }
+
+    public static CourseQualityPageEvidence? ToPageEvidence(this CourseQualityAssessmentRecord value)
+    {
+      ArgumentNullException.ThrowIfNull(value, nameof(value));
+
+      return string.IsNullOrEmpty(value.PageEvidence) ? null : Deserialize<CourseQualityPageEvidence>(value.PageEvidence);
+    }
+
+    public static string Serialize(this CourseQualityPageEvidence value)
+    {
+      ArgumentNullException.ThrowIfNull(value, nameof(value));
+
+      return JsonConvert.SerializeObject(value, Settings);
     }
 
     public static CourseQualityAssessmentRecord ToRecord(this CourseQualityAssessment value, DateTimeOffset opportunityDateModified, string contentFingerprint)
@@ -61,7 +95,7 @@ namespace Yoma.Core.Domain.CourseQuality.Extensions
     }
 
     /// <summary>
-    /// Copies the fields that can change after a review. Identity and listing snapshot stay as they are.
+    /// Copies the fields that can change after a review. Identity, listing snapshot and page evidence stay as they are.
     /// </summary>
     public static CourseQualityAssessmentRecord ApplyAssessment(this CourseQualityAssessmentRecord record, CourseQualityAssessment value)
     {
@@ -82,8 +116,9 @@ namespace Yoma.Core.Domain.CourseQuality.Extensions
       record.AIModel = value.AIModel;
       record.AISummary = value.AISummary;
       record.Criteria = JsonConvert.SerializeObject(value.Criteria, Settings);
-      record.LearnerCard = JsonConvert.SerializeObject(value.LearnerCard, Settings);
+      record.LearnerCard = StoredCard(value.LearnerCard);
       record.FixNote = value.FixNote == null ? null : JsonConvert.SerializeObject(value.FixNote, Settings);
+      record.ReviewReasons = value.ReviewReasons.Count == 0 ? null : JsonConvert.SerializeObject(value.ReviewReasons, Settings);
       record.ReviewedByEmail = value.ReviewedByEmail;
       record.ReviewNote = value.ReviewNote;
       record.DateReviewed = value.DateReviewed;
@@ -94,6 +129,27 @@ namespace Yoma.Core.Domain.CourseQuality.Extensions
     #endregion
 
     #region Private Members
+    /// <summary>
+    /// Compared as JSON, because jsonb gives a stored value back with its own key order and spacing.
+    /// </summary>
+    private static bool SameJson(string? a, string? b)
+    {
+      if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return string.IsNullOrEmpty(a) == string.IsNullOrEmpty(b);
+
+      return JToken.DeepEquals(JToken.Parse(a), JToken.Parse(b));
+    }
+
+    /// <summary>
+    /// The grade is read from the latest grading run when a card is shown, so a stored card never carries a stale one.
+    /// </summary>
+    private static string StoredCard(LearnerCard card)
+    {
+      var stored = JObject.FromObject(card, JsonSerializer.Create(Settings));
+      stored.Remove(nameof(LearnerCard.Grade));
+      stored.Remove(nameof(LearnerCard.GradeLabel));
+      return stored.ToString(Formatting.None);
+    }
+
     private static T Deserialize<T>(string value)
     {
       return JsonConvert.DeserializeObject<T>(value, Settings)

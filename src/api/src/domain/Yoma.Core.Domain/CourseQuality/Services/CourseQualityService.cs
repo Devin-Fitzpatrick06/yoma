@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Linq.Expressions;
 using Yoma.Core.Domain.Core;
 using Yoma.Core.Domain.Core.Exceptions;
 using Yoma.Core.Domain.Core.Helpers;
@@ -38,6 +39,8 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     private readonly ICourseQualityAIProvider _aiProvider;
     private readonly IRepository<CourseQualityAssessmentRecord> _assessmentRepository;
     private readonly IExecutionStrategyService _executionStrategyService;
+    private readonly ICourseQualityGradingService _gradingService;
+    private readonly ICourseQualityFeedbackService _feedbackService;
     #endregion
 
     #region Constructor
@@ -53,7 +56,9 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       ICourseQualityLinkChecker linkChecker,
       ICourseQualityAIProvider aiProvider,
       IRepository<CourseQualityAssessmentRecord> assessmentRepository,
-      IExecutionStrategyService executionStrategyService)
+      IExecutionStrategyService executionStrategyService,
+      ICourseQualityGradingService gradingService,
+      ICourseQualityFeedbackService feedbackService)
     {
       _logger = logger ?? throw new ArgumentNullException(nameof(logger));
       _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
@@ -68,6 +73,8 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       _aiProvider = aiProvider ?? throw new ArgumentNullException(nameof(aiProvider));
       _assessmentRepository = assessmentRepository ?? throw new ArgumentNullException(nameof(assessmentRepository));
       _executionStrategyService = executionStrategyService ?? throw new ArgumentNullException(nameof(executionStrategyService));
+      _gradingService = gradingService ?? throw new ArgumentNullException(nameof(gradingService));
+      _feedbackService = feedbackService ?? throw new ArgumentNullException(nameof(feedbackService));
     }
     #endregion
 
@@ -90,7 +97,9 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       if (!IsPubliclyVisible(opportunity)) throw notFound;
       if (!IsCurrent(latest, opportunity, now)) throw notFound;
 
-      return latest.ToAssessment().LearnerCard;
+      var card = latest.ToAssessment().LearnerCard;
+      SetCardGrade(card, _gradingService.ListGrades([opportunityId]).GetValueOrDefault(opportunityId));
+      return card;
     }
 
     public List<Guid>? ListVerifiedForBrowse()
@@ -101,6 +110,13 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       return [.. _assessmentRepository.Query()
         .Where(o => o.IsLatest && o.Status == CourseQualityStatus.Verified && o.DateAssessed >= cutoff)
         .Select(o => o.OpportunityId)];
+    }
+
+    public Expression<Func<Opportunity.Models.Opportunity, object>>? GradeRankForBrowse()
+    {
+      if (!_options.ShowInBrowse) return null;
+
+      return _gradingService.GradeRank();
     }
 
     public List<Guid>? RankByPopularity(List<MyOpportunity.Models.MyOpportunityParticipationCounts> counts)
@@ -125,6 +141,8 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       var ids = courses.Keys.ToList();
       var latest = _assessmentRepository.Query().Where(o => o.IsLatest && ids.Contains(o.OpportunityId)).ToDictionary(o => o.OpportunityId);
 
+      var grades = _gradingService.ListGrades([.. latest.Keys]);
+
       var now = DateTimeOffset.UtcNow;
       foreach (var result in results)
       {
@@ -135,28 +153,24 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
         result.QualityStatus = current ? assessment!.Status : CourseQualityStatus.NeedsReview;
         result.LearnerCard = current ? assessment!.ToAssessment().LearnerCard : null;
+        if (result.LearnerCard != null) SetCardGrade(result.LearnerCard, grades.GetValueOrDefault(result.Id));
       }
     }
 
     public async Task<CourseQualityAssessment> Assess(Guid opportunityId, CancellationToken cancellationToken)
     {
-      if (opportunityId == Guid.Empty) throw new ArgumentNullException(nameof(opportunityId));
+      var (assessment, changed) = await AssessAndPersist(opportunityId, cancellationToken);
 
-      if (!_options.Enabled)
-        throw new ValidationException("Course quality assessment is turned off");
-
-      var opportunity = _opportunityService.GetById(opportunityId, true, false, false);
-      if (opportunity.Type != Opportunity.Type.Learning)
-        throw new ValidationException($"Only opportunities of type '{Opportunity.Type.Learning}' can be assessed");
-
-      var link = await _linkChecker.Check(opportunity.URL, cancellationToken);
-      var ai = await EvaluateAI(opportunity, link, cancellationToken);
-
-      var assessment = CourseQualityEngine.Assess(opportunity, link, ai, _options, DateTimeOffset.UtcNow, out var fresh);
-
-      await Persist(assessment, opportunity.DateModified, CourseQualityFingerprint.Compute(opportunity), fresh);
+      if (changed) await _gradingService.RequestRegrade();
+      SetGrades([assessment]);
 
       return assessment;
+    }
+
+    public async Task<bool> AssessDue(Guid opportunityId, CancellationToken cancellationToken)
+    {
+      var (_, changed) = await AssessAndPersist(opportunityId, cancellationToken);
+      return changed;
     }
 
     public CourseQualityReviewSearchResults SearchReviews(CourseQualityReviewSearchFilter filter)
@@ -171,6 +185,18 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       if (filter.ReviewStatus.HasValue) query = query.Where(o => o.ReviewStatus == filter.ReviewStatus.Value);
       if (filter.OrganizationId.HasValue) query = query.Where(o => o.OrganizationId == filter.OrganizationId.Value);
 
+      if (filter.Grade == CourseGrade.Ungraded)
+      {
+        // not graded includes not graded yet
+        var graded = _gradingService.QueryGraded();
+        query = query.Where(o => !graded.Contains(o.OpportunityId));
+      }
+      else if (filter.Grade.HasValue)
+      {
+        var withGrade = _gradingService.QueryByGrade(filter.Grade.Value);
+        query = query.Where(o => withGrade.Contains(o.OpportunityId));
+      }
+
       var totalCount = query.Count();
 
       // oldest first, so the queue is worked in the order it arrived
@@ -179,11 +205,14 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         .Take(filter.PageSize)
         .ToList();
 
-      return new CourseQualityReviewSearchResults
+      var results = new CourseQualityReviewSearchResults
       {
         TotalCount = totalCount,
         Items = [.. items.Select(o => o.ToAssessment())]
       };
+
+      SetGrades(results.Items);
+      return results;
     }
 
     public async Task<CourseQualityAssessment> Review(Guid assessmentId, CourseQualityReviewDecision decision)
@@ -224,6 +253,11 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
         scope.Complete();
       });
+
+      // a decision can move a course into or out of the graded catalogue, which shifts every percentile; the grade returned is the
+      // last run's, and the requested run follows within the regrade delay
+      await _gradingService.RequestRegrade();
+      SetGrades([assessment]);
 
       return assessment;
     }
@@ -284,6 +318,58 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     #endregion
 
     #region Private Members
+    private async Task<(CourseQualityAssessment Assessment, bool Changed)> AssessAndPersist(Guid opportunityId, CancellationToken cancellationToken)
+    {
+      if (opportunityId == Guid.Empty) throw new ArgumentNullException(nameof(opportunityId));
+
+      if (!_options.Enabled)
+        throw new ValidationException("Course quality assessment is turned off");
+
+      var opportunity = _opportunityService.GetById(opportunityId, true, false, false);
+      if (opportunity.Type != Opportunity.Type.Learning)
+        throw new ValidationException($"Only opportunities of type '{Opportunity.Type.Learning}' can be assessed");
+
+      var link = await _linkChecker.Check(opportunity.URL, cancellationToken);
+      var ai = await EvaluateAI(opportunity, link, cancellationToken);
+
+      var assessment = CourseQualityEngine.Assess(opportunity, link, ai, _options, DateTimeOffset.UtcNow, out var fresh);
+
+      // a page counts only once it is known to be this listing's page; otherwise the listing's own text is read
+      var pageMatched = link.Outcome == CourseQualityLinkOutcome.Reachable && ai?.StrongMatch == true;
+      var evidence = CourseQualityPageEvidenceExtractor.Extract(link.SourcePageText, link.SourcePageSignals, pageMatched, opportunity.Description, opportunity.Title);
+
+      var changed = await Persist(assessment, opportunity.DateModified, CourseQualityFingerprint.Compute(opportunity), fresh, evidence);
+
+      return (assessment, changed);
+    }
+
+    /// <summary>
+    /// Learners see A to D only: Ungraded, like no grade at all, reads as null.
+    /// </summary>
+    private static void SetCardGrade(LearnerCard card, CourseGradeResult? grade)
+    {
+      var graded = grade != null && grade.Grade != CourseGrade.Ungraded;
+      card.Grade = graded ? grade!.Grade : null;
+      card.GradeLabel = graded ? grade!.GradeLabel : null;
+    }
+
+    private void SetGrades(List<CourseQualityAssessment> assessments)
+    {
+      if (assessments.Count == 0) return;
+
+      var grades = _gradingService.ListGrades([.. assessments.Select(o => o.OpportunityId)]);
+
+      // batched like the grades; null for a course nobody said they took
+      var feedback = _feedbackService.ListSummaries(assessments.GroupBy(o => o.OpportunityId).ToDictionary(o => o.Key, o => o.First().OrganizationId));
+
+      foreach (var assessment in assessments)
+      {
+        assessment.Grade = grades.GetValueOrDefault(assessment.OpportunityId);
+        assessment.Feedback = feedback.GetValueOrDefault(assessment.OpportunityId);
+        SetCardGrade(assessment.LearnerCard, assessment.Grade);
+      }
+    }
+
     // a badge speaks for what was assessed: not for a listing edited since, or a time that has gone by
     private static bool IsCurrent(CourseQualityAssessmentRecord latest, Opportunity.Models.Opportunity opportunity, DateTimeOffset now)
     {
@@ -351,8 +437,12 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     /// The newest row is locked and read only here, after the slow link and AI calls, so a decision made while they
     /// were running is not lost.
     /// </summary>
-    private async Task Persist(CourseQualityAssessment assessment, DateTimeOffset opportunityDateModified, string contentFingerprint, CourseQualityFreshCheck fresh)
+    /// <returns>Whether anything grading reads changed.</returns>
+    private async Task<bool> Persist(CourseQualityAssessment assessment, DateTimeOffset opportunityDateModified, string contentFingerprint, CourseQualityFreshCheck fresh,
+      CourseQualityPageEvidence evidence)
     {
+      var changed = false;
+
       await _executionStrategyService.ExecuteInExecutionStrategyAsync(async () =>
       {
         using var scope = TransactionScopeHelper.CreateReadCommitted();
@@ -372,6 +462,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         }
 
         var record = assessment.ToRecord(opportunityDateModified, contentFingerprint);
+        record.PageEvidence = evidence.Serialize();
 
         // a decision only being held has not seen that host prove anything
         record.FinalHost = carried && !backed ? prior!.FinalHost : fresh.FinalHost;
@@ -380,7 +471,11 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         await _assessmentRepository.Create(record);
 
         scope.Complete();
+
+        changed = prior == null || prior.DiffersForGrading(record);
       });
+
+      return changed;
     }
     #endregion
   }

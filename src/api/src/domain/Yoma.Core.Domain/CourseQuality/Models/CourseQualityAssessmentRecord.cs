@@ -52,6 +52,16 @@ namespace Yoma.Core.Domain.CourseQuality.Models
 
     public string? FixNote { get; set; }
 
+    /// <summary>
+    /// JSON list of why the engine sent this to a person. Null on rows from before review reasons existed.
+    /// </summary>
+    public string? ReviewReasons { get; set; }
+
+    /// <summary>
+    /// JSON of <see cref="CourseQualityPageEvidence"/>, read by grading. Kept with the listing snapshot, so a review does not change it.
+    /// </summary>
+    public string? PageEvidence { get; set; }
+
     public string? ReviewedByEmail { get; set; }
 
     public string? ReviewNote { get; set; }

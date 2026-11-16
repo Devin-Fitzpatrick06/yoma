@@ -65,6 +65,12 @@ namespace Yoma.Core.Infrastructure.Database.CourseQuality.Entities
     [Column(TypeName = "text")] //stored as text, because it is optional; see the note on Criteria
     public string? FixNote { get; set; }
 
+    [Column(TypeName = "text")] //optional; see the note on Criteria
+    public string? ReviewReasons { get; set; }
+
+    [Column(TypeName = "text")] //optional; see the note on Criteria
+    public string? PageEvidence { get; set; }
+
     [Column(TypeName = "varchar(320)")]
     public string? ReviewedByEmail { get; set; }
 

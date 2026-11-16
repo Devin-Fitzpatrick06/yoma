@@ -5,7 +5,7 @@ using Yoma.Core.Domain.CourseQuality.Models;
 namespace Yoma.Core.Domain.CourseQuality.Helpers
 {
   /// <summary>
-  /// Pulls JSON-LD, meta tags, title and h1 out of raw HTML. No HTML parser is referenced in this solution, so this uses
+  /// Pulls JSON-LD, meta tags, title, h1 and the heading outline out of raw HTML. No HTML parser is referenced in this solution, so this uses
   /// non-backtracking regexes with timeouts: linear in the input, which is already capped by the link checker.
   /// </summary>
   public static partial class CourseQualityPageSignalExtractor
@@ -15,6 +15,11 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
     public const int MaxJsonLdBlockLength = 64_000;
     public const int MaxJsonLdTotalLength = 128_000;
     public const int MaxTextLength = 1000;
+    public const int MaxSections = 60;
+    public const int MaxHeadingLength = 200;
+    public const int MaxSectionCount = 500;
+
+    private const int MaxSectionTokensScanned = 4000;
 
     private const int MaxMetaTagsScanned = 256;
     private const int RegexTimeoutMilliseconds = 2000;
@@ -48,6 +53,7 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
 
         ReadJsonLd(content, signals);
         ReadMetaTags(content, signals);
+        ReadSections(content, signals);
 
         return signals;
       }
@@ -104,6 +110,50 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
         if (cleaned != null) signals.MetaTags[key] = cleaned;
       }
     }
+
+    /// <summary>
+    /// Every heading, with the list items directly under it and the deeper headings in its span. Scripts, navigation and
+    /// footers are left out first, so a site menu is not read as a curriculum.
+    /// </summary>
+    private static void ReadSections(string content, CourseQualityPageSignals signals)
+    {
+      var body = NonContentRegex().Replace(content, " ");
+      var sections = new List<CourseQualityPageSection>();
+
+      foreach (var token in SectionTokenRegex().Matches(body).Take(MaxSectionTokensScanned))
+      {
+        if (!token.Groups[1].Success)
+        {
+          if (sections.Count > 0 && sections[^1].ListItems < MaxSectionCount) sections[^1].ListItems++;
+          continue;
+        }
+
+        var level = token.Groups[1].Value[0] - '0';
+
+        // a deeper heading belongs to every heading still open above it: each nearer one at a higher level, up to the top
+        var bound = level;
+        for (var i = sections.Count - 1; i >= 0 && bound > 1; i--)
+        {
+          if (sections[i].Level >= bound) continue;
+
+          if (sections[i].SubHeadings < MaxSectionCount) sections[i].SubHeadings++;
+          bound = sections[i].Level;
+        }
+
+        var heading = CourseQualitySafeText.Clean(CourseQualityPageText.FromHtml(token.Groups[2].Value, MaxHeadingLength), MaxHeadingLength);
+        if (heading == null) continue;
+
+        sections.Add(new CourseQualityPageSection { Level = level, Heading = heading });
+      }
+
+      signals.Sections = [.. sections.Take(MaxSections)];
+    }
+
+    [GeneratedRegex(@"<(script|style|noscript|template|svg|nav|footer)\b[^>]*>.*?</(script|style|noscript|template|svg|nav|footer)\s*>", SafeOptions, RegexTimeoutMilliseconds)]
+    private static partial Regex NonContentRegex();
+
+    [GeneratedRegex(@"<h([1-6])\b[^>]*>(.*?)</h[1-6]\s*>|<li\b", SafeOptions, RegexTimeoutMilliseconds)]
+    private static partial Regex SectionTokenRegex();
 
     [GeneratedRegex(@"<!--.*?-->", SafeOptions, RegexTimeoutMilliseconds)]
     private static partial Regex CommentRegex();

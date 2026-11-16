@@ -116,6 +116,20 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public int CardMaxAgeInDays { get; set; } = 14;
 
     public CourseQualityLinkCheckOptions LinkCheck { get; set; } = new();
+
+    /// <summary>
+    /// How long after a change (an assessment, a reviewer decision, a survey answer) the catalogue is regraded. Changes in between share
+    /// the one run, so a full assessment pass costs a handful of regrades, not one per course.
+    /// </summary>
+    public int RegradeDelayInSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// The default grading rubric. An admin override saved from the rubric page replaces it until reset. Bands configured here
+    /// replace the default bands whole.
+    /// </summary>
+    public CourseGradeRubric Grading { get; set; } = CourseQualityGradingDefaults.Rubric();
+
+    public CourseQualityLearnerFeedbackOptions LearnerFeedback { get; set; } = new();
   }
 
   public class CourseQualitySelfPacedProvider

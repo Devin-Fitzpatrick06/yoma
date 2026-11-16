@@ -16,6 +16,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     private readonly ScheduleJobOptions _scheduleJobOptions;
     private readonly CourseQualityOptions _options;
     private readonly ICourseQualityService _courseQualityService;
+    private readonly ICourseQualityGradingService _gradingService;
     private readonly IDistributedLockService _distributedLockService;
     private readonly IHostApplicationLifetime _applicationLifetime;
     #endregion
@@ -25,6 +26,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       IOptions<ScheduleJobOptions> scheduleJobOptions,
       IOptions<CourseQualityOptions> options,
       ICourseQualityService courseQualityService,
+      ICourseQualityGradingService gradingService,
       IDistributedLockService distributedLockService,
       IHostApplicationLifetime applicationLifetime)
     {
@@ -32,6 +34,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       _scheduleJobOptions = scheduleJobOptions?.Value ?? throw new ArgumentNullException(nameof(scheduleJobOptions));
       _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
       _courseQualityService = courseQualityService ?? throw new ArgumentNullException(nameof(courseQualityService));
+      _gradingService = gradingService ?? throw new ArgumentNullException(nameof(gradingService));
       _distributedLockService = distributedLockService ?? throw new ArgumentNullException(nameof(distributedLockService));
       _applicationLifetime = applicationLifetime ?? throw new ArgumentNullException(nameof(applicationLifetime));
     }
@@ -58,6 +61,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
         if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Assessing {count} course(s)", opportunityIds.Count);
 
+        var changed = false;
         foreach (var opportunityId in opportunityIds)
         {
           job.ThrowIfStopping();
@@ -65,7 +69,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
           try
           {
-            await _courseQualityService.Assess(opportunityId, _applicationLifetime.ApplicationStopping);
+            changed |= await _courseQualityService.AssessDue(opportunityId, _applicationLifetime.ApplicationStopping);
           }
           catch (Exception ex)
           {
@@ -75,12 +79,34 @@ namespace Yoma.Core.Domain.CourseQuality.Services
             if (_logger.IsEnabled(LogLevel.Error)) _logger.LogError(ex, "Failed to assess course quality for opportunity {opportunityId}", opportunityId);
           }
         }
+
+        // grades are relative, so a change asks for one coalesced regrade; an answer still newer than its grade (a request that was
+        // lost, say) is picked up here too
+        job.ThrowIfStopping();
+        if (changed || _gradingService.HasUngradedFeedback()) await _gradingService.RequestRegrade();
       }
       catch (Exception ex)
       {
         job.ThrowIfStopping(ex);
 
         if (_logger.IsEnabled(LogLevel.Error)) _logger.LogError(ex, "Failed to execute {process}: {errorMessage}", nameof(ProcessAssessments), ex.Message);
+      }
+    }
+
+    public async Task ProcessRegrade()
+    {
+      await using var job = BackgroundJobExecutionScope.Create(_applicationLifetime, _logger);
+
+      try
+      {
+        job.ThrowIfStopping();
+        await _gradingService.RunRequestedRegrade();
+      }
+      catch (Exception ex)
+      {
+        job.ThrowIfStopping(ex);
+
+        if (_logger.IsEnabled(LogLevel.Error)) _logger.LogError(ex, "Failed to execute {process}: {errorMessage}", nameof(ProcessRegrade), ex.Message);
       }
     }
     #endregion

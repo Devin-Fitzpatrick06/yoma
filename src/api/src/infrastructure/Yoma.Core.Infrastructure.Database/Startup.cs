@@ -97,6 +97,9 @@ namespace Yoma.Core.Infrastructure.Database
 
       #region Course Quality
       services.AddScoped<IRepository<CourseQualityAssessmentRecord>, CourseQualityAssessmentRepository>();
+      services.AddScoped<IRepositoryBatched<CourseQualityGradeRecord>, CourseQualityGradeRepository>();
+      services.AddScoped<IRepository<CourseQualityGradeRubricRecord>, CourseQualityGradeRubricRepository>();
+      services.AddScoped<IRepository<CourseQualityLearnerFeedbackRecord>, CourseQualityLearnerFeedbackRepository>();
       #endregion Course Quality
 
       #region Entity

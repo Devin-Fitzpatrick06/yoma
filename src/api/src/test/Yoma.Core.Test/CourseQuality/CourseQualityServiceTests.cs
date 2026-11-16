@@ -35,6 +35,8 @@ namespace Yoma.Core.Test.CourseQuality
     private readonly Mock<IRepositoryBatchedValueContainsWithNavigationAndCustomFieldFilter<OpportunityModel>> _opportunityRepository = new();
     private readonly Mock<ICourseQualityLinkChecker> _links = new();
     private readonly Mock<ICourseQualityAIProvider> _ai = new();
+    private readonly Mock<ICourseQualityGradingService> _grading = new();
+    private readonly Mock<ICourseQualityFeedbackService> _feedback = new();
     private readonly OpportunityModel _opportunity = CleanListing();
     private readonly CourseQualityOptions _options = new() { Enabled = true };
 
@@ -45,6 +47,9 @@ namespace Yoma.Core.Test.CourseQuality
       _ai.Setup(o => o.Evaluate(It.IsAny<CourseQualityAIRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(Ai(0.5m));
       _opportunities.Setup(o => o.GetById(_opportunity.Id, true, false, false, null)).Returns(() => _opportunity);
       _opportunities.Setup(o => o.GetByIdOrNull(_opportunity.Id, true, false, false, null)).Returns(() => _opportunity);
+      _grading.Setup(o => o.ListGrades(It.IsAny<List<Guid>>())).Returns([]);
+      _feedback.Setup(o => o.ListSummaries(It.IsAny<Dictionary<Guid, Guid>>())).Returns([]);
+      _grading.Setup(o => o.QueryGraded()).Returns(Array.Empty<Guid>().AsQueryable());
     }
 
     private CourseQualityService Service()
@@ -65,7 +70,7 @@ namespace Yoma.Core.Test.CourseQuality
       });
 
       return new CourseQualityService(NullLogger<CourseQualityService>.Instance, accessor.Object, Options.Create(_options), _opportunities.Object,
-        _organizations.Object, _types.Object, _statuses.Object, _organizationStatuses.Object, _opportunityRepository.Object, _links.Object, _ai.Object, repository.Object, strategy.Object);
+        _organizations.Object, _types.Object, _statuses.Object, _organizationStatuses.Object, _opportunityRepository.Object, _links.Object, _ai.Object, repository.Object, strategy.Object, _grading.Object, _feedback.Object);
     }
 
     private static CourseQualityReviewDecision Decide(CourseQualityStatus status) => new() { Status = status, Note = "Checked by hand" };
@@ -916,6 +921,39 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.Equal(0, Service().SearchReviews(new CourseQualityReviewSearchFilter { ReviewStatus = CourseQualityReviewStatus.Confirmed }).TotalCount);
     }
 
+    [Fact]
+    public async Task Search_And_Assess_CarryFeedback_FromOneBatchedCall()
+    {
+      await AssessNow();
+      var other = Guid.NewGuid();
+      _records.Add(new CourseQualityAssessmentRecord
+      {
+        Id = Guid.NewGuid(),
+        OpportunityId = other,
+        OrganizationId = Guid.NewGuid(),
+        IsLatest = true,
+        ReviewStatus = CourseQualityReviewStatus.Pending,
+        Criteria = "[]",
+        LearnerCard = _records[^1].LearnerCard,
+        OpportunityTitle = "Other",
+        OrganizationName = "Org",
+        RubricVersion = "v",
+        DateAssessed = Now
+      });
+      var summary = new CourseFeedbackSummary { OpportunityId = _opportunity.Id, Responses = 2 };
+      _feedback.Setup(o => o.ListSummaries(It.IsAny<Dictionary<Guid, Guid>>())).Returns(new Dictionary<Guid, CourseFeedbackSummary> { [_opportunity.Id] = summary });
+      _feedback.Invocations.Clear();
+
+      var results = Service().SearchReviews(new CourseQualityReviewSearchFilter());
+
+      Assert.Equal(2, results.Items.Count);
+      Assert.Same(summary, results.Items.Single(o => o.OpportunityId == _opportunity.Id).Feedback);
+      Assert.Null(results.Items.Single(o => o.OpportunityId == other).Feedback);
+      _feedback.Verify(o => o.ListSummaries(It.Is<Dictionary<Guid, Guid>>(d => d.Count == 2 && d[_opportunity.Id] == _opportunity.OrganizationId)), Times.Once);
+
+      Assert.Same(summary, (await AssessNow()).Feedback);
+    }
+
     [Theory]
     [InlineData(0, 20)]
     [InlineData(1, 0)]
@@ -923,6 +961,153 @@ namespace Yoma.Core.Test.CourseQuality
     public void Search_RejectsBadPaging(int pageNumber, int pageSize)
     {
       Assert.Throws<ValidationException>(() => Service().SearchReviews(new CourseQualityReviewSearchFilter { PageNumber = pageNumber, PageSize = pageSize }));
+    }
+    #endregion
+
+    #region Grades
+    private static CourseGradeResult Graded(Guid opportunityId, CourseGrade grade) => new()
+    {
+      OpportunityId = opportunityId,
+      Grade = grade,
+      GradeLabel = grade == CourseGrade.Ungraded ? "Not graded" : "Top pick",
+      RubricVersion = "g1"
+    };
+
+    [Fact]
+    public async Task PublicCard_CarriesTheGrade()
+    {
+      await AssessNow();
+      _grading.Setup(o => o.ListGrades(It.IsAny<List<Guid>>())).Returns(new Dictionary<Guid, CourseGradeResult> { [_opportunity.Id] = Graded(_opportunity.Id, CourseGrade.A) });
+
+      var card = Service().GetPublicCard(_opportunity.Id);
+
+      Assert.Equal(CourseGrade.A, card.Grade);
+      Assert.Equal("Top pick", card.GradeLabel);
+    }
+
+    [Fact]
+    public async Task PublicCard_ReadsUngradedAsNoGrade()
+    {
+      await AssessNow();
+      _grading.Setup(o => o.ListGrades(It.IsAny<List<Guid>>())).Returns(new Dictionary<Guid, CourseGradeResult> { [_opportunity.Id] = Graded(_opportunity.Id, CourseGrade.Ungraded) });
+
+      var card = Service().GetPublicCard(_opportunity.Id);
+
+      Assert.Null(card.Grade);
+      Assert.Null(card.GradeLabel);
+    }
+
+    [Fact]
+    public async Task Browse_CardCarriesTheGrade()
+    {
+      _options.ShowInBrowse = true;
+      await AssessNow();
+      _grading.Setup(o => o.ListGrades(It.IsAny<List<Guid>>())).Returns(new Dictionary<Guid, CourseGradeResult> { [_opportunity.Id] = Graded(_opportunity.Id, CourseGrade.A) });
+      var result = new Domain.Opportunity.Models.OpportunityInfo { Id = _opportunity.Id };
+
+      Service().SetBrowseStatus([_opportunity], [result]);
+
+      Assert.Equal(CourseGrade.A, result.LearnerCard!.Grade);
+    }
+
+    [Fact]
+    public void GradeRankForBrowse_IsOff_ByDefault()
+    {
+      Assert.Null(Service().GradeRankForBrowse());
+      _grading.Verify(o => o.GradeRank(), Times.Never);
+    }
+
+    [Fact]
+    public async Task Search_CarriesGrades_AndFiltersByGrade()
+    {
+      await AssessNow();
+      _grading.Setup(o => o.ListGrades(It.IsAny<List<Guid>>())).Returns(new Dictionary<Guid, CourseGradeResult> { [_opportunity.Id] = Graded(_opportunity.Id, CourseGrade.B) });
+      _grading.Setup(o => o.QueryByGrade(CourseGrade.B)).Returns(new[] { _opportunity.Id }.AsQueryable());
+      _grading.Setup(o => o.QueryByGrade(CourseGrade.A)).Returns(Array.Empty<Guid>().AsQueryable());
+      _grading.Setup(o => o.QueryGraded()).Returns(new[] { _opportunity.Id }.AsQueryable());
+
+      var b = Service().SearchReviews(new CourseQualityReviewSearchFilter { Grade = CourseGrade.B });
+      Assert.Equal(CourseGrade.B, b.Items.Single().Grade!.Grade);
+
+      Assert.Equal(0, Service().SearchReviews(new CourseQualityReviewSearchFilter { Grade = CourseGrade.A }).TotalCount);
+      Assert.Equal(0, Service().SearchReviews(new CourseQualityReviewSearchFilter { Grade = CourseGrade.Ungraded }).TotalCount);
+    }
+
+    [Fact]
+    public async Task Search_UngradedFilter_IncludesCoursesNotGradedYet()
+    {
+      await AssessNow();
+
+      Assert.Equal(1, Service().SearchReviews(new CourseQualityReviewSearchFilter { Grade = CourseGrade.Ungraded }).TotalCount);
+    }
+
+    [Fact]
+    public async Task Assess_RequestsARegradeOnlyWhenSomethingChanged_AndNeverWaitsForOne()
+    {
+      await AssessNow();
+      _grading.Verify(o => o.RequestRegrade(), Times.Once);
+
+      await AssessNow();
+      _grading.Verify(o => o.RequestRegrade(), Times.Once);
+
+      _ai.Setup(o => o.Evaluate(It.IsAny<CourseQualityAIRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(Ai(0.9m));
+      await AssessNow();
+      _grading.Verify(o => o.RequestRegrade(), Times.Exactly(2));
+      _grading.Verify(o => o.Regrade(), Times.Never);
+    }
+
+    [Fact]
+    public async Task AssessDue_SaysWhetherAnythingChanged_WithoutRegrading()
+    {
+      Assert.True(await Service().AssessDue(_opportunity.Id, CancellationToken.None));
+      Assert.False(await Service().AssessDue(_opportunity.Id, CancellationToken.None));
+
+      _grading.Verify(o => o.Regrade(), Times.Never);
+      _grading.Verify(o => o.RequestRegrade(), Times.Never);
+    }
+
+    [Fact]
+    public async Task Assess_StoresPageEvidence_FromAMatchedPage()
+    {
+      var ai = Ai(0.5m);
+      _ai.Setup(o => o.Evaluate(It.IsAny<CourseQualityAIRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(ai);
+      _links.Setup(o => o.Check(It.IsAny<string?>(), It.IsAny<CancellationToken>())).ReturnsAsync(WorkingLink("Module 1 basics. Module 2 cleaning. Module 3 charts. Take the quiz."));
+
+      await AssessNow();
+      var evidence = _records.Single(o => o.IsLatest).ToPageEvidence()!;
+      Assert.Equal(CourseQualityEvidenceSource.Page, evidence.Source);
+      Assert.Equal(3, evidence.ModuleCount);
+
+      // a page that is not this listing's own lends it nothing
+      ai.StrongMatch = false;
+      await AssessNow();
+      Assert.Equal(CourseQualityEvidenceSource.Listing, _records.Single(o => o.IsLatest).ToPageEvidence()!.Source);
+    }
+
+    [Fact]
+    public async Task Review_RequestsARegrade_AndReturnsTheCurrentGrade()
+    {
+      var first = await AssessNow();
+      _grading.Invocations.Clear();
+      _grading.Setup(o => o.ListGrades(It.IsAny<List<Guid>>())).Returns(new Dictionary<Guid, CourseGradeResult> { [_opportunity.Id] = Graded(_opportunity.Id, CourseGrade.A) });
+
+      var reviewed = await Service().Review(first.Id, Decide(CourseQualityStatus.Verified));
+
+      _grading.Verify(o => o.RequestRegrade(), Times.Once);
+      _grading.Verify(o => o.Regrade(), Times.Never);
+      Assert.Equal(CourseGrade.A, reviewed.Grade!.Grade);
+    }
+
+    [Fact]
+    public async Task Review_DoesNotWaitOnTheGradingLock()
+    {
+      var first = await AssessNow();
+      _grading.Setup(o => o.Regrade()).Returns(Task.Delay(Timeout.Infinite, TestContext.Current.CancellationToken));
+
+      var reviewed = await Service().Review(first.Id, Decide(CourseQualityStatus.Verified));
+
+      Assert.Equal(CourseQualityStatus.Verified, reviewed.Status);
+      Assert.Equal(CourseQualityReviewStatus.Confirmed, _records.Single(o => o.IsLatest).ReviewStatus);
     }
     #endregion
   }

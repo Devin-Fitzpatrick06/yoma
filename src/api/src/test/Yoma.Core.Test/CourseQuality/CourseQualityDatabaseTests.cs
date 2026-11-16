@@ -129,7 +129,8 @@ namespace Yoma.Core.Test.CourseQuality
 
       return new CourseQualityService(NullLogger<CourseQualityService>.Instance, Mock.Of<IHttpContextAccessor>(), Options.Create(options), Mock.Of<IOpportunityService>(), Mock.Of<IOrganizationService>(),
         types.Object, statuses.Object, organizationStatuses.Object, new OpportunityRepository(context), Mock.Of<ICourseQualityLinkChecker>(), Mock.Of<ICourseQualityAIProvider>(),
-        new CourseQualityAssessmentRepository(context), Mock.Of<IExecutionStrategyService>());
+        new CourseQualityAssessmentRepository(context), Mock.Of<IExecutionStrategyService>(), Mock.Of<ICourseQualityGradingService>(),
+        Mock.Of<ICourseQualityFeedbackService>(o => o.ListSummaries(It.IsAny<Dictionary<Guid, Guid>>()) == new Dictionary<Guid, CourseFeedbackSummary>()));
     }
 
     private static CourseQualityAssessment Assessment(Guid opportunityId, Guid organizationId, bool withFixNote)
@@ -224,6 +225,68 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.True(coverage.Assessed >= 1);
       Assert.Equal(coverage.TotalCourses, coverage.Assessed + coverage.NotAssessed);
       Assert.Equal(coverage.Assessed, coverage.Course + coverage.Webinar + coverage.Unknown);
+    }
+
+    [Fact]
+    public async Task GradeRubricAndFeedback_RoundTrip_OnPostgres()
+    {
+      Assert.SkipWhen(string.IsNullOrEmpty(ConnectionString), "COURSE_QUALITY_TEST_DB is not set");
+
+      await using (var migrate = Context()) await migrate.Database.MigrateAsync(TestContext.Current.CancellationToken);
+
+      await using var context = Context();
+      var (opportunityId, organizationId, _, _, _) = await SeedCourse(context);
+
+      // page evidence and review reasons on the assessment
+      var assessment = Assessment(opportunityId, organizationId, false);
+      assessment.ReviewReasons = ["The course page could not be read, so confidence is capped at 0.69."];
+      var record = assessment.ToRecord(DateTimeOffset.UtcNow, new string('e', 64));
+      record.PageEvidence = new CourseQualityPageEvidence { Source = CourseQualityEvidenceSource.Page, ModuleCount = 7 }.Serialize();
+      await new CourseQualityAssessmentRepository(context).Create(record);
+      var stored = new CourseQualityAssessmentRepository(context).Query().Single(o => o.Id == record.Id);
+      Assert.Equal(7, stored.ToPageEvidence()!.ModuleCount);
+      Assert.Equal(assessment.ReviewReasons, stored.ToAssessment().ReviewReasons);
+
+      // one grade row per opportunity, written in bulk and compared as JSON after jsonb reorders it
+      var grades = new CourseQualityGradeRepository(context);
+      var result = CourseQualityGradingEngine.Grade([new CourseGradeInput
+      {
+        OpportunityId = opportunityId,
+        OpportunityTitle = "Course",
+        OrganizationId = organizationId,
+        OrganizationName = "Org",
+        Status = CourseQualityStatus.Verified,
+        DateCreated = DateTimeOffset.UtcNow
+      }], Domain.CourseQuality.Helpers.CourseQualityGrading.Configured(new CourseQualityOptions()), DateTimeOffset.UtcNow).Single();
+
+      await grades.Create([new CourseQualityGradeRecord { Id = Guid.NewGuid() }.ApplyResult(result, CourseQualityStatus.Verified, 0)]);
+      var grade = grades.Query().Single(o => o.OpportunityId == opportunityId);
+      Assert.False(grade.Differs(result, CourseQualityStatus.Verified, 0));
+      Assert.Equal(result.Factors.Count, grade.ToResult().Factors.Count);
+      await Assert.ThrowsAnyAsync<DbUpdateException>(() => grades.Create([new CourseQualityGradeRecord { Id = Guid.NewGuid() }.ApplyResult(result, CourseQualityStatus.Verified, 0)]));
+      context.ChangeTracker.Clear();
+
+      grade.Score = 12;
+      await grades.Update([grade]);
+      Assert.Equal(12, grades.Query().Single(o => o.OpportunityId == opportunityId).Score);
+      await grades.Delete([grade]);
+      Assert.False(grades.Query().Any(o => o.OpportunityId == opportunityId));
+
+      // rubric history: a reset is a row with no rubric
+      var rubrics = new CourseQualityGradeRubricRepository(context);
+      await rubrics.Create(new CourseQualityGradeRubricRecord { Rubric = null, UpdatedByEmail = "admin@yoma.world", DateCreated = DateTimeOffset.UtcNow });
+      Assert.Contains(rubrics.Query().ToList(), o => o.Rubric == null);
+
+      // one feedback row per user and course
+      await using var connection = new NpgsqlConnection(ConnectionString);
+      await connection.OpenAsync(TestContext.Current.CancellationToken);
+      await using (var replica = new NpgsqlCommand("set session_replication_role = replica", connection)) await replica.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+      var userId = await Insert(connection, "Entity", "User", new() { ["Email"] = $"{Guid.NewGuid():N}@example.org" });
+
+      var feedback = new CourseQualityLearnerFeedbackRepository(context);
+      await feedback.Create(new CourseQualityLearnerFeedbackRecord { UserId = userId, OpportunityId = opportunityId, Answer = CourseFeedbackAnswer.Taken, DateLeft = DateTimeOffset.UtcNow, Rating = 4, Good = "[\"clearExplanations\"]" });
+      Assert.Equal(CourseFeedbackAnswer.Taken, feedback.Query().Single(o => o.UserId == userId).Answer);
+      await Assert.ThrowsAnyAsync<DbUpdateException>(() => feedback.Create(new CourseQualityLearnerFeedbackRecord { UserId = userId, OpportunityId = opportunityId, DateLeft = DateTimeOffset.UtcNow }));
     }
   }
 }

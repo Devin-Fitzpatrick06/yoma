@@ -44,6 +44,24 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
 
     public List<CourseQualityOffer> Offers { get; } = [];
 
+    /// <summary>
+    /// Items in syllabusSections, counted only on this listing's Course node.
+    /// </summary>
+    public int SyllabusSections { get; set; }
+
+    /// <summary>
+    /// Items in teaches: what the course says a learner will learn.
+    /// </summary>
+    public int Teaches { get; set; }
+
+    public bool HasCredential { get; set; }
+
+    public bool HasPrerequisites { get; set; }
+
+    public bool HasAudience { get; set; }
+
+    public List<string> Languages { get; } = [];
+
     public bool HasPageType => HasCourseType || HasEventType;
   }
 
@@ -60,6 +78,9 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
     private const int MaxYear = 2100;
     private const int RegexTimeoutMilliseconds = 1000;
     private const decimal MaxAmount = 10_000_000m;
+    private const int MaxCount = 500;
+    private const int MaxLanguages = 10;
+    private const int MaxLanguageLength = 40;
 
     private static readonly string[] ScheduleProperties = ["startDate", "endDate", "courseSchedule", "eventSchedule"];
 
@@ -189,6 +210,8 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
 
       facts.Duration ??= Text(node, "timeRequired");
 
+      ApplyOutline(node, facts);
+
       if (node.TryGetProperty("isAccessibleForFree", out var free))
       {
         var value = free.ValueKind switch
@@ -202,6 +225,48 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
         facts.AccessibleForFree ??= value;
         if (value == true) facts.AccessibleForFreeQuote ??= AccessibleQuote(block);
       }
+    }
+
+    /// <summary>
+    /// What a learner can read before starting: sections, outcomes, the credential, who it is for and the language.
+    /// </summary>
+    private static void ApplyOutline(JsonElement node, CourseQualityStructuredFacts facts)
+    {
+      facts.SyllabusSections = Math.Max(facts.SyllabusSections, Count(node, "syllabusSections"));
+      facts.Teaches = Math.Max(facts.Teaches, Count(node, "teaches"));
+      facts.HasCredential |= Count(node, "educationalCredentialAwarded") > 0;
+      facts.HasPrerequisites |= Count(node, "coursePrerequisites") > 0;
+      facts.HasAudience |= Count(node, "audience") > 0;
+
+      if (!node.TryGetProperty("inLanguage", out var language)) return;
+
+      var values = language.ValueKind == JsonValueKind.Array ? language.EnumerateArray().ToList() : [language];
+      foreach (var value in values)
+      {
+        var name = value.ValueKind == JsonValueKind.String ? value.GetString() : value.ValueKind == JsonValueKind.Object ? Text(value, "name") : null;
+        var cleaned = CourseQualitySafeText.Clean(name, MaxLanguageLength);
+        if (cleaned == null || facts.Languages.Count >= MaxLanguages || facts.Languages.Contains(cleaned, StringComparer.OrdinalIgnoreCase)) continue;
+
+        facts.Languages.Add(cleaned);
+      }
+    }
+
+    /// <summary>
+    /// A string or object counts as one, an array as its non-empty items.
+    /// </summary>
+    private static int Count(JsonElement node, string property)
+    {
+      if (!node.TryGetProperty(property, out var value)) return 0;
+
+      var count = value.ValueKind switch
+      {
+        JsonValueKind.Array => value.EnumerateArray().Count(o => o.ValueKind == JsonValueKind.Object || (o.ValueKind == JsonValueKind.String && !string.IsNullOrWhiteSpace(o.GetString()))),
+        JsonValueKind.Object => 1,
+        JsonValueKind.String => string.IsNullOrWhiteSpace(value.GetString()) ? 0 : 1,
+        _ => 0
+      };
+
+      return Math.Min(count, MaxCount);
     }
 
     private static void ApplyInstance(JsonElement node, string block, CourseQualityStructuredFacts facts)

@@ -112,6 +112,8 @@ namespace Yoma.Core.Domain
 
       #region Course Quality
       services.AddScoped<ICourseQualityService, CourseQualityService>();
+      services.AddScoped<ICourseQualityGradingService, CourseQualityGradingService>();
+      services.AddScoped<ICourseQualityFeedbackService, CourseQualityFeedbackService>();
       services.AddScoped<ICourseQualityBackgroundService, CourseQualityBackgroundService>();
       services.AddSingleton<ICourseQualityHostResolver, DnsCourseQualityHostResolver>();
       services.AddSingleton<ICourseQualityLinkChecker>(provider => ActivatorUtilities.CreateInstance<CourseQualityLinkChecker>(provider, CourseQualityLinkChecker.CreatePinnedHandler()));

@@ -51,6 +51,12 @@ namespace Yoma.Core.Infrastructure.Database.Context
 
     #region Course Quality
     public DbSet<CourseQuality.Entities.CourseQualityAssessment> CourseQualityAssessment { get; set; }
+
+    public DbSet<CourseQuality.Entities.CourseQualityGrade> CourseQualityGrade { get; set; }
+
+    public DbSet<CourseQuality.Entities.CourseQualityGradeRubric> CourseQualityGradeRubric { get; set; }
+
+    public DbSet<CourseQuality.Entities.CourseQualityLearnerFeedback> CourseQualityLearnerFeedback { get; set; }
     #endregion Course Quality
 
     #region Entity
@@ -500,6 +506,26 @@ namespace Yoma.Core.Infrastructure.Database.Context
 
         entity.HasOne(o => o.Opportunity).WithMany().HasForeignKey(o => o.OpportunityId).OnDelete(DeleteBehavior.NoAction);
         entity.HasOne(o => o.Organization).WithMany().HasForeignKey(o => o.OrganizationId).OnDelete(DeleteBehavior.NoAction);
+      });
+
+      builder.Entity<CourseQuality.Entities.CourseQualityGrade>(entity =>
+      {
+        entity.Property(o => o.Status).HasConversion<string>().HasColumnType("varchar(20)");
+        entity.Property(o => o.Grade).HasConversion<string>().HasColumnType("varchar(20)");
+
+        // upserted by every grading run, one row per opportunity
+        entity.HasIndex(o => o.OpportunityId).IsUnique();
+        entity.HasIndex(o => o.Grade);
+
+        entity.HasOne(o => o.Opportunity).WithMany().HasForeignKey(o => o.OpportunityId).OnDelete(DeleteBehavior.NoAction);
+      });
+
+      builder.Entity<CourseQuality.Entities.CourseQualityLearnerFeedback>(entity =>
+      {
+        entity.Property(o => o.Answer).HasConversion<string>().HasColumnType("varchar(20)");
+
+        entity.HasOne(o => o.User).WithMany().HasForeignKey(o => o.UserId).OnDelete(DeleteBehavior.NoAction);
+        entity.HasOne(o => o.Opportunity).WithMany().HasForeignKey(o => o.OpportunityId).OnDelete(DeleteBehavior.NoAction);
       });
       #endregion Course Quality
 

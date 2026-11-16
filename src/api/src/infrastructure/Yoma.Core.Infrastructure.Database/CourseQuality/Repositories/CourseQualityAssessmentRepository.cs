@@ -37,6 +37,8 @@ namespace Yoma.Core.Infrastructure.Database.CourseQuality.Repositories
         Criteria = entity.Criteria,
         LearnerCard = entity.LearnerCard,
         FixNote = entity.FixNote,
+        ReviewReasons = entity.ReviewReasons,
+        PageEvidence = entity.PageEvidence,
         ReviewedByEmail = entity.ReviewedByEmail,
         ReviewNote = entity.ReviewNote,
         DateReviewed = entity.DateReviewed,
@@ -101,6 +103,8 @@ namespace Yoma.Core.Infrastructure.Database.CourseQuality.Repositories
       entity.Criteria = item.Criteria;
       entity.LearnerCard = item.LearnerCard;
       entity.FixNote = item.FixNote;
+      entity.ReviewReasons = item.ReviewReasons;
+      entity.PageEvidence = item.PageEvidence;
       entity.ReviewedByEmail = item.ReviewedByEmail;
       entity.ReviewNote = item.ReviewNote;
       entity.DateReviewed = item.DateReviewed;
