@@ -7,9 +7,13 @@ An optional 10-minute AI "level-up" challenge shown at the end of a Passport to 
 - Development progress, test results and next sprint: **[docs/PROGRESS.md](docs/PROGRESS.md)**
 - For P2E and Yoma engineers: **[INTEGRATION.md](INTEGRATION.md)**
 
+**Live demo:** https://skilllens-gamma.vercel.app/demo/p2e (status: https://skilllens-gamma.vercel.app/status). It runs simulated AI and safety, because no Azure keys are set there. For real AI, run it locally with Ollama (below).
+
 ## Quick start
 
 Needs Node 24 (`.nvmrc`) and git.
+
+This repository is private: ask the owner for access, or use the public copy in the `skilllens/` folder of [Devin-Fitzpatrick06/yoma#1](https://github.com/Devin-Fitzpatrick06/yoma/pull/1) (`cd skilllens` there, then the same steps). The sample data the app needs is in the repo (`data/synthetic`, `data/yoma`), so there is nothing to download. What connects to Yoma, and what a live GenU environment needs: [INTEGRATION.md](INTEGRATION.md) sections 6 and 7.
 
 ```bash
 git clone https://github.com/wongkycharisse/skilllens.git

@@ -140,3 +140,48 @@ Each step builds on code that already exists. Each one changes settings or adds 
 - **Data contract:** the saved practice sample (section 2) is a Zod schema in `lib/schema.ts`. It is the one shape P2E, Yoma and SkillLens all share.
 - **Look:** every colour and font is a token in `app/globals.css` (`@theme`). Today they match the Passport to Earning site: blue `#0a59a7`, yellow `#ffcb03`, Oswald and Jost. A Yoma-branded version means changing that one block.
 - **Status:** `/status` and `GET /api/status` show which integrations are real or simulated, and whether each one can be reached.
+
+## 7. Where SkillLens meets Yoma's code, and what a live GenU environment needs
+
+### Yoma files SkillLens depends on
+
+Paths are in the Yoma repository ([Devin-Fitzpatrick06/yoma](https://github.com/Devin-Fitzpatrick06/yoma)). If any of these change, update `lib/yoma/` to match.
+
+| Yoma file | What SkillLens uses | SkillLens file |
+| --- | --- | --- |
+| `src/api/src/application/Yoma.Core.Api/Controllers/MyOpportunityController.cs` | `PUT action/{opportunityId}/verify`, role `User` (the learner's own token) | `lib/yoma/client.ts` |
+| `src/api/src/domain/Yoma.Core.Domain/MyOpportunity/Models/MyOpportunityRequestVerify.cs` | Multipart field names (`Certificate`, `DateStart`, `DateEnd`, `Feedback`) | `lib/yoma/evidence.ts` |
+| `src/api/src/application/Yoma.Core.Api/Controllers/OpportunityController.cs` | Public `POST opportunity/search` | `lib/yoma/opportunities.ts` |
+| `src/api/src/domain/Yoma.Core.Domain/Opportunity/Models/OpportunitySearchFilterBase.cs` | Search filters (no skills filter today) | `data/yoma/opportunity-search.json` |
+| `src/api/src/application/Yoma.Core.Api/Controllers/LookupController.cs` | Public `GET lookup/skill` | `scripts/yoma-sync.ts` |
+| `docs/sso/README.md` | How a host page gets the learner's Yoma token | host page (P2E or Yoma) |
+
+### What works today, with no accounts
+
+- **Real:**
+  - Skills lookup and opportunity search against Yoma stage.
+  - The local AI model (Ollama) and the model-based safety check.
+- **Built, but preview only:**
+  - The verify request. `YOMA_MODE=mock` builds the exact multipart request, then shows it instead of sending it.
+- **Simulated:**
+  - Azure AI and Azure Content Safety. The code path exists, but needs keys.
+
+`/status` shows which is which at any moment.
+
+### Needed for a live GenU environment
+
+| Kind | Item | Who provides it |
+| --- | --- | --- |
+| API | Azure OpenAI (Foundry) deployment, text and vision | GenU Azure tenant |
+| API | Azure AI Content Safety resource | GenU Azure tenant |
+| API | Yoma production API base URL (`YOMA_API_BASE_URL`) | Yoma team |
+| API (optional) | A Yoma partner endpoint for practice samples (section 3, open question 2) | Yoma team |
+| Permission | An organisation-admin account on Yoma, to create the two practice opportunities with FileUpload verification and attach skills | Yoma / GenU |
+| Permission | A Yoma SSO (Keycloak) client for the host page, so it can pass the learner's token with role `User` | Yoma team |
+| Permission | The host's Content-Security-Policy allows SkillLens in a frame (`frame-src`); SkillLens allows the host in `frame-ancestors` via `NEXT_PUBLIC_P2E_ORIGIN` | P2E / Yoma front-end |
+| Permission | Facilitator sign-in through P2E or Yoma, replacing the shared password | P2E / Yoma |
+| Infrastructure | Node 24 hosting, for example Azure App Service or a container on Yoma's Kubernetes (`helm/`) | GenU / Yoma |
+| Infrastructure | Secrets in a vault (for example Azure Key Vault), never in the repo | GenU |
+| Infrastructure | A database with a 72-hour TTL for flags and ratings (`lib/store.ts`) | GenU |
+| Infrastructure | Rate limiting on `/api/*`, plus logging that holds flag ids only | GenU |
+| Review | Child-safeguarding and data-protection sign-off (section 4), and native-speaker review of the Pidgin text | UNICEF |

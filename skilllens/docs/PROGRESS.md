@@ -4,6 +4,8 @@
 
 ## Summary
 
+**Live demo:** https://skilllens-gamma.vercel.app/demo/p2e. It runs simulated AI there; real AI runs locally or on Azure.
+
 SkillLens now runs end to end on real AI and live Yoma data: a learner finishing P2E course 1 (Financial Literacy) or course 2 (Job Readiness) gets a local practice challenge, rubric feedback from a real model, a second attempt, a saved practice sample tagged with real Yoma skills, and live Yoma jobs and courses as next steps.
 
 SkillLens is an optional 10-minute challenge at the end of a P2E course. It closes the gap between earning a certificate and using the skill: the learner applies it to a short local scenario, gets feedback against an educator-approved rubric ("Did well" and "To improve", never a score), and revises once.
