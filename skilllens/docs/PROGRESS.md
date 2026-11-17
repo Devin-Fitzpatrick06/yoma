@@ -112,6 +112,20 @@ Each step changes settings or one adapter. None needs a rewrite. Full detail is 
 | 5. Inside Yoma | Embed `/embed/skilllens` in a Yoma page the same way as P2E, or move the components into Yoma's web app | Yoma front-end team |
 | 6. Partner endpoint | If Yoma adds one, replace `submitToYoma` only | Yoma API change |
 
+### Where SkillLens meets Yoma's code, and what a live GenU environment needs
+
+[INTEGRATION.md](../INTEGRATION.md) section 7 has both tables. In short:
+
+- **Yoma code SkillLens relies on** (checked against Devin-Fitzpatrick06/yoma): `MyOpportunityController.cs` (verify, role `User`), `MyOpportunityRequestVerify.cs` (form fields), `OpportunityController.cs` and `OpportunitySearchFilterBase.cs` (search), `LookupController.cs` (skills), `docs/sso/README.md` (learner token).
+- **APIs:** Azure OpenAI, Azure AI Content Safety, Yoma production API; optionally a Yoma partner endpoint.
+- **Permissions:**
+  - a Yoma organisation-admin account
+  - a Yoma sign-in (Keycloak) client for the host page
+  - the host page allowing SkillLens in a frame
+  - facilitator sign-in through P2E or Yoma
+- **Infrastructure:** Node 24 hosting, a key vault, a database with a 72-hour expiry, usage limits.
+- **Review:** UNICEF safeguarding sign-off, native-speaker review of the Pidgin text.
+
 ## Testing and validation
 
 On the real local model, all 20 learner scenarios pass and every safety gate holds across 80 held-out answers and 10 attack inputs, after fixing six problems that testing found. Reports: [docs/test-results](test-results).
@@ -170,10 +184,14 @@ npm run dev
 
 Then open `http://localhost:3000/demo/p2e` in the browser's phone view. `npm run setup` picks real AI if Ollama is running, otherwise simulated mode. For real AI with no account: install [Ollama](https://ollama.com), run `ollama pull gemma3:4b` (3.3 GB), then `npm run setup`. Settings and sample data: [README](../README.md).
 
+**Launch from GitHub, checked 16 November 2026:** a fresh clone ran `npm ci`, `npm run setup` and `npm run check` with no other steps, and passed. The main repository is private, so reviewers need access or can use the public copy in the `skilllens/` folder of Devin-Fitzpatrick06/yoma#1.
+
 ## Development log
 
 | Date | Step | What changed |
 | --- | --- | --- |
+| 2026-11-16 | Yoma code map and GenU requirements (e6f66fe) | Fresh clone from GitHub checked end to end; INTEGRATION.md section 7 (Yoma files SkillLens depends on, what works today, what a live GenU environment needs); repository access note; Devin's pull request updated |
+| 2026-11-16 | Public demo on Vercel (b1eb6af) | Deployed to skilllens-gamma.vercel.app on the free plan, simulated AI and safety with live Yoma data; .vercelignore keeps local settings out of uploads; code pushed to Devin-Fitzpatrick06/yoma as a pull request |
 | 2026-11-16 | P2E site look and Yoma path (d344dfc) | Restyled to match the Passport to Earning site (blue and yellow, Oswald and Jost fonts self-hosted, pill buttons, rounded cards, round inline-SVG icons); contrast rechecked (white on blue 7.0:1); step-by-step Yoma integration path in INTEGRATION.md and this document |
 | 2026-11-16 | Sprint: GenU development requirements (done) | Real AI through a local model; model-based safety; live Yoma opportunities; real-vs-simulated status page; offline, reload and accessibility fixes; prompts v2 and a praise check; retries and a reply cap; 20 scenarios; private GitHub repo with CI; this document |
 | 2026-11-15 | Phases 3-4, Yoma, P2E look (cd5c586) | P2E colours; personal-detail stripping; content screening; facilitator view; eval harness; Yoma skill mapping, evidence PDF, CSV and client; retries, timeouts and security headers |
