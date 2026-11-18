@@ -1,0 +1,39 @@
+{
+  "note": "Educators: which Yoma skills each rubric criterion practises. Use exact Yoma skill names (search with GET /api/v3/lookup/skill?nameContains=...). Run `npm run yoma:skills` after editing to refresh skills.json.",
+  "rubrics": {
+    "fl-rubric": {
+      "cause": [
+        "Problem Solving"
+      ],
+      "action": [
+        "Business Planning",
+        "Decision Making"
+      ],
+      "numbers": [
+        "Financial Literacy",
+        "Budgeting"
+      ],
+      "tools": [
+        "Financial Literacy",
+        "Budgeting"
+      ]
+    },
+    "jr-rubric": {
+      "understanding": [
+        "Customer Service"
+      ],
+      "steps": [
+        "Decision Making",
+        "Problem Solving"
+      ],
+      "communication": [
+        "Professionalism",
+        "Written Communication"
+      ],
+      "tools": [
+        "Professionalism",
+        "Problem Solving"
+      ]
+    }
+  }
+}

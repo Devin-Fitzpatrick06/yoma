@@ -1,0 +1,25 @@
+{
+  "note": "Educators: Yoma search words for the 'Next steps on Yoma' list shown after a learner saves a practice sample. Yoma's public search (POST /api/v3/opportunity/search) matches these against titles and descriptions; it has no skill filter yet. Results that mention preferCountry are shown first. Run `npm run yoma:sync` after editing to refresh the offline snapshot.",
+  "excludeTitles": [
+    "test",
+    "empty pool",
+    "demo"
+  ],
+  "excludeTypes": [
+    "ImpactAction"
+  ],
+  "preferCountry": "Nigeria",
+  "courses": {
+    "financial-literacy": [
+      "entrepreneur",
+      "money",
+      "business"
+    ],
+    "job-readiness": [
+      "work readiness",
+      "customer service",
+      "interview",
+      "employability"
+    ]
+  }
+}
