@@ -106,7 +106,7 @@ After saving, the learner sees up to four Yoma opportunities from the public, an
   - Raw answers and photos are never stored.
   - Flags keep a personal-detail-stripped excerpt of up to 280 characters for 72 hours, in memory, for the password-protected `/facilitator` view.
   - Server logs hold flag ids and categories only.
-- **No ranking:** scores stay on the server. Learners see "Did well" and "To improve" only.
+- **No ranking:** learners see each rubric criterion as a level in words (Just starting, Getting there, Good, Strong), never a number, total or comparison with others.
 
 ## 5. Before a real pilot
 
@@ -134,7 +134,7 @@ Each step builds on code that already exists. Each one changes settings or adds 
 
 ### Seams that make this possible
 
-- **AI:** `lib/ai/provider.ts` picks mock, local or Azure (`foundry`) from `AI_PROVIDER`. All three share one OpenAI-compatible client and the same versioned prompts (`prompts/v2`).
+- **AI:** `lib/ai/provider.ts` picks mock, local or Azure (`foundry`) from `AI_PROVIDER`. All three share one OpenAI-compatible client and the same versioned prompts (`prompts/v3`).
 - **Safety:** `lib/safety/contentSafety.ts` picks stub, model or Azure from `CONTENT_SAFETY_PROVIDER`. The rest of the pipeline (`lib/pipeline.ts`) does not change.
 - **Yoma:** all Yoma calls are in `lib/yoma/`. Field names follow Yoma's C# request models, and every call has a mock or snapshot fallback.
 - **Data contract:** the saved practice sample (section 2) is a Zod schema in `lib/schema.ts`. It is the one shape P2E, Yoma and SkillLens all share.

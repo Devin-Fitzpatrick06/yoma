@@ -17,6 +17,6 @@ export async function POST(req: Request) {
     const template = options[Math.floor(Math.random() * options.length)];
     const seed = Math.floor(Math.random() * locale.slots.name.length);
     const { templateId, lang, values, text } = await challengeSafely(template, locale, body.lang, seed);
-    return Response.json({ templateId, lang, values, text });
+    return Response.json({ templateId, lang, values, text, lesson: template.lesson ?? null });
   });
 }

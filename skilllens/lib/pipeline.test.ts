@@ -30,7 +30,7 @@ describe("scoreSafely", () => {
   });
 
   it("replaces flagged model feedback with educator-written rubric text", async () => {
-    const bad = { ...mockProvider, scoreAnswer: async () => ({ scores: { cause: 1, action: 1, numbers: 1 }, strengths: [{ criterionId: "cause", text: "You are naked" }], suggestion: { criterionId: "numbers", text: "x" } }) };
+    const bad = { ...mockProvider, scoreAnswer: async () => ({ scores: { cause: 1, tools: 1, action: 1, numbers: 1 }, strengths: [{ criterionId: "cause", text: "You are naked" }], suggestion: { criterionId: "numbers", text: "x" } }) };
     const out = await scoreSafely(request("Buy fewer tomatoes when raining"), { provider: bad, safety: stubSafety });
     expect(out.status === "ok" && out.fallback).toBe(true);
     expect(JSON.stringify(out)).not.toContain("naked");
@@ -38,7 +38,7 @@ describe("scoreSafely", () => {
   });
 
   it("drops model praise for ideas the answer never contains", async () => {
-    const inventive = { ...mockProvider, scoreAnswer: async () => ({ scores: { cause: 2, action: 1, numbers: 1 }, strengths: [{ criterionId: "cause", text: "You mentioned the ingredients cost more." }], suggestion: { criterionId: "numbers", text: "Answer the question." } }) };
+    const inventive = { ...mockProvider, scoreAnswer: async () => ({ scores: { cause: 2, tools: 1, action: 1, numbers: 1 }, strengths: [{ criterionId: "cause", text: "You mentioned the ingredients cost more." }], suggestion: { criterionId: "numbers", text: "Answer the question." } }) };
     const out = await scoreSafely(request("I like football and jollof rice on Sundays"), { provider: inventive, safety: stubSafety });
     expect(out.status === "ok" && out.ungrounded).toBe(1);
     expect(out.status === "ok" && out.feedback.strengths[0].text).toBe("You tried the challenge and wrote in your own words.");
@@ -77,5 +77,53 @@ describe("challengeSafely and transcribeSafely", () => {
     });
     const blocked: ContentSafety = { ...stubSafety, checkImage: async () => ({ flagged: true, categories: [{ category: "Sexual", severity: 6 }] }) };
     expect((await transcribeSafely(new Uint8Array([1]), "image/jpeg", { provider, safety: blocked })).status).toBe("flagged");
+  });
+});
+
+describe("checkAgainstAnswer", () => {
+  it("never tells a learner with sums to add numbers, and moves the tip to the weakest criterion", async () => {
+    const { checkAgainstAnswer } = await import("./pipeline");
+    const { getRubric, getTemplate } = await import("./data");
+    const template = getTemplate("fl-rainy-sales");
+    const rubric = getRubric(template.rubricId);
+    const challenge = await mockProvider.generateChallenge(template, (await import("./data")).locale, "en", 0);
+    const answer = "She loses 4 x ₦500 = ₦2,000 each rainy day.";
+    const model = { scores: { cause: 2, tools: 1, action: 2, numbers: 1 }, strengths: [{ criterionId: "cause", text: "x" }], suggestion: { criterionId: "numbers", text: "Add numbers." } };
+    const out = checkAgainstAnswer(model, { challenge, rubric, examples: [], answer, lang: "en" }, answer);
+    expect(out.scores.numbers).toBe(3);
+    expect(out.suggestion.criterionId).toBe("tools");
+  });
+
+  it("keeps a model's level within one step of the evidence, so no plan means no 'Good' plan", async () => {
+    const { checkAgainstAnswer } = await import("./pipeline");
+    const data = await import("./data");
+    const template = data.getTemplate("fl-ingredient-costs");
+    const rubric = data.getRubric(template.rubricId);
+    const challenge = await mockProvider.generateChallenge(template, data.locale, "en", 0);
+    const answer = "Flour and oil cost more, so each one now costs ₦40 to make instead of ₦30, and profit fell.";
+    const model = { scores: { cause: 2, tools: 3, action: 3, numbers: 4 }, strengths: [{ criterionId: "numbers", text: "x" }], suggestion: { criterionId: "cause", text: "Say the cause." } };
+    const out = checkAgainstAnswer(model, { challenge, rubric, examples: [], answer, lang: "en" }, answer);
+    expect(out.scores.action).toBe(2); // no step at all: at most "Getting there"
+    expect(out.scores.cause).toBe(3); // the cause is explained with "so"
+    expect(out.suggestion.criterionId).toBe("action");
+  });
+});
+
+describe("scoreSafely with a Level 1 attempt", () => {
+  it("strips personal details from the previous answer and screens it before the model sees it", async () => {
+    const { scoreSafely } = await import("./pipeline");
+    const data = await import("./data");
+    const template = data.getTemplate("fl-rainy-sales");
+    const rubric = data.getRubric(template.rubricId);
+    const challenge = await mockProvider.generateChallenge(template, data.locale, "en", 0);
+    let seen = "";
+    const spy = { ...mockProvider, scoreAnswer: async (i: Parameters<typeof mockProvider.scoreAnswer>[0]) => { seen = i.previous?.answer ?? ""; return mockProvider.scoreAnswer(i); } };
+    const safe = { checkText: async (t: string) => ({ flagged: /end my life/i.test(t), categories: [] }), checkImage: async () => ({ flagged: false, categories: [] }) };
+    const req = { challenge, rubric, examples: [], answer: "Amina should buy fewer tomatoes when rain is forecast.", lang: "en" as const };
+    const levels = { cause: 1, tools: 1, numbers: 1, action: 1 };
+    await scoreSafely({ ...req, previous: { answer: "Call me on 08012345678 about the tomatoes.", levels, suggestionCriterionId: "cause" } }, { provider: spy, safety: safe });
+    expect(seen).not.toContain("08012345678");
+    const out = await scoreSafely({ ...req, previous: { answer: "I want to end my life.", levels, suggestionCriterionId: "cause" } }, { provider: spy, safety: safe });
+    expect(out.status).toBe("flagged");
   });
 });

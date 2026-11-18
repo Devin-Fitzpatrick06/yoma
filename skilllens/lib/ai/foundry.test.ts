@@ -23,7 +23,7 @@ function stubReplies(...replies: unknown[]) {
 const body = (fetchMock: ReturnType<typeof vi.fn>, call = 0) => JSON.parse(fetchMock.mock.calls[call][1].body);
 
 const goodFeedback = {
-  scores: { cause: 3, action: 2, numbers: 1 },
+  scores: { cause: 3, tools: 2, action: 2, numbers: 1 },
   strengths: [{ criterionId: "cause", text: "You saw that rain keeps customers away." }],
   suggestion: { criterionId: "numbers", text: "Work out how much money one slow day loses." },
 };
@@ -55,7 +55,7 @@ describe("foundry provider", () => {
   it("asks the model for slot values only and fills the educator template itself", async () => {
     const fetchMock = stubReplies({ values: { name: "Bala", item: "yams", price: "₦2,000", unit: "tuber" } });
     const c = await provider.generateChallenge(template, locale, "en", 0);
-    expect(c.text).toBe("Bala sells yams in Kano for ₦2,000 a tuber. Sales drop on rainy days. What should Bala change?");
+    expect(c.text).toBe("Bala sells yams in Kano for ₦2,000 a tuber. On rainy days sales drop and some yams spoil. How can Bala use sales records and an emergency fund to cope?");
     expect(fetchMock.mock.calls[0][0]).toBe("https://res.openai.azure.com/openai/v1/chat/completions");
     expect(fetchMock.mock.calls[0][1].headers["api-key"]).toBe("test-key");
     expect(body(fetchMock)).toMatchObject({ model: "chat-dep", max_tokens: 600, response_format: { type: "json_object" } });

@@ -2,10 +2,11 @@
 // Used by the API routes and by the eval harness, so the eval measures exactly what learners get.
 import { aiConfig, getProvider, type AIProvider } from "./ai/provider";
 import { mockProvider } from "./ai/mock";
+import { evidenceFor, pickSuggestion, tipFor } from "./evidence";
 import { getSafety, type ContentSafety, type SafetyResult } from "./safety/contentSafety";
 import { groundStrengths } from "./safety/grounding";
 import { redactPii, type PiiKind } from "./safety/pii";
-import type { Challenge, Feedback, Lang, Locale, Rubric, Sample, Template } from "./schema";
+import type { Challenge, Feedback, Lang, Locale, PreviousAttempt, Rubric, Sample, Template } from "./schema";
 import { addFlag } from "./store";
 
 export interface Deps {
@@ -43,9 +44,32 @@ export interface ScoreRequest {
   examples: Sample[];
   answer: string;
   lang: Lang;
+  previous?: PreviousAttempt;
 }
 
 const feedbackText = (fb: Feedback) => [...fb.strengths.map((s) => s.text), fb.suggestion.text].join("\n");
+
+/**
+ * Holds model scores to what the answer plainly contains, then makes sure the tip is about the weakest criterion.
+ * Every level stays within one step of the evidence, so a plan is never "Good" when the answer has no step.
+ * Causes and amounts are easy to see, so an answer that has them is never told it lacks them.
+ */
+export function checkAgainstAnswer(fb: Feedback, req: ScoreRequest, answer: string): Feedback {
+  const scores = { ...fb.scores };
+  for (const c of req.rubric.criteria) {
+    const { level } = evidenceFor(c, answer, req.challenge.text);
+    scores[c.id] = Math.min(level + 1, Math.max(level - 1, scores[c.id]));
+    if ((c.kind === "numbers" || c.kind === "understand") && level >= 3) scores[c.id] = Math.max(scores[c.id], 3);
+  }
+  const target = pickSuggestion(req.rubric, scores, req.previous);
+  const current = fb.suggestion.criterionId;
+  const prev = req.previous;
+  const repeatsFixedTip = !!prev && current === prev.suggestionCriterionId && scores[current] > (prev.levels[current] ?? 4) && current !== target;
+  // Keep the model's own words when it already picked the weakest criterion and the learner is not yet "Good" there.
+  if (scores[current] === scores[target] && !repeatsFixedTip && scores[current] < 3) return { ...fb, scores };
+  const c = req.rubric.criteria.find((x) => x.id === (scores[current] === scores[target] && !repeatsFixedTip ? current : target))!;
+  return { ...fb, scores, suggestion: { criterionId: c.id, text: tipFor(c, scores[c.id], req.lang) } };
+}
 
 export async function scoreSafely(req: ScoreRequest, deps: Deps = defaultDeps()): Promise<ScoreOutcome> {
   if (wordCount(req.answer) < MIN_WORDS) return { status: "too_short" };
@@ -58,8 +82,20 @@ export async function scoreSafely(req: ScoreRequest, deps: Deps = defaultDeps())
     return { status: "flagged", categories: input.categories };
   }
 
-  const scoreInput = { ...req, answer };
-  const feedback = await deps.provider.scoreAnswer(scoreInput);
+  // The Level 1 answer comes back from the browser, so it gets the same stripping and screening as the new answer.
+  let previous = req.previous;
+  if (previous) {
+    const prior = redactPii(previous.answer).text;
+    const check = await deps.safety.checkText(prior);
+    if (check.flagged) {
+      addFlag({ ...context, stage: "answer", categories: check.categories, excerpt: prior });
+      return { status: "flagged", categories: check.categories };
+    }
+    previous = { ...previous, answer: prior };
+  }
+
+  const scoreInput = { ...req, answer, previous };
+  const feedback = checkAgainstAnswer(await deps.provider.scoreAnswer(scoreInput), scoreInput, answer);
   const output = await deps.safety.checkText(feedbackText(feedback));
   if (!output.flagged) {
     // Only model-written praise is checked: the mock's strengths are educator-written rubric lines, not claims about the answer.

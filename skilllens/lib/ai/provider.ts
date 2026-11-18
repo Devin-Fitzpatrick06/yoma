@@ -1,4 +1,4 @@
-import type { Challenge, Feedback, Lang, Locale, Rubric, Sample, Template } from "../schema";
+import type { Challenge, Feedback, Lang, Locale, PreviousAttempt, Rubric, Sample, Template } from "../schema";
 import { createFoundryProvider, foundryConfigFromEnv, localConfigFromEnv, type FoundryConfig } from "./foundry";
 import { mockProvider } from "./mock";
 
@@ -8,6 +8,8 @@ export interface ScoreInput {
   examples: Sample[];
   answer: string;
   lang: Lang;
+  /** Level 2 only: the first attempt, so feedback can build on it instead of starting over. */
+  previous?: PreviousAttempt;
 }
 
 export interface AIProvider {

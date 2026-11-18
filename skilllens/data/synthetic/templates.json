@@ -1,77 +1,85 @@
 {
-  "note": "SYNTHETIC PLACEHOLDER challenge templates. Educators approve these; the AI only fills the {slots} with local details from data/synthetic/locales. Pidgin text needs native-speaker review.",
+  "note": "SYNTHETIC PLACEHOLDER challenge templates, each tied to a lesson in the public P2E course lists (global.passport2earning.org, read 18 Nov 2026; lesson text itself needs a P2E login). Educators approve these; the AI only fills the {slots} with local details from data/synthetic/locales. Pidgin text needs native-speaker review.",
   "items": [
     {
       "id": "fl-rainy-sales",
       "courseId": "financial-literacy",
       "rubricId": "fl-rubric",
       "text": {
-        "en": "{name} sells {item} in {city} for {price} a {unit}. Sales drop on rainy days. What should {name} change?",
-        "pcm": "{name} dey sell {item} for {city}, {price} for one {unit}. When rain fall, market no dey move. Wetin {name} suppose change?"
-      }
+        "en": "{name} sells {item} in {city} for {price} a {unit}. On rainy days sales drop and some {item} spoil. How can {name} use sales records and an emergency fund to cope?",
+        "pcm": "{name} dey sell {item} for {city}, {price} for one {unit}. When rain fall, market no dey move and some {item} dey spoil. How {name} fit use record of sales and emergency fund take manage am?"
+      },
+      "lesson": "Financial Literacy 101: The Importance of Regular Tracking; Emergency Funds"
     },
     {
       "id": "fl-weekly-saving",
       "courseId": "financial-literacy",
       "rubricId": "fl-rubric",
       "text": {
-        "en": "{name} earns {wage} a week from {job} in {city}. By the end of the month, nothing is left. How can {name} start saving?",
-        "pcm": "{name} dey make {wage} every week from {job} for {city}. Before month end, money don finish. How {name} fit start to save?"
-      }
+        "en": "{name} earns {wage} a week from {job} in {city}, but by the end of the month nothing is left. Use the 50:30:20 rule (needs, wants, savings) to make a monthly plan for {name}.",
+        "pcm": "{name} dey make {wage} every week from {job} for {city}, but before month end, money don finish. Use the 50:30:20 rule (wetin you need, wetin you want, savings) take make monthly plan for {name}."
+      },
+      "lesson": "Financial Literacy 101: Budgeting and the 50:30:20 rule; Paying Yourself First"
     },
     {
       "id": "fl-ingredient-costs",
       "courseId": "financial-literacy",
       "rubricId": "fl-rubric",
       "text": {
-        "en": "{name} makes {snack} in {city} and sells each one for {snackPrice}. This month the ingredients cost more. What should {name} do?",
-        "pcm": "{name} dey make {snack} for {city}, e dey sell one for {snackPrice}. This month, the things wey dem take make am don cost pass before. Wetin {name} go do?"
-      }
+        "en": "{name} makes {snack} in {city} and sells each one for {snackPrice}. This month flour and oil cost more. Work out {name}'s profit on each {snack} (price minus cost) and say what {name} should change.",
+        "pcm": "{name} dey make {snack} for {city}, e dey sell one for {snackPrice}. This month, flour and oil don cost pass before. Calculate {name} profit for each {snack} (price minus cost) and talk wetin {name} suppose change."
+      },
+      "lesson": "Business 101: Budgeting (income statement; peanut seller and tea shop case studies)"
     },
     {
       "id": "fl-loan-offer",
       "courseId": "financial-literacy",
       "rubricId": "fl-rubric",
       "text": {
-        "en": "A friend in {city} offers {name} a loan of {loan} to buy more stock, but wants {repay} back after one month. Should {name} take it? Explain why.",
-        "pcm": "{name} friend for {city} wan borrow am {loan} make e buy more market, but e wan collect {repay} back after one month. {name} suppose collect am? Talk why."
-      }
+        "en": "A lender in {city} offers {name} {loan} to buy more stock, but wants {repay} back after one month. Is this a fair loan or predatory lending? Work out what it costs and compare it with other options.",
+        "pcm": "One lender for {city} wan give {name} {loan} make e buy more market, but e wan collect {repay} back after one month. This loan fair or na predatory lending? Calculate how much e cost and compare am with other options."
+      },
+      "lesson": "Financial Literacy 101: Sources of Loans; Predatory Lending; Debt"
     },
     {
       "id": "jr-interview-prep",
       "courseId": "job-readiness",
       "rubricId": "jr-rubric",
       "text": {
-        "en": "{name} has an interview tomorrow for a {role} job at {employer} in {city}. What should {name} do to prepare?",
-        "pcm": "{name} get interview tomorrow for {role} work for {employer} for {city}. Wetin {name} go do to prepare?"
-      }
+        "en": "{name} has an interview tomorrow for a {role} job at {employer} in {city}. They will ask: “Tell me about a time you solved a problem.” How should {name} prepare, and how could {name} answer using the STAR method?",
+        "pcm": "{name} get interview tomorrow for {role} work for {employer} for {city}. Dem go ask: “Tell us one time wey you solve problem.” How {name} go prepare, and how {name} fit answer with the STAR method?"
+      },
+      "lesson": "How to get a Job, Module 3: Research the Job and Company; The STAR Method"
     },
     {
       "id": "jr-late-first-day",
       "courseId": "job-readiness",
       "rubricId": "jr-rubric",
       "text": {
-        "en": "It is {name}'s first day as a {role} at {employer} in {city}. Traffic means {name} will be 30 minutes late. What should {name} do?",
-        "pcm": "Today na {name} first day as {role} for {employer} for {city}. Go-slow go make {name} late reach by 30 minutes. Wetin {name} suppose do?"
-      }
+        "en": "It is {name}'s first day as a {role} at {employer} in {city}. Traffic means {name} will be 30 minutes late. What should {name} do, and what exactly should the message to the manager say?",
+        "pcm": "Today na {name} first day as {role} for {employer} for {city}. Traffic go make {name} late 30 minutes. Wetin {name} suppose do, and wetin exactly the message to the manager go talk?"
+      },
+      "lesson": "Communication Skills, M7: Emails in the Workplace; M8: Professional Communication"
     },
     {
       "id": "jr-angry-customer",
       "courseId": "job-readiness",
       "rubricId": "jr-rubric",
       "text": {
-        "en": "{name} works as a {role} at {employer} in {city}. A customer is angry because their order is wrong. How should {name} respond?",
-        "pcm": "{name} dey work as {role} for {employer} for {city}. One customer vex because dem give am wrong thing. How {name} go take handle am?"
-      }
+        "en": "{name} works as a {role} at {employer} in {city}. A customer is angry because their order is wrong. Using active listening, what should {name} do and say?",
+        "pcm": "{name} dey work as {role} for {employer} for {city}. One customer vex because dem give am wrong order. With active listening, wetin {name} go do and talk?"
+      },
+      "lesson": "Communication Skills, M2: Active Listening and Empathy; M10: Conflict Resolution"
     },
     {
       "id": "jr-fee-scam",
       "courseId": "job-readiness",
       "rubricId": "jr-rubric",
       "text": {
-        "en": "{name} in {city} sees a WhatsApp advert for a {role} job at {employer}. It asks for {fee} to apply. What should {name} do?",
-        "pcm": "{name} for {city} see advert for WhatsApp say {employer} need {role}. Dem say make person pay {fee} before e apply. Wetin {name} go do?"
-      }
+        "en": "{name} in {city} sees an online job post for a {role} at {employer}. It asks for {fee} to “register” before the interview. What should {name} check and do, and how should {name} reply?",
+        "pcm": "{name} for {city} see job post for internet for {role} for {employer}. E say make {name} pay {fee} to “register” before interview. Wetin {name} suppose check and do, and how {name} go reply?"
+      },
+      "lesson": "How to get a Job, Module 2: Things To Be Careful About (online job portals)"
     }
   ]
 }

@@ -18,7 +18,11 @@ export const Course = z.object({
 export const Criterion = z.object({
   id: z.string(),
   name: Localized,
-  levels: z.array(z.string()).length(4), // descriptors for scores 1-4 (educator-facing)
+  /** How lib/evidence.ts reads an answer for this criterion. */
+  kind: z.enum(["understand", "action", "numbers", "communication", "concepts"]),
+  /** Course ideas to look for (kind "concepts"), in the words the course uses. */
+  keywords: z.array(z.string().min(2)).optional(),
+  levels: z.array(Localized).length(4), // what each level looks like, 1-4; learners see these, never the number
   strength: Localized,
   improve: Localized,
 });
@@ -33,6 +37,8 @@ export const Template = z.object({
   id: z.string(),
   courseId: z.string(),
   rubricId: z.string(),
+  /** The P2E lesson this challenge practises, so educators and learners can see where it comes from. */
+  lesson: z.string().optional(),
   text: Localized,
 });
 
@@ -73,6 +79,16 @@ export const Feedback = z.object({
 // A skill as Yoma stores it (GET /api/v3/lookup/skill). Ids come from data/yoma/skills.json.
 export const YomaSkill = z.object({ id: z.string().uuid(), name: z.string().min(1) });
 
+/** Level per criterion, 1-4. Learners see it as words ("Getting there"), never as a number or a total. */
+export const Levels = z.record(z.string(), Score);
+
+/** The Level 1 attempt, sent with the Level 2 answer so feedback can say what changed. */
+export const PreviousAttempt = z.object({
+  answer: z.string().trim().min(1).max(2000),
+  levels: Levels,
+  suggestionCriterionId: z.string().max(64),
+});
+
 // The saved Level 2 answer. It travels via the browser to P2E and Yoma, so it is re-validated on the server.
 export const PracticeSample = z.object({
   courseId: z.string().max(64),
@@ -94,3 +110,5 @@ export type Locale = z.infer<typeof Locale>;
 export type Sample = z.infer<typeof Sample>;
 export type Challenge = z.infer<typeof Challenge>;
 export type Feedback = z.infer<typeof Feedback>;
+export type Criterion = z.infer<typeof Criterion>;
+export type PreviousAttempt = z.infer<typeof PreviousAttempt>;

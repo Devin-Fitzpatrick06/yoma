@@ -54,8 +54,8 @@ GitHub Actions runs `npm run check` on every push.
 1. Choose a language (English or Nigerian Pidgin).
 2. Read the scenario.
 3. Answer by typing, speaking (Chrome's Web Speech API) or taking a photo of handwritten work. Every mode fills the same editable text box.
-4. Feedback: "Did well" and "To improve". The learner never sees a score. An optional 1–5 "Was this helpful?" rating follows.
-5. Level 2: revise with the tip shown, then get feedback again.
+4. Feedback: "Did well" (quoting the learner's own words), one "To improve" tip, and "How you are doing": the 4 rubric criteria, each shown as a level in words (Just starting, Getting there, Good, Strong) with what we saw and what the next level looks like. No numbers or total. An optional 1–5 "Was this helpful?" rating follows.
+5. Level 2: revise with the tip shown, then get feedback again. The Level 1 answer and levels go with it, so the feedback says what got better ("↑ Up from Getting there") and moves to a new tip once the old one is acted on.
 6. Save: the Level 2 answer is stored as "Practice sample, not a certification", shown with the Yoma skills it practised, and sent to the host page.
 7. "Add to my Yoma profile" builds the exact Yoma request. In mock mode it shows "Ready for Yoma (demo: nothing was sent)".
 
@@ -145,7 +145,7 @@ Errors come back as `{error}` with status 400 (bad request) or 502 (AI, safety o
 
 ## How the AI is used
 
-Prompts live in [`prompts/v2/`](prompts/v2) (active) so educators can review them; [`prompts/v1/`](prompts/v1) is kept as the first tested set. To change the wording, create a new version folder and bump `PROMPT_VERSION` in `lib/ai/prompts.ts`. v2 fixed three problems found by `npm run scenarios`: praise for ideas the learner never wrote, a cheating attempt flagged as harmful, and business slang ("kill the competition") flagged as violent.
+Prompts live in [`prompts/v3/`](prompts/v3) (active) so educators can review them; [`prompts/v1/`](prompts/v1) and [`prompts/v2/`](prompts/v2) are kept as earlier tested sets. v3 sends the Level 1 answer with the Level 2 one, and tells the model never to suggest adding something the answer already has. To change the wording, create a new version folder and bump `PROMPT_VERSION` in `lib/ai/prompts.ts`. v2 fixed three problems found by `npm run scenarios`: praise for ideas the learner never wrote, a cheating attempt flagged as harmful, and business slang ("kill the competition") flagged as violent.
 
 - **Challenge** (`generate.md`): the model only picks short local values for the template's `{slots}` (names, goods, naira prices). Our code fills in the educator-approved wording; the model never writes it. Values are checked: max 40 characters, no `{ } < >`.
 - **Feedback** (`feedback.md`): the rubric and the 10 educator-scored examples go in the prompt. The learner's answer, with personal details removed, goes in a separate, delimited message. The JSON reply is validated with Zod and must cover exactly the rubric's criteria.
@@ -153,7 +153,7 @@ Prompts live in [`prompts/v2/`](prompts/v2) (active) so educators can review the
 
 - **Safety** (`safety.md`, with `CONTENT_SAFETY_PROVIDER=model`): the keyword list first, then the model rates Hate, SelfHarm, Sexual and Violence from 0 to 6; 2 or more is flagged.
 
-Every call goes through `lib/pipeline.ts`: strip personal details → screen input → model → screen output → drop any "Did well" item that shares no words with the answer (`lib/safety/grounding.ts`). Flagged model output is replaced with the educator-written rubric text. Model calls retry up to twice on invalid JSON, a 429 or a 5xx, each retry at a higher temperature (0, 0.3, 0.6), because at temperature 0 a small model can loop on one token and fail the same way again.
+Every call goes through `lib/pipeline.ts`: strip personal details → screen input → model → check the levels against what the answer contains (`lib/evidence.ts`: amounts and sums, causes, concrete steps, polite wording, course terms; each level stays within one step of that evidence, and the tip moves to the weakest criterion) → screen output → drop any "Did well" item that shares no words with the answer (`lib/safety/grounding.ts`). In simulated mode the same evidence check is the scorer, so feedback still responds to what the learner wrote. Flagged model output is replaced with the educator-written rubric text. Model calls retry up to twice on invalid JSON, a 429 or a 5xx, each retry at a higher temperature (0, 0.3, 0.6), because at temperature 0 a small model can loop on one token and fail the same way again.
 
 ## Layout
 
@@ -182,6 +182,15 @@ scripts/                seed, eval, yoma-skills
 ## About the synthetic data
 
 Everything in `data/synthetic/` is placeholder content written for the demo, not real P2E material.
+
+The challenges and rubrics are now built from the real P2E lesson lists on the public catalogue (global.passport2earning.org, read 18 November 2026). Each challenge names its lesson on screen:
+
+| Course | Lessons the challenges practise |
+| --- | --- |
+| Financial Literacy | Khan Academy *Financial Literacy 101*: Budgeting and the 50:30:20 rule, Paying Yourself First, Emergency Funds, The Importance of Regular Tracking, Predatory Lending. Microsoft *Business 101: Budgeting* (income statement, small-business case studies). |
+| Job Readiness | *How to get a Job*: Research the Job and Company, The STAR Method, Things To Be Careful About (online job posts). UNICEF *Communication Skills*: Active Listening and Empathy, Emails in the Workplace, Professional Communication, Conflict Resolution. |
+
+Lesson text and quizzes need a P2E login, so the wording is ours. Educators should check it against the lessons.
 
 - The Pidgin text needs review by a native speaker.
 - The sample answers are built from fragments. Their scores imitate an educator, including some disagreement.

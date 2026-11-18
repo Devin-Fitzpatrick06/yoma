@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { languages, t, type MessageKey } from "../lib/i18n";
 import type { Lang, PracticeSample, YomaSkill } from "../lib/schema";
 import { AnswerInput } from "./AnswerInput";
-import { FeedbackPanels, type LearnerFeedback } from "./FeedbackPanels";
+import { FeedbackPanels, RubricPanel, type LearnerFeedback } from "./FeedbackPanels";
 import { Icon } from "./Icon";
 
 interface Challenge {
@@ -12,6 +12,7 @@ interface Challenge {
   lang: Lang;
   values: Record<string, string>;
   text: string;
+  lesson?: string | null;
 }
 
 type OkFeedback = { status: "ok"; answer: string; redacted: string[]; skills: YomaSkill[] } & LearnerFeedback;
@@ -35,6 +36,8 @@ interface Draft {
   challenge: Challenge | null;
   answer: string;
   feedback: OkFeedback | null;
+  /** The Level 1 answer and its feedback, so Level 2 feedback can say what changed. */
+  first?: { answer: string; feedback: OkFeedback } | null;
 }
 
 // Where the host page lives. Set NEXT_PUBLIC_P2E_ORIGIN to the real P2E origin when embedding; defaults to same origin.
@@ -165,6 +168,7 @@ export function SkillLens({ courseId, courseTitle, initialLang }: { courseId: st
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<OkFeedback | null>(null);
+  const [first, setFirst] = useState<{ answer: string; feedback: OkFeedback } | null>(null);
   const [notice, setNotice] = useState<"flagged" | "too_short" | "resumed" | null>(null);
   const [saved, setSaved] = useState<PracticeSample | null>(null);
   const [yoma, setYoma] = useState<"idle" | "sending" | "sent" | "demo">("idle");
@@ -185,6 +189,7 @@ export function SkillLens({ courseId, courseTitle, initialLang }: { courseId: st
       setChallenge(draft.challenge);
       setAnswer(draft.answer);
       setFeedback(draft.feedback);
+      setFirst(draft.first ?? null);
       if (draft.answer) setNotice("resumed");
     }
     restored.current = true;
@@ -192,8 +197,8 @@ export function SkillLens({ courseId, courseTitle, initialLang }: { courseId: st
 
   useEffect(() => {
     if (!restored.current) return;
-    writeDraft(courseId, step === "saved" || !challenge ? null : { lang, step, level, challenge, answer, feedback });
-  }, [courseId, lang, step, level, challenge, answer, feedback]);
+    writeDraft(courseId, step === "saved" || !challenge ? null : { lang, step, level, challenge, answer, feedback, first });
+  }, [courseId, lang, step, level, challenge, answer, feedback, first]);
 
   // Move focus to each new screen's heading, so screen-reader and keyboard users know the page changed.
   // Not on first load: the host page keeps focus until the learner acts.
@@ -231,7 +236,11 @@ export function SkillLens({ courseId, courseTitle, initialLang }: { courseId: st
 
   const getFeedback = () =>
     run(async () => {
-      const res = await post<FeedbackResponse>("/api/feedback", { ...challenge, answer });
+      const previous = level === 2 && first
+        ? { answer: first.answer, levels: first.feedback.levels, suggestionCriterionId: first.feedback.suggestion.criterionId }
+        : undefined;
+      const { templateId, lang: l, values } = challenge!;
+      const res = await post<FeedbackResponse>("/api/feedback", { templateId, lang: l, values, answer, previous });
       if (res.status !== "ok") return setNotice(res.status);
       setNotice(null);
       setFeedback(res);
@@ -263,6 +272,7 @@ export function SkillLens({ courseId, courseTitle, initialLang }: { courseId: st
     setChallenge(null);
     setAnswer("");
     setFeedback(null);
+    setFirst(null);
     setSaved(null);
     setYoma("idle");
     setNotice(null);
@@ -286,6 +296,7 @@ export function SkillLens({ courseId, courseTitle, initialLang }: { courseId: st
     <section aria-labelledby="scenario" className="card-yellow">
       <h2 id="scenario" className="text-sm uppercase tracking-wider text-brand">{t(lang, "yourChallenge")}</h2>
       <p className="mt-1 text-lg">{challenge.text}</p>
+      {challenge.lesson && <p className="mt-2 text-sm text-brand"><span className="font-medium">{t(lang, "fromLesson")}:</span> {challenge.lesson}</p>}
     </section>
   );
 
@@ -295,7 +306,7 @@ export function SkillLens({ courseId, courseTitle, initialLang }: { courseId: st
   );
 
   return (
-    <main className="mx-auto max-w-md space-y-4 p-4" lang={lang}>
+    <main className="mx-auto max-w-md space-y-4 p-4 lg:max-w-4xl" lang={lang}>
       <header>
         <p className="chip inline-block">{courseTitle[lang]} · {t(lang, "levelUp")}</p>
         {step !== "lang" && step !== "saved" && (
@@ -362,9 +373,10 @@ export function SkillLens({ courseId, courseTitle, initialLang }: { courseId: st
           {scenarioCard}
           {feedback.redacted.length > 0 && <p role="status" className="card text-sm">{t(lang, "privacyNote")}</p>}
           <FeedbackPanels feedback={feedback} lang={lang} />
+          {feedback.rubric && <RubricPanel rows={feedback.rubric} lang={lang} />}
           <Rating key={level} lang={lang} onRate={rate} />
           {level === 1 ? (
-            <button type="button" className="btn" onClick={() => { setLevel(2); setNotice(null); setStep("answer"); }}>
+            <button type="button" className="btn" onClick={() => { setFirst({ answer: feedback.answer, feedback }); setLevel(2); setNotice(null); setStep("answer"); }}>
               <Icon name="arrow" /> {t(lang, "tryLevel2")}
             </button>
           ) : (

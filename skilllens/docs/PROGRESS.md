@@ -190,6 +190,7 @@ Then open `http://localhost:3000/demo/p2e` in the browser's phone view. `npm run
 
 | Date | Step | What changed |
 | --- | --- | --- |
+| 2026-11-18 | Feedback that listens, 4-criterion rubric, real course content, phone/computer demo | Feedback is checked against what the answer contains (lib/evidence.ts), so it never asks for numbers an answer already has; Level 2 gets the Level 1 answer and says what improved, and moves to a new tip; 4 criteria per course shown as levels in words with what we saw and the next level; challenges and rubrics rebuilt from the public P2E lesson lists, each challenge naming its lesson; demo page has a round Phone/Computer toggle; prompts v3 |
 | 2026-11-16 | Yoma code map and GenU requirements (e6f66fe) | Fresh clone from GitHub checked end to end; INTEGRATION.md section 7 (Yoma files SkillLens depends on, what works today, what a live GenU environment needs); repository access note; Devin's pull request updated |
 | 2026-11-16 | Public demo on Vercel (b1eb6af) | Deployed to skilllens-gamma.vercel.app on the free plan, simulated AI and safety with live Yoma data; .vercelignore keeps local settings out of uploads; code pushed to Devin-Fitzpatrick06/yoma as a pull request |
 | 2026-11-16 | P2E site look and Yoma path (d344dfc) | Restyled to match the Passport to Earning site (blue and yellow, Oswald and Jost fonts self-hosted, pill buttons, rounded cards, round inline-SVG icons); contrast rechecked (white on blue 7.0:1); step-by-step Yoma integration path in INTEGRATION.md and this document |

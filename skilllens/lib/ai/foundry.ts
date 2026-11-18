@@ -134,9 +134,18 @@ export function createFoundryProvider(config: FoundryConfig): AIProvider {
       };
     },
 
-    async scoreAnswer({ challenge, rubric, examples, answer, lang }: ScoreInput): Promise<Feedback> {
+    async scoreAnswer({ challenge, rubric, examples, answer, lang, previous }: ScoreInput): Promise<Feedback> {
+      const tip = previous && rubric.criteria.find((c) => c.id === previous.suggestionCriterionId);
       const system = loadPrompt("feedback", {
-        rubric: rubric.criteria.map((c) => `- ${c.id}: ${c.name.en}; ${c.levels.map((l, i) => `${i + 1}=${l}`).join("; ")}`).join("\n"),
+        rubric: rubric.criteria.map((c) => `- ${c.id}: ${c.name.en}; ${c.levels.map((l, i) => `${i + 1}=${l.en}`).join("; ")}`).join("\n"),
+        previous: previous
+          ? [
+              "This is the learner's second try (Level 2). Their first answer and its scores:",
+              `<<<\n${previous.answer}\n>>>`,
+              `Scores then: ${Object.entries(previous.levels).map(([k, v]) => `${k}=${v}`).join(", ")}. The tip they were given was about "${tip?.name.en ?? previous.suggestionCriterionId}".`,
+              "Compare the two answers. If they acted on the tip, one strength must say what got better, quoting the new words. Do not give the same tip again unless that criterion is still the lowest and did not improve; otherwise give the next most useful step.",
+            ].join("\n")
+          : "This is the learner's first try (Level 1).",
         examples: examples
           .map((e) => `- Answer: ${JSON.stringify(e.answer)}\n  Scores: ${Object.entries(e.scores).map(([k, v]) => `${k}=${v}`).join(", ")}`)
           .join("\n"),
