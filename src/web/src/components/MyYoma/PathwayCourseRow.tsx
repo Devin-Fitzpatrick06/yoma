@@ -62,7 +62,7 @@ const PathwayCourseRow: React.FC<{ course: PathwayCourse; number: number }> = ({
               {course.title}
             </Link>
           </h4>
-          <GradeChip grade={grade} />
+          <GradeChip grade={grade} label={course.gradeLabel} />
           {status && (
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-semibold whitespace-nowrap ${status.className}`}

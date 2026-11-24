@@ -152,6 +152,7 @@ const course = (over: Partial<PathwayCourse>): PathwayCourse => {
     skillsAdded: [],
     reason: "",
     grade: null,
+    gradeLabel: null,
     status: "NotStarted",
     completedCount: 0,
     outcome: null,
@@ -231,6 +232,7 @@ export const MY_YOMA_FIXTURE: MyYoma = {
             reason:
               "A short start that makes every later course easier to follow.",
             grade: "A",
+            gradeLabel: "Top pick",
             status: "Completed",
             completedCount: 4210,
           }),
@@ -256,6 +258,7 @@ export const MY_YOMA_FIXTURE: MyYoma = {
             reason:
               "Teaches the marketing mix that the channel courses in stage 3 apply.",
             grade: "B",
+            gradeLabel: "Strong",
             status: "Completed",
             completedCount: 1876,
           }),
@@ -271,6 +274,7 @@ export const MY_YOMA_FIXTURE: MyYoma = {
           reason:
             "Knowing who buys and why is what makes later campaigns work.",
           grade: "B",
+          gradeLabel: "Strong",
           status: "InProgress",
           completedCount: 643,
         }),
@@ -293,6 +297,7 @@ export const MY_YOMA_FIXTURE: MyYoma = {
             reason:
               "The channel most junior marketing roles in Lagos ask for first.",
             grade: "A",
+            gradeLabel: "Top pick",
             completedCount: 2390,
           }),
           0.55,
@@ -338,6 +343,7 @@ export const MY_YOMA_FIXTURE: MyYoma = {
             reason:
               "Shows whether the campaigns from stage 3 worked, which is what interviews ask about.",
             grade: "A",
+            gradeLabel: "Top pick",
             completedCount: 1104,
           }),
           null,
@@ -351,6 +357,7 @@ export const MY_YOMA_FIXTURE: MyYoma = {
           skillsAdded: ["Advertising"],
           reason: "Paid channels are the last step before most marketing jobs.",
           grade: "B",
+          gradeLabel: "Strong",
           completedCount: 301,
         }),
         course({
