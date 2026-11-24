@@ -32,7 +32,10 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
       (CourseGradeFactor.Comprehensiveness, CourseGradeParameter.ModulesCap),
       (CourseGradeFactor.Comprehensiveness, CourseGradeParameter.SkillsCap),
       (CourseGradeFactor.Comprehensiveness, CourseGradeParameter.DescriptionCap),
-      (CourseGradeFactor.Completion, CourseGradeParameter.PriorStarts)
+      (CourseGradeFactor.Completion, CourseGradeParameter.PriorStarts),
+      (CourseGradeFactor.Outcomes, CourseGradeParameter.MinGroupSize),
+      (CourseGradeFactor.Outcomes, CourseGradeParameter.ProgressionTarget),
+      (CourseGradeFactor.Outcomes, CourseGradeParameter.EmploymentTarget)
     ];
 
     /// <summary>
@@ -51,7 +54,9 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
       (CourseGradeFactor.Accessibility, CourseGradeParameter.PaidScore, 100),
       (CourseGradeFactor.Accessibility, CourseGradeParameter.UnknownCostScore, 100),
       (CourseGradeFactor.Accessibility, CourseGradeParameter.LanguageBonus, 100),
-      (CourseGradeFactor.Accessibility, CourseGradeParameter.LowDataBonus, 100)
+      (CourseGradeFactor.Accessibility, CourseGradeParameter.LowDataBonus, 100),
+      (CourseGradeFactor.Outcomes, CourseGradeParameter.ProgressionTarget, 1),
+      (CourseGradeFactor.Outcomes, CourseGradeParameter.EmploymentTarget, 1)
     ];
 
     private static readonly string[] LengthCurve =
@@ -81,6 +86,30 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
         rubric.Factors.TryAdd(factor.Key, factor.Value);
 
       return Normalize(rubric);
+    }
+
+    /// <summary>
+    /// A saved rubric from before a factor existed, with that factor added at weight 0, so it keeps grading exactly as it did instead
+    /// of failing validation and falling back to configuration.
+    /// </summary>
+    public static CourseGradeRubric WithNewFactors(CourseGradeRubric rubric)
+    {
+      ArgumentNullException.ThrowIfNull(rubric, nameof(rubric));
+
+      rubric.Factors ??= [];
+      foreach (var factor in CourseQualityGradingDefaults.Factors)
+      {
+        if (rubric.Factors.ContainsKey(factor.Key)) continue;
+
+        rubric.Factors[factor.Key] = new CourseGradeFactorOptions
+        {
+          Weight = 0,
+          NeutralScore = factor.Value.NeutralScore,
+          Parameters = new Dictionary<string, decimal>(factor.Value.Parameters, StringComparer.OrdinalIgnoreCase)
+        };
+      }
+
+      return rubric;
     }
 
     /// <summary>

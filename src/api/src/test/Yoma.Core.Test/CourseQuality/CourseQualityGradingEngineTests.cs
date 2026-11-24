@@ -603,7 +603,8 @@ namespace Yoma.Core.Test.CourseQuality
       var normalized = CourseQualityGrading.Normalize(rubric);
 
       Assert.Equal(0m, normalized.Factors[CourseGradeFactor.LearnerFeedback].Weight);
-      Assert.Equal(14.29m, normalized.Factors[CourseGradeFactor.Accessibility].Weight);
+      // every other factor at 1, so each is an equal share of 100
+      Assert.Equal(Math.Round(100m / (Enum.GetValues<CourseGradeFactor>().Length - 1), 2), normalized.Factors[CourseGradeFactor.Accessibility].Weight);
     }
 
     [Fact]

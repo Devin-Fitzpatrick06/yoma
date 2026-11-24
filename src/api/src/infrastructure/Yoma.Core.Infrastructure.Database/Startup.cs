@@ -102,6 +102,10 @@ namespace Yoma.Core.Infrastructure.Database
       services.AddScoped<IRepository<CourseQualityLearnerFeedbackRecord>, CourseQualityLearnerFeedbackRepository>();
       #endregion Course Quality
 
+      #region Pathway
+      services.AddScoped<IRepository<Domain.Pathway.Models.PathwayProfileRecord>, Pathway.Repositories.PathwayProfileRepository>();
+      #endregion Pathway
+
       #region Entity
       #region Lookups
       services.AddScoped<IRepository<Domain.Entity.Models.Lookups.OrganizationStatus>, Entity.Repositories.Lookups.OrganizationStatusRepository>();

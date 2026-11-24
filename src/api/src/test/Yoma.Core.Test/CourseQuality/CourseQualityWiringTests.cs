@@ -268,7 +268,8 @@ namespace Yoma.Core.Test.CourseQuality
         Options.Create(new CourseQualityOptions()), Mock.Of<Domain.Core.Interfaces.IRepositoryBatchedValueContainsWithNavigationAndCustomFieldFilter<Domain.Opportunity.Models.Opportunity>>(),
         Mock.Of<IRepository<Domain.Opportunity.Models.OpportunitySkill>>(), Mock.Of<IRepository<Domain.Opportunity.Models.OpportunityLanguage>>(), Mock.Of<Domain.Lookups.Interfaces.ILanguageService>(),
         Mock.Of<Domain.MyOpportunity.Interfaces.IMyOpportunityService>(), Mock.Of<IRepository<CourseQualityAssessmentRecord>>(), grades, Mock.Of<IRepository<CourseQualityGradeRubricRecord>>(),
-        Mock.Of<IRepository<CourseQualityLearnerFeedbackRecord>>(), Mock.Of<IDistributedLockService>(), Mock.Of<IExecutionStrategyService>(), Mock.Of<Hangfire.IBackgroundJobClient>());
+        Mock.Of<IRepository<CourseQualityLearnerFeedbackRecord>>(), Mock.Of<IDistributedLockService>(), Mock.Of<IExecutionStrategyService>(), Mock.Of<Hangfire.IBackgroundJobClient>(),
+        Mock.Of<Domain.Pathway.Interfaces.IPathwayOutcomeService>());
 
       var sql = new Infrastructure.Database.Opportunity.Repositories.OpportunityRepository(context).Query().OrderBy(grading.GradeRank()).Take(20).ToQueryString();
 

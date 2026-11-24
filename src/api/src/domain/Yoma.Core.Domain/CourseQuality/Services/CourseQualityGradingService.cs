@@ -17,6 +17,8 @@ using Yoma.Core.Domain.Lookups.Interfaces;
 using Yoma.Core.Domain.MyOpportunity.Interfaces;
 using Yoma.Core.Domain.Opportunity;
 using Yoma.Core.Domain.Opportunity.Models;
+using Yoma.Core.Domain.Pathway.Interfaces;
+using Yoma.Core.Domain.Pathway.Models;
 
 namespace Yoma.Core.Domain.CourseQuality.Services
 {
@@ -48,6 +50,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     private readonly IDistributedLockService _distributedLockService;
     private readonly IExecutionStrategyService _executionStrategyService;
     private readonly IBackgroundJobClient _backgroundJobClient;
+    private readonly IPathwayOutcomeService _outcomeService;
     #endregion
 
     #region Constructor
@@ -65,7 +68,8 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       IRepository<CourseQualityLearnerFeedbackRecord> feedbackRepository,
       IDistributedLockService distributedLockService,
       IExecutionStrategyService executionStrategyService,
-      IBackgroundJobClient backgroundJobClient)
+      IBackgroundJobClient backgroundJobClient,
+      IPathwayOutcomeService outcomeService)
     {
       _logger = logger ?? throw new ArgumentNullException(nameof(logger));
       _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
@@ -82,6 +86,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       _distributedLockService = distributedLockService ?? throw new ArgumentNullException(nameof(distributedLockService));
       _executionStrategyService = executionStrategyService ?? throw new ArgumentNullException(nameof(executionStrategyService));
       _backgroundJobClient = backgroundJobClient ?? throw new ArgumentNullException(nameof(backgroundJobClient));
+      _outcomeService = outcomeService ?? throw new ArgumentNullException(nameof(outcomeService));
     }
     #endregion
 
@@ -91,7 +96,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       var saved = GetLatestRubricOrNull();
       if (saved?.Rubric == null) return CourseQualityGrading.Configured(_options);
 
-      var rubric = CourseQualityGrading.Deserialize(saved.Rubric);
+      var rubric = CourseQualityGrading.WithNewFactors(CourseQualityGrading.Deserialize(saved.Rubric));
       if (CourseQualityGrading.Validate(rubric).Count == 0) return CourseQualityGrading.Normalize(rubric);
 
       // a stored override that no longer passes the rules must not stop grading; configuration takes over
@@ -348,11 +353,14 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         .GroupBy(o => o.OpportunityId)
         .ToDictionary(o => o.Key, o => o.Select(f => new CourseGradeFeedbackAnswer(f.Rating, f.WouldRecommend)).ToList());
 
+      var outcomes = GetOutcomesOrNull()?.Courses ?? [];
+
       return [.. latest.Where(o => opportunities.ContainsKey(o.OpportunityId)).Select(record =>
       {
         var opportunity = opportunities[record.OpportunityId];
         var assessment = record.ToAssessment();
         var counts = participation.GetValueOrDefault(record.OpportunityId);
+        var outcome = outcomes.GetValueOrDefault(record.OpportunityId);
 
         return new CourseGradeInput
         {
@@ -374,9 +382,28 @@ namespace Yoma.Core.Domain.CourseQuality.Services
           DateCreated = opportunity.DateCreated,
           Completed = counts?.Completed ?? 0,
           Started = counts?.Started ?? 0,
-          Feedback = feedback.GetValueOrDefault(opportunity.Id) ?? []
+          Feedback = feedback.GetValueOrDefault(opportunity.Id) ?? [],
+          OutcomeCompleters = outcome?.Completers ?? 0,
+          ProgressionRate = outcome?.ProgressionRate,
+          EmploymentRate = outcome?.EmploymentRate
         };
       })];
+    }
+
+    /// <summary>
+    /// The Outcomes factor is neutral without data, so a failure to work outcomes out must not stop grading.
+    /// </summary>
+    private PathwayOutcomeSnapshot? GetOutcomesOrNull()
+    {
+      try
+      {
+        return _outcomeService.GetSnapshot();
+      }
+      catch (Exception ex) when (ex is InvalidOperationException or TimeoutException)
+      {
+        if (_logger.IsEnabled(LogLevel.Warning)) _logger.LogWarning(ex, "Failed to work out course outcomes for grading: {errorMessage}", ex.Message);
+        return null;
+      }
     }
 
     private static bool IsPubliclyVisible(Opportunity.Models.Opportunity opportunity)

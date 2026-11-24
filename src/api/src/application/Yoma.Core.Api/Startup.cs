@@ -27,6 +27,7 @@ using Yoma.Core.Domain.Core.Interfaces;
 using Yoma.Core.Domain.Core.Models;
 using Yoma.Core.Domain.Core.Services;
 using Yoma.Core.Domain.IdentityProvider.Interfaces;
+using Yoma.Core.Domain.Pathway.Models;
 using Yoma.Core.Infrastructure.AmazonS3;
 using Yoma.Core.Infrastructure.AriesCloud;
 using Yoma.Core.Infrastructure.Bitly;
@@ -83,6 +84,8 @@ namespace Yoma.Core.Api
           _configuration.GetSection(ScheduleJobOptions.Section).Bind(options));
       services.Configure<CourseQualityOptions>(options =>
           _configuration.GetSection(CourseQualityOptions.Section).Bind(options));
+      services.Configure<PathwayOptions>(options =>
+          _configuration.GetSection(PathwayOptions.Section).Bind(options));
 
       services.AddSingleton<IEnvironmentProvider>(p => ActivatorUtilities.CreateInstance<EnvironmentProvider>(p, _webHostEnvironment.EnvironmentName));
 

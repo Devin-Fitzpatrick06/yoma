@@ -31,7 +31,13 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     ListingIntegrity,
 
     /// <summary>Free, language and low-data signals that matter to learners in low- and middle-income countries.</summary>
-    Accessibility
+    Accessibility,
+
+    /// <summary>
+    /// What completers did next on Yoma: another course towards the same goal, or a Job opportunity. Weight 0 until there is enough
+    /// data; neutral with no data or fewer completers than the minimum group size. Describes what followed, not what the course caused.
+    /// </summary>
+    Outcomes
   }
 
   /// <summary>

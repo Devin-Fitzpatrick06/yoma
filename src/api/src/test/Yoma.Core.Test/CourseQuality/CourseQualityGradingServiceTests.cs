@@ -110,7 +110,7 @@ namespace Yoma.Core.Test.CourseQuality
 
       return new CourseQualityGradingService(NullLogger<CourseQualityGradingService>.Instance, accessor.Object, Options.Create(_options), opportunityRepository.Object,
         skills.Object, languages.Object, languageService.Object, myOpportunities.Object, assessments.Object, _gradeRepository.Object, rubrics.Object, feedback.Object,
-        _locks.Object, strategy.Object, _jobs.Object);
+        _locks.Object, strategy.Object, _jobs.Object, Mock.Of<Domain.Pathway.Interfaces.IPathwayOutcomeService>());
     }
 
     private OpportunityModel AddCourse(CourseQualityStatus status = CourseQualityStatus.Verified)
@@ -151,7 +151,7 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.Equal(course.Id, grade.OpportunityId);
       Assert.Equal(CourseQualityStatus.Verified, grade.Status);
       Assert.Equal(CourseQualityGradingDefaults.Version, grade.RubricVersion);
-      Assert.Equal(8, grade.ToResult().Factors.Count);
+      Assert.Equal(Enum.GetValues<CourseGradeFactor>().Length, grade.ToResult().Factors.Count);
     }
 
     [Fact]
@@ -231,7 +231,7 @@ namespace Yoma.Core.Test.CourseQuality
 
       var rows = Service().ListFactors();
       Assert.Equal(10, rows.Count);
-      Assert.All(rows, o => Assert.Equal(8, o.Factors.Count));
+      Assert.All(rows, o => Assert.Equal(Enum.GetValues<CourseGradeFactor>().Length, o.Factors.Count));
       Assert.Equal(courses[0].Title, rows[0].OpportunityTitle);
 
       var grades = Service().ListGrades([courses[0].Id, courses[1].Id]);

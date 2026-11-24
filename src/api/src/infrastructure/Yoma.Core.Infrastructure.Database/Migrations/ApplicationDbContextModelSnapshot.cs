@@ -2822,6 +2822,51 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.ToTable("ProcessingLog", "PartnerSync");
         });
 
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Pathway.Entities.PathwayProfile", b =>
+        {
+          b.Property<Guid>("Id")
+            .ValueGeneratedOnAdd()
+            .HasColumnType("uuid");
+
+          b.Property<string>("Background")
+            .IsRequired()
+            .HasColumnType("varchar(20)");
+
+          b.Property<Guid?>("CountryId")
+            .HasColumnType("uuid");
+
+          b.Property<DateTimeOffset>("DateCreated")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<DateTimeOffset>("DateModified")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<string>("GoalKey")
+            .IsRequired()
+            .HasColumnType("varchar(50)");
+
+          b.Property<int>("HoursPerWeek")
+            .HasColumnType("integer");
+
+          b.Property<string>("KnownSkillKeys")
+            .IsRequired()
+            .HasColumnType("jsonb");
+
+          b.Property<Guid>("UserId")
+            .HasColumnType("uuid");
+
+          b.HasKey("Id");
+
+          b.HasIndex("CountryId");
+
+          b.HasIndex("GoalKey");
+
+          b.HasIndex("UserId")
+            .IsUnique();
+
+          b.ToTable("Profile", "Pathway");
+        });
+
       modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Payout.Entities.Lookups.PayoutTransactionStatus", b =>
         {
           b.Property<Guid>("Id")
@@ -4829,6 +4874,24 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.Navigation("Partner");
 
           b.Navigation("Status");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Pathway.Entities.PathwayProfile", b =>
+        {
+          b.HasOne("Yoma.Core.Infrastructure.Database.Lookups.Entities.Country", "Country")
+            .WithMany()
+            .HasForeignKey("CountryId")
+            .OnDelete(DeleteBehavior.NoAction);
+
+          b.HasOne("Yoma.Core.Infrastructure.Database.Entity.Entities.User", "User")
+            .WithMany()
+            .HasForeignKey("UserId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.Navigation("Country");
+
+          b.Navigation("User");
         });
 
       modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Payout.Entities.PayoutTransaction", b =>
