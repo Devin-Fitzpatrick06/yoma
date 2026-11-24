@@ -108,6 +108,8 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       // nothing on a page that may be another course's says anything about this listing
       if (match != CourseQualityPageMatchLevel.Strong) return Unmatched(match);
 
+      if (request.Type != Opportunity.Type.Learning) return ReadListingPage(request, text, facts);
+
       var dates = CourseQualityPageDates.Read(request, text, facts);
       var format = CourseQualityPageFormat.Read(request.SourcePageSignals, text, facts);
       var cost = CourseQualityPageCost.Read(request.SourcePageSignals, text, facts, request.SourcePageTruncated, CourseQualitySelfPaced.IsListed(request, _options));
@@ -126,6 +128,59 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
       var result = Result(selfPaced ? ConfidenceSelfPaced : Confidence(dates, format), Summary(dates, format, selfPaced), format, timeline, cost, [.. criteria]);
       result.SelfPaced = selfPaced;
+      result.StrongMatch = true;
+      result.DatesStartConfirmed = !thin && dates is (CourseQualityDateEvidence.Confirmed or CourseQualityDateEvidence.StartConfirmed);
+      result.DatesEndConfirmed = !thin && (dates == CourseQualityDateEvidence.EndConfirmed || (dates == CourseQualityDateEvidence.Confirmed && request.DateEnd.HasValue));
+
+      return result;
+    }
+
+    /// <summary>
+    /// An event's or a job's page, already matched to its listing. Only the listing checks: no format, cost or self-paced
+    /// reading. An event's dates are compared as a course's are; a job page rarely shows the listing's dates, so a job is
+    /// judged on the page matching and not saying the post is filled or closed, and its dates on the fixed rules.
+    /// </summary>
+    private CourseQualityAIResult ReadListingPage(CourseQualityAIRequest request, string text, CourseQualityStructuredFacts facts)
+    {
+      var thin = CourseQualityPageMatch.IsThinBody(text);
+
+      if (request.Type == Opportunity.Type.Job)
+      {
+        if (CourseQualityPageMatch.IsJobClosed(text))
+        {
+          var closed = Result(Below(ConfidenceSoftNotFound), "The job page says the post is filled or closed.", CourseFormat.Unknown, null, Unknown(),
+            Criterion(CourseQualityCriterion.LinkWorks, SoftNotFoundScore, "The job link opens a page saying the post is filled or closed.", "Close the listing, or link to an open post."));
+          closed.PageGone = true;
+          return closed;
+        }
+
+        var job = Result(thin ? Below(ConfidencePartial) : ConfidenceStartConfirmed, "The page matches this job listing. Its dates were checked by the fixed rules only.",
+          CourseFormat.Unknown, null, Unknown(), Criterion(CourseQualityCriterion.DataComplete, 100, "The job page matches this listing.", null));
+        job.StrongMatch = true;
+        return job;
+      }
+
+      var dates = CourseQualityPageDates.Read(request, text, facts);
+      var confidence = dates switch
+      {
+        CourseQualityDateEvidence.Confirmed => ConfidenceConfirmed,
+        CourseQualityDateEvidence.StartConfirmed => ConfidenceStartConfirmed,
+        CourseQualityDateEvidence.EndConfirmed => Below(ConfidencePartial),
+        _ => Below(ConfidenceUnconfirmed)
+      };
+
+      var summary = dates switch
+      {
+        CourseQualityDateEvidence.Confirmed or CourseQualityDateEvidence.StartConfirmed => "The page matches this listing and confirms its dates.",
+        CourseQualityDateEvidence.Disagrees => "The page matches this listing, but its dates differ.",
+        _ => "The page matches this listing, but does not confirm its dates."
+      };
+
+      // an event has a date, so a page that reads as self-paced has nothing to say about it
+      var datesCriterion = DatesCriterion(dates == CourseQualityDateEvidence.SelfPaced ? CourseQualityDateEvidence.Silent : dates);
+
+      var result = Result(thin ? Math.Min(confidence, Below(ConfidencePartial)) : confidence, summary, CourseFormat.Unknown, null, Unknown(),
+        datesCriterion, Criterion(CourseQualityCriterion.DataComplete, 100, "The page matches this listing.", null));
       result.StrongMatch = true;
       result.DatesStartConfirmed = !thin && dates is (CourseQualityDateEvidence.Confirmed or CourseQualityDateEvidence.StartConfirmed);
       result.DatesEndConfirmed = !thin && (dates == CourseQualityDateEvidence.EndConfirmed || (dates == CourseQualityDateEvidence.Confirmed && request.DateEnd.HasValue));

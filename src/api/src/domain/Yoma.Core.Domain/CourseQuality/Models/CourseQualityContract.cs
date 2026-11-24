@@ -242,6 +242,11 @@ namespace Yoma.Core.Domain.CourseQuality.Models
 
     public string Description { get; set; } = null!;
 
+    /// <summary>
+    /// Learning gets the full course reading; an Event or a Job only the listing checks (page matches, dates, gone or closed).
+    /// </summary>
+    public Opportunity.Type Type { get; set; } = Opportunity.Type.Learning;
+
     public string? Provider { get; set; }
 
     public string? OrganizationName { get; set; }

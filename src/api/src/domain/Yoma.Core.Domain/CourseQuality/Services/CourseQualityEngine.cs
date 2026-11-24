@@ -16,6 +16,9 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     private const int ConfidenceDecimals = 3;
 
     private static readonly CourseQualityCriterion[] JudgedCriteria = [CourseQualityCriterion.DatesAccurate, CourseQualityCriterion.DataComplete];
+
+    // a job page rarely shows the listing's dates, so a job is judged on its page matching, and its dates on the fixed rules
+    private static readonly CourseQualityCriterion[] JudgedCriteriaJob = [CourseQualityCriterion.DataComplete];
     #endregion
 
     #region Public Members
@@ -35,11 +38,14 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       ArgumentNullException.ThrowIfNull(link, nameof(link));
       ArgumentNullException.ThrowIfNull(options, nameof(options));
 
-      var format = ai != null && ai.Format != CourseFormat.Unknown ? ai.Format : CourseQualityFormatDetector.Detect(opportunity, options);
+      // an event or a job gets the listing checks only: no format, no self-paced, no course wording
+      var listingOnly = IsListingOnly(opportunity.Type);
+      var format = listingOnly ? CourseFormat.Unknown
+        : ai != null && ai.Format != CourseFormat.Unknown ? ai.Format : CourseQualityFormatDetector.Detect(opportunity, options);
       var timelineSummary = TimelineSummary(opportunity, ai);
       var hasPageEvidence = link.Outcome == CourseQualityLinkOutcome.Reachable && !string.IsNullOrWhiteSpace(link.SourcePageText);
 
-      var rules = CourseQualityRules.Evaluate(opportunity, link, format, timelineSummary, options, now, ai?.SelfPaced == true);
+      var rules = CourseQualityRules.Evaluate(opportunity, link, format, timelineSummary, options, now, !listingOnly && ai?.SelfPaced == true);
       var criteria = rules.Select(o => Combine(o, opportunity, ai, hasPageEvidence, options)).ToList();
 
       var definite = rules.Any(o => o.Failed && options.Criteria.TryGetValue(o.Criterion, out var criterion) && criterion.HardGate);
@@ -63,9 +69,9 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       var endDateDisputed = !opportunity.DateEnd.HasValue && hasPageEvidence && !dates.HardGateFailed && dates.Score < options.AIHardGateFailScore;
 
       // the provider read the page; the rest it could not know. "Start anytime" is also untrue before the listing opens
-      var selfPaced = ai?.SelfPaced == true && hasPageEvidence && format != CourseFormat.Unknown && opportunity.DateStart <= now
+      var selfPaced = !listingOnly && ai?.SelfPaced == true && hasPageEvidence && format != CourseFormat.Unknown && opportunity.DateStart <= now
         && !opportunity.DateEnd.HasValue && !rules.Any(o => o.Inconclusive) && !criteria.Any(o => o.HardGateFailed);
-      var selfPacedHeld = ai?.SelfPaced == true && !selfPaced;
+      var selfPacedHeld = !listingOnly && ai?.SelfPaced == true && !selfPaced;
 
       // everything else stands on dates a page confirmed: a start still ahead, or an end still ahead
       var startAhead = ai?.DatesStartConfirmed == true && opportunity.DateStart >= now;
@@ -76,12 +82,14 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       var datesConfirmed = datesCurrent && dates.Score == 100 && ai?.Criteria?.Any(o => o.Criterion == CourseQualityCriterion.DatesAccurate) == true;
 
       // a confidence figure says nothing unless the provider also judged the page
-      var judged = ai?.Criteria != null && ai.StrongMatch && JudgedCriteria.All(o => ai.Criteria.Any(c => c.Criterion == o));
+      var isJob = opportunity.Type == Opportunity.Type.Job;
+      var judged = ai?.Criteria != null && ai.StrongMatch && (isJob ? JudgedCriteriaJob : JudgedCriteria).All(o => ai.Criteria.Any(c => c.Criterion == o));
 
       // a person, not the score, settles whether this is the right page
       var pageDoubted = ai?.Criteria?.Any(o => o.Criterion == CourseQualityCriterion.DataComplete && o.Score < options.AIHardGateFailScore) == true;
 
-      var needsPerson = format == CourseFormat.Unknown || endDateDisputed || selfPacedHeld || !judged || ai?.PageGone == true || ai?.FormatDisputed == true || pageDoubted || !(selfPaced || datesCurrent || criteria.Any(o => o.HardGateFailed));
+      var formatInDoubt = !listingOnly && (format == CourseFormat.Unknown || ai?.FormatDisputed == true);
+      var needsPerson = formatInDoubt || endDateDisputed || selfPacedHeld || !judged || ai?.PageGone == true || pageDoubted || !(selfPaced || datesCurrent || isJob || criteria.Any(o => o.HardGateFailed));
 
       var (status, reviewStatus) = Route(score, confidence, criteria.Any(o => o.HardGateFailed), definite, needsPerson, options);
 
@@ -98,7 +106,9 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         SelfPaced = selfPaced,
         PageDoubted = pageDoubted,
         Judged = judged,
-        Confidence = confidence
+        Confidence = confidence,
+        ListingOnly = listingOnly,
+        IsJob = isJob
       }, options);
 
       var assessment = new CourseQualityAssessment
@@ -160,6 +170,9 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       ArgumentNullException.ThrowIfNull(assessment, nameof(assessment));
       ArgumentNullException.ThrowIfNull(options, nameof(options));
 
+      // an event or a job has no format to designate
+      if (IsListingOnly(assessment)) return;
+
       assessment.LearnerCard.Format = format;
 
       var criterion = assessment.Criteria.Single(o => o.Criterion == CourseQualityCriterion.FormatIdentified);
@@ -183,6 +196,25 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         ? CourseQualityStatus.NotVerified
         : CourseQualityStatus.Verified;
     }
+
+    /// <summary>
+    /// Event and Job get the listing checks only; Learning keeps the full course rubric.
+    /// </summary>
+    public static bool IsListingOnly(Opportunity.Type type)
+    {
+      return type != Opportunity.Type.Learning;
+    }
+
+    /// <summary>
+    /// A stored assessment does not carry its opportunity's type. One from the listing checks only is the one without a format
+    /// criterion, because every course assessment has one.
+    /// </summary>
+    public static bool IsListingOnly(CourseQualityAssessment assessment)
+    {
+      ArgumentNullException.ThrowIfNull(assessment, nameof(assessment));
+
+      return !assessment.Criteria.Any(o => o.Criterion == CourseQualityCriterion.FormatIdentified);
+    }
     #endregion
 
     #region Private Members
@@ -200,6 +232,8 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       public bool PageDoubted { get; init; }
       public bool Judged { get; init; }
       public decimal Confidence { get; init; }
+      public bool ListingOnly { get; init; }
+      public bool IsJob { get; init; }
     }
 
     /// <summary>
@@ -225,16 +259,18 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       else if (facts.PageDoubted) reasons.Add("The course page may not be this listing's page.");
       else if (facts.HasPageEvidence && facts.AI?.StrongMatch == true && !facts.Judged) reasons.Add("The page reader did not judge the dates and details.");
 
-      if (facts.Format == CourseFormat.Unknown) reasons.Add("The format, course or webinar, could not be told from the listing or the page.");
-      if (facts.AI?.FormatDisputed == true) reasons.Add("The page reader and the fixed checks read a different format.");
+      if (!facts.ListingOnly && facts.Format == CourseFormat.Unknown) reasons.Add("The format, course or webinar, could not be told from the listing or the page.");
+      if (!facts.ListingOnly && facts.AI?.FormatDisputed == true) reasons.Add("The page reader and the fixed checks read a different format.");
 
       if (facts.EndDateDisputed) reasons.Add("The listing has no end date, and the dates on the course page differ from it.");
       else if (facts.DatesDiffer) reasons.Add("The dates on the course page differ from the listing.");
 
       if (facts.SelfPacedHeld) reasons.Add("The page reads as self-paced, but the listing has an end date, starts later or did not pass every check.");
 
-      if (facts.HasPageEvidence && !facts.SelfPaced && !facts.DatesCurrent && !facts.EndDateDisputed && !facts.DatesDiffer && facts.AI?.StrongMatch == true)
-        reasons.Add("The course page does not confirm the listing's dates, and the course is not self-paced.");
+      if (facts.HasPageEvidence && !facts.SelfPaced && !facts.DatesCurrent && !facts.EndDateDisputed && !facts.DatesDiffer && facts.AI?.StrongMatch == true && !facts.IsJob)
+        reasons.Add(facts.ListingOnly
+          ? "The page does not confirm the listing's dates."
+          : "The course page does not confirm the listing's dates, and the course is not self-paced.");
 
       if (facts.Confidence < options.ReviewConfidenceThreshold)
         reasons.Add($"Confidence is {facts.Confidence.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}, below the review threshold of {options.ReviewConfidenceThreshold.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}.");
@@ -416,7 +452,15 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         .ToList();
 
       string summary;
-      if (assessment.ReviewStatus is CourseQualityReviewStatus.Confirmed or CourseQualityReviewStatus.Overridden)
+      if (IsListingOnly(assessment))
+        summary = assessment.ReviewStatus is CourseQualityReviewStatus.Confirmed or CourseQualityReviewStatus.Overridden
+          ? issues.Count > 0
+            ? "A reviewer could not verify this listing yet. The items below need attention."
+            : "A reviewer could not verify this listing yet. Please check that the listing matches its page."
+          : issues.Any(o => o.HardGateFailed)
+            ? "This listing is not verified yet because a required check did not pass. The items below need attention."
+            : "This listing is not verified yet because its score is below the required level. The items below will raise it.";
+      else if (assessment.ReviewStatus is CourseQualityReviewStatus.Confirmed or CourseQualityReviewStatus.Overridden)
         summary = issues.Count > 0
           ? "A reviewer could not verify this course yet. The items below need attention."
           : "A reviewer could not verify this course yet. Please check that the listing matches the course page.";

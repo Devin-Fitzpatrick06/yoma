@@ -130,6 +130,24 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public CourseGradeRubric Grading { get; set; } = CourseQualityGradingDefaults.Rubric();
 
     public CourseQualityLearnerFeedbackOptions LearnerFeedback { get; set; } = new();
+
+    /// <summary>
+    /// Opportunity types whose listings are checked (live, link works, real dates, enough data). Only Learning is graded or
+    /// shown on a learner card; Event and Job get the listing checks only, so a held-back one reaches the review queue and
+    /// the partner's fix notes. Configuration adds to this list, so Learning is always checked. Types other than Learning,
+    /// Event and Job are ignored until a product decision says what "good" means for them.
+    /// </summary>
+    public List<Opportunity.Type> VerifyTypes { get; set; } = [Opportunity.Type.Learning];
+
+    public static readonly Opportunity.Type[] SupportedVerifyTypes = [Opportunity.Type.Learning, Opportunity.Type.Event, Opportunity.Type.Job];
+
+    /// <summary>
+    /// The types checked: Learning always, plus Event and Job when configured.
+    /// </summary>
+    public List<Opportunity.Type> VerifiedTypes()
+    {
+      return [.. SupportedVerifyTypes.Where(o => o == Opportunity.Type.Learning || VerifyTypes.Contains(o))];
+    }
   }
 
   public class CourseQualitySelfPacedProvider

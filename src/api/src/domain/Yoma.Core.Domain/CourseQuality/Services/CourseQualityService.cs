@@ -159,6 +159,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
     public async Task<CourseQualityAssessment> Assess(Guid opportunityId, CancellationToken cancellationToken)
     {
+      // an event or a job is never graded, so its change asks for no regrade
       var (assessment, changed) = await AssessAndPersist(opportunityId, cancellationToken);
 
       if (changed) await _gradingService.RequestRegrade();
@@ -244,7 +245,9 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
         assessment = record.ToAssessment();
 
-        if (decision.Status == CourseQualityStatus.Verified && (decision.Format ?? assessment.LearnerCard.Format) == CourseFormat.Unknown)
+        // an event or a job has no format; one sent with the decision is ignored
+        if (decision.Status == CourseQualityStatus.Verified && !CourseQualityEngine.IsListingOnly(assessment)
+          && (decision.Format ?? assessment.LearnerCard.Format) == CourseFormat.Unknown)
           throw new ValidationException("Set the format to verify this listing");
 
         CourseQualityReviewPolicy.ApplyDecision(assessment, decision, reviewerEmail, DateTimeOffset.UtcNow, _options);
@@ -308,7 +311,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       var current = latest.Where(o => o.DateAssessed >= cutoff && o.RubricVersion == rubricVersion);
 
       // never assessed first, then the oldest check, so the whole catalogue keeps moving
-      return QueryPublishedCourses()
+      return QueryPublished(_options.VerifiedTypes())
         .Where(o => !current.Any(a => a.OpportunityId == o.Id && a.OpportunityDateModified == o.DateModified))
         .OrderBy(o => latest.Any(a => a.OpportunityId == o.Id) ? 1 : 0)
         .ThenBy(o => latest.Where(a => a.OpportunityId == o.Id).Select(a => a.DateAssessed).FirstOrDefault())
@@ -326,8 +329,11 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         throw new ValidationException("Course quality assessment is turned off");
 
       var opportunity = _opportunityService.GetById(opportunityId, true, false, false);
-      if (opportunity.Type != Opportunity.Type.Learning)
-        throw new ValidationException($"Only opportunities of type '{Opportunity.Type.Learning}' can be assessed");
+      var types = _options.VerifiedTypes();
+      if (!types.Contains(opportunity.Type))
+        throw new ValidationException(types.Count == 1
+          ? $"Only opportunities of type '{Opportunity.Type.Learning}' can be assessed"
+          : $"Only opportunities of type {string.Join(", ", types.Select(o => $"'{o}'"))} can be assessed");
 
       var link = await _linkChecker.Check(opportunity.URL, cancellationToken);
       var ai = await EvaluateAI(opportunity, link, cancellationToken);
@@ -340,7 +346,8 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
       var changed = await Persist(assessment, opportunity.DateModified, CourseQualityFingerprint.Compute(opportunity), fresh, evidence);
 
-      return (assessment, changed);
+      // grading reads courses only
+      return (assessment, changed && opportunity.Type == Opportunity.Type.Learning);
     }
 
     /// <summary>
@@ -388,11 +395,26 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
     private IQueryable<Opportunity.Models.Opportunity> QueryPublishedCourses()
     {
-      var typeLearningId = _opportunityTypeService.GetByName(Opportunity.Type.Learning.ToString()).Id;
+      return QueryPublished([Opportunity.Type.Learning]);
+    }
+
+    private IQueryable<Opportunity.Models.Opportunity> QueryPublished(List<Opportunity.Type> types)
+    {
+      var typeIds = types.Select(o => _opportunityTypeService.GetByName(o.ToString()).Id).ToList();
       var statusActiveId = _opportunityStatusService.GetByName(Status.Active.ToString()).Id;
       var organizationStatusActiveId = _organizationStatusService.GetByName(OrganizationStatus.Active.ToString()).Id;
 
-      return _opportunityRepository.Query().Where(o => o.TypeId == typeLearningId
+      // one type stays an equality, so the Learning-only query is the one it always was
+      if (typeIds.Count == 1)
+      {
+        var typeId = typeIds[0];
+        return _opportunityRepository.Query().Where(o => o.TypeId == typeId
+          && o.StatusId == statusActiveId
+          && o.OrganizationStatusId == organizationStatusActiveId
+          && (!o.Hidden.HasValue || o.Hidden == false));
+      }
+
+      return _opportunityRepository.Query().Where(o => typeIds.Contains(o.TypeId)
         && o.StatusId == statusActiveId
         && o.OrganizationStatusId == organizationStatusActiveId
         && (!o.Hidden.HasValue || o.Hidden == false));
@@ -413,6 +435,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         {
           Title = opportunity.Title,
           Description = opportunity.Description,
+          Type = opportunity.Type,
           Provider = string.IsNullOrWhiteSpace(opportunity.Provider) ? opportunity.OrganizationName : opportunity.Provider,
           OrganizationName = opportunity.OrganizationName,
           URL = opportunity.URL,
