@@ -64,13 +64,13 @@ namespace Yoma.Core.Domain.Pathway.Services
     {
       if (opportunityId == Guid.Empty) throw new ArgumentNullException(nameof(opportunityId));
 
-      if (GetSnapshot().Courses.TryGetValue(opportunityId, out var outcome)) return outcome;
-
-      // a course nobody has completed yet, listed or not
-      var learningTypeId = _opportunityTypeService.GetByName(Opportunity.Type.Learning.ToString()).Id;
-      if (!_opportunityRepository.Query().Any(o => o.Id == opportunityId && o.TypeId == learningTypeId))
+      // public endpoint: only courses learners can see, like the learner card (hidden, inactive or ended courses are 404)
+      if (!_catalogueService.Get().Courses.Any(o => o.OpportunityId == opportunityId))
         throw new EntityNotFoundException($"Learning opportunity with id '{opportunityId}' does not exist");
 
+      if (GetSnapshot().Courses.TryGetValue(opportunityId, out var outcome)) return outcome;
+
+      // a listed course nobody has completed yet
       return new CourseOutcome
       {
         OpportunityId = opportunityId,
