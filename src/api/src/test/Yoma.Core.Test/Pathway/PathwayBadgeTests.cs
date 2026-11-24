@@ -312,7 +312,7 @@ namespace Yoma.Core.Test.Pathway
       Assert.Equal("Pathfinder", learner["key"]!.Value<string>());
 
       var partner = JObject.Parse(JsonConvert.SerializeObject(Partner(top: 2, graded: 3), ApiSettings));
-      Assert.Equal(["gradedCourses", "level", "minimumGradedCourses", "nextLevelHint", "organizationId", "organizationName", "shareHeldBack", "shareTopGrades"],
+      Assert.Equal(["gradedCourses", "level", "minimumGradedCourses", "nextLevelHint", "organizationId", "organizationName", "shareHeldBack", "shareTopGrades", "waitingForReview"],
         partner.Properties().Select(o => o.Name).Order());
       Assert.Equal("NotEnoughGraded", partner["level"]!.Value<string>());
     }
