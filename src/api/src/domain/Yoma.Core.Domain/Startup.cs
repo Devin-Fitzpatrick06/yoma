@@ -39,6 +39,8 @@ using Yoma.Core.Domain.Opportunity;
 using Yoma.Core.Domain.Opportunity.Interfaces;
 using Yoma.Core.Domain.Opportunity.Interfaces.Lookups;
 using Yoma.Core.Domain.Opportunity.Services;
+using Yoma.Core.Domain.Pathway.Badges.Interfaces;
+using Yoma.Core.Domain.Pathway.Badges.Services;
 using Yoma.Core.Domain.Opportunity.Services.Lookups;
 using Yoma.Core.Domain.PartnerSync.Interfaces;
 using Yoma.Core.Domain.PartnerSync.Interfaces.Lookups;
@@ -121,6 +123,15 @@ namespace Yoma.Core.Domain
       // a provider registered later replaces this default
       services.TryAddScoped<ICourseQualityAIProvider, NoOpCourseQualityAIProvider>();
       #endregion Course Quality
+
+      #region Pathway Badges
+      services.AddScoped<PathwayBadgeService>();
+      services.AddScoped<IPathwayBadgeService>(provider => provider.GetRequiredService<PathwayBadgeService>());
+      services.AddScoped<IPathwayBadgeSource>(provider => provider.GetRequiredService<PathwayBadgeService>());
+
+      // the pathway engine registers its own provider, which replaces this default
+      services.TryAddScoped<IPathwayBadgePathProvider, NoPathwayBadgePathProvider>();
+      #endregion Pathway Badges
 
       #region Entity
       #region Lookups
