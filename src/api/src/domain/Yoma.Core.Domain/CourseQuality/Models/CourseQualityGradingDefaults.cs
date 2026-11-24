@@ -68,6 +68,13 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public const string UnknownCostScore = "UnknownCostScore";
     public const string LanguageBonus = "LanguageBonus";
     public const string LowDataBonus = "LowDataBonus";
+
+    // Outcomes: each rate is scored against a target that earns 100, so a few percent employment is not read as failure
+    public const string MinGroupSize = "MinGroupSize";
+    public const string ProgressionShare = "ProgressionShare";
+    public const string EmploymentShare = "EmploymentShare";
+    public const string ProgressionTarget = "ProgressionTarget";
+    public const string EmploymentTarget = "EmploymentTarget";
   }
 
   /// <summary>
@@ -106,7 +113,11 @@ namespace Yoma.Core.Domain.CourseQuality.Models
           (CourseGradeParameter.AgeShare, 15), (CourseGradeParameter.MaxAgeYears, 3))),
         [CourseGradeFactor.Accessibility] = (7, 20, Parameters(
           (CourseGradeParameter.FreeScore, 40), (CourseGradeParameter.FreePaidCertificateScore, 25), (CourseGradeParameter.PaidScore, 0),
-          (CourseGradeParameter.UnknownCostScore, 20), (CourseGradeParameter.LanguageBonus, 30), (CourseGradeParameter.LowDataBonus, 30)))
+          (CourseGradeParameter.UnknownCostScore, 20), (CourseGradeParameter.LanguageBonus, 30), (CourseGradeParameter.LowDataBonus, 30))),
+        // weight 0 until outcome data is sufficient (iteration 3, F3); the slot exists so the rubric page can show it
+        [CourseGradeFactor.Outcomes] = (0, 50, Parameters(
+          (CourseGradeParameter.MinGroupSize, 20), (CourseGradeParameter.ProgressionShare, 60), (CourseGradeParameter.EmploymentShare, 40),
+          (CourseGradeParameter.ProgressionTarget, 0.5m), (CourseGradeParameter.EmploymentTarget, 0.2m)))
       };
 
     public static List<CourseGradeBand> Bands() =>

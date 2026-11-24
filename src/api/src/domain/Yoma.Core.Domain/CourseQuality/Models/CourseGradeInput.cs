@@ -51,6 +51,21 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public int Started { get; set; }
 
     public List<CourseGradeFeedbackAnswer> Feedback { get; set; } = [];
+
+    /// <summary>
+    /// Youth who completed the course on Yoma, for the Outcomes factor.
+    /// </summary>
+    public int OutcomeCompleters { get; set; }
+
+    /// <summary>
+    /// Share of completers who later completed another course towards the same goal, 0 to 1; null below the minimum group size.
+    /// </summary>
+    public decimal? ProgressionRate { get; set; }
+
+    /// <summary>
+    /// Share of completers who later completed a Job opportunity, 0 to 1; null below the minimum group size.
+    /// </summary>
+    public decimal? EmploymentRate { get; set; }
   }
 
   /// <summary>

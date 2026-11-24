@@ -333,14 +333,14 @@ namespace Yoma.Core.Test.Pathway
     }
 
     [Fact]
-    public void Domain_RegistersOneBadgeService_AndAReplaceablePathProvider()
+    public void Domain_RegistersOneBadgeService_AndThePathwayPathProvider()
     {
       var services = new ServiceCollection();
       services.ConfigureServices_DomainServices();
 
       Assert.Contains(services, o => o.ServiceType == typeof(IPathwayBadgeService));
       Assert.Contains(services, o => o.ServiceType == typeof(IPathwayBadgeSource));
-      Assert.Equal(typeof(NoPathwayBadgePathProvider), services.Last(o => o.ServiceType == typeof(IPathwayBadgePathProvider)).ImplementationType);
+      Assert.Equal(typeof(Yoma.Core.Domain.Pathway.Services.PathwayBadgePathProvider), services.Last(o => o.ServiceType == typeof(IPathwayBadgePathProvider)).ImplementationType);
     }
 
     [Fact]

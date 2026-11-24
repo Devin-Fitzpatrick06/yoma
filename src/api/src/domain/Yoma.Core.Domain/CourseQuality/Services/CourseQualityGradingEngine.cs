@@ -236,7 +236,8 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         Length(input, rubric),
         Completion(input, catalogue, rubric),
         Integrity(input, rubric, now),
-        Accessibility(input, evidence, rubric)
+        Accessibility(input, evidence, rubric),
+        Outcomes(input, rubric)
       };
 
       var totalWeight = rubric.Factors.Values.Sum(o => Math.Max(o.Weight, 0));
@@ -566,6 +567,38 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
       var hasData = input.CostType != CourseCostType.Unknown || language || lowData;
       return (factor, hasData ? score : null, $"{Capitalise(string.Join(", ", parts))}.");
+    }
+
+    /// <summary>
+    /// Progression and employment after completing, each against the target that earns full marks. No data, or fewer completers than
+    /// MinGroupSize, is neutral: a new course is neither rewarded nor punished. Never a comparison between groups.
+    /// </summary>
+    private static (CourseGradeFactor, decimal?, string) Outcomes(CourseGradeInput input, CourseGradeRubric rubric)
+    {
+      const CourseGradeFactor factor = CourseGradeFactor.Outcomes;
+      decimal Get(string name) => CourseQualityGrading.Parameter(rubric, factor, name);
+
+      var minimum = Get(P.MinGroupSize);
+      if (input.OutcomeCompleters < minimum || (!input.ProgressionRate.HasValue && !input.EmploymentRate.HasValue))
+        return (factor, null, input.OutcomeCompleters == 0
+          ? "No learner has completed this course through Yoma yet."
+          : $"{input.OutcomeCompleters} completer{Plural(input.OutcomeCompleters)}: outcomes count from {CourseQualityGrading.Number(minimum)}.");
+
+      var parts = new List<(decimal Value, decimal Share)>();
+      var text = new List<string>();
+      if (input.ProgressionRate.HasValue)
+      {
+        parts.Add((input.ProgressionRate.Value / Math.Max(Get(P.ProgressionTarget), 0.0001m), Get(P.ProgressionShare)));
+        text.Add($"{Clamp(input.ProgressionRate.Value * Percent)}% went on to another course towards the same goal");
+      }
+
+      if (input.EmploymentRate.HasValue)
+      {
+        parts.Add((input.EmploymentRate.Value / Math.Max(Get(P.EmploymentTarget), 0.0001m), Get(P.EmploymentShare)));
+        text.Add($"{Clamp(input.EmploymentRate.Value * Percent)}% later completed a job opportunity");
+      }
+
+      return (factor, Weighted([.. parts]), $"Of {input.OutcomeCompleters} completers, {string.Join(" and ", text)}.");
     }
 
     /// <summary>

@@ -59,6 +59,10 @@ namespace Yoma.Core.Infrastructure.Database.Context
     public DbSet<CourseQuality.Entities.CourseQualityLearnerFeedback> CourseQualityLearnerFeedback { get; set; }
     #endregion Course Quality
 
+    #region Pathway
+    public DbSet<Pathway.Entities.PathwayProfile> PathwayProfile { get; set; }
+    #endregion Pathway
+
     #region Entity
     #region Lookups
     public DbSet<Entity.Entities.Lookups.OrganizationStatus> OrganizationStatus { get; set; }
@@ -528,6 +532,16 @@ namespace Yoma.Core.Infrastructure.Database.Context
         entity.HasOne(o => o.Opportunity).WithMany().HasForeignKey(o => o.OpportunityId).OnDelete(DeleteBehavior.NoAction);
       });
       #endregion Course Quality
+
+      #region Pathway
+      builder.Entity<Pathway.Entities.PathwayProfile>(entity =>
+      {
+        entity.Property(o => o.Background).HasConversion<string>().HasColumnType("varchar(20)");
+
+        entity.HasOne(o => o.User).WithMany().HasForeignKey(o => o.UserId).OnDelete(DeleteBehavior.NoAction);
+        entity.HasOne(o => o.Country).WithMany().HasForeignKey(o => o.CountryId).OnDelete(DeleteBehavior.NoAction);
+      });
+      #endregion Pathway
 
       #region Opportunity
       builder.Entity<Opportunity.Entities.Opportunity>()

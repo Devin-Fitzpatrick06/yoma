@@ -48,6 +48,8 @@ using Yoma.Core.Domain.PartnerSync.Interfaces.Provider;
 using Yoma.Core.Domain.PartnerSync.Services;
 using Yoma.Core.Domain.PartnerSync.Services.Lookups;
 using Yoma.Core.Domain.PartnerSync.Services.Provider;
+using Yoma.Core.Domain.Pathway.Interfaces;
+using Yoma.Core.Domain.Pathway.Services;
 using Yoma.Core.Domain.Payout.Interfaces;
 using Yoma.Core.Domain.Payout.Interfaces.Lookups;
 using Yoma.Core.Domain.Payout.Services;
@@ -124,13 +126,19 @@ namespace Yoma.Core.Domain
       services.TryAddScoped<ICourseQualityAIProvider, NoOpCourseQualityAIProvider>();
       #endregion Course Quality
 
+      #region Pathway
+      services.AddScoped<IPathwayService, PathwayService>();
+      services.AddScoped<IPathwayCatalogueService, PathwayCatalogueService>();
+      services.AddScoped<IPathwayOutcomeService, PathwayOutcomeService>();
+
+      #endregion Pathway
+
       #region Pathway Badges
       services.AddScoped<PathwayBadgeService>();
       services.AddScoped<IPathwayBadgeService>(provider => provider.GetRequiredService<PathwayBadgeService>());
       services.AddScoped<IPathwayBadgeSource>(provider => provider.GetRequiredService<PathwayBadgeService>());
 
-      // the pathway engine registers its own provider, which replaces this default
-      services.TryAddScoped<IPathwayBadgePathProvider, NoPathwayBadgePathProvider>();
+      services.AddScoped<IPathwayBadgePathProvider, PathwayBadgePathProvider>();
       #endregion Pathway Badges
 
       #region Entity

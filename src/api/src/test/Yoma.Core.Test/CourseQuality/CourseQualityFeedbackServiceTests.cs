@@ -139,7 +139,7 @@ namespace Yoma.Core.Test.CourseQuality
 
       return new CourseQualityGradingService(NullLogger<CourseQualityGradingService>.Instance, Accessor(), Options.Create(_options), OpportunityRepository().Object,
         skills.Object, languages.Object, languageService.Object, myOpportunities.Object, assessments.Object, gradeRepository.Object, rubrics.Object,
-        FeedbackRepository().Object, Locks().Object, strategy.Object, Mock.Of<Hangfire.IBackgroundJobClient>());
+        FeedbackRepository().Object, Locks().Object, strategy.Object, Mock.Of<Hangfire.IBackgroundJobClient>(), Mock.Of<Domain.Pathway.Interfaces.IPathwayOutcomeService>());
     }
 
     private CourseQualityFeedbackService Service(ICourseQualityGradingService? grading = null)
