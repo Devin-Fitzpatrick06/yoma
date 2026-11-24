@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FaCheck } from "react-icons/fa";
 import type { PathwayCourse } from "~/api/models/pathway";
 import GradeChip from "~/components/CourseQuality/GradeChip";
+import { COURSE_QUALITY_DEMO } from "~/components/CourseQuality/DemoViewSwitcher";
 import { asCourseGrade, outcomeLines } from "~/lib/pathway";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,11 +93,17 @@ const PathwayCourseRow: React.FC<{ course: PathwayCourse; number: number }> = ({
             {outcomes.map((line) => (
               <span
                 key={line}
+                title={course.outcome?.note}
                 className="bg-green-light text-green rounded-md px-2 py-0.5 font-semibold"
               >
                 {line}
               </span>
             ))}
+            {COURSE_QUALITY_DEMO && outcomes.length > 0 && (
+              <span className="text-gray-dark italic">
+                Demo data: synthetic learners
+              </span>
+            )}
             {course.dropOffFlag && (
               <span
                 className="bg-orange-light text-orange rounded-md px-2 py-0.5 font-semibold"

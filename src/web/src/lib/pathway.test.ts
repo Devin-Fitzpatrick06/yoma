@@ -148,7 +148,7 @@ describe("outcome lines", () => {
     ]);
     assert.deepEqual(
       outcomeLines(outcome({ progressionRate: 0.5, employmentRate: 0.187 })),
-      ["50% went on to another course", "19% found work afterwards"],
+      ["50% went on to another course", "19% later completed a Yoma job"],
     );
   });
 });

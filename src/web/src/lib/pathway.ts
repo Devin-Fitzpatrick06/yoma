@@ -144,7 +144,9 @@ export const outcomeLines = (
       `${percent(outcome.progressionRate)}% went on to another course`,
     );
   if (outcome.employmentRate !== null)
-    lines.push(`${percent(outcome.employmentRate)}% found work afterwards`);
+    lines.push(
+      `${percent(outcome.employmentRate)}% later completed a Yoma job`,
+    );
   return lines;
 };
 

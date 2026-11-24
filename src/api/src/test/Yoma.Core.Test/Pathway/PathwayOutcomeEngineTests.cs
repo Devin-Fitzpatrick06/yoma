@@ -78,7 +78,22 @@ namespace Yoma.Core.Test.Pathway
       var outcome = Compute(new PathwayOutcomeInput { LearningCompletions = [.. youth.Select(o => At(o, Plumbing, 1))] }).Courses[Plumbing.OpportunityId];
 
       Assert.Null(outcome.ProgressionRate);
-      Assert.Equal(0m, outcome.EmploymentRate);
+      // no job completions anywhere on Yoma: employment is unknown, not 0%
+      Assert.Null(outcome.EmploymentRate);
+      Assert.StartsWith("No outcome data yet", outcome.Note);
+    }
+
+    [Fact]
+    public void Compute_GivesZeroEmployment_OnlyWhenJobDataExists()
+    {
+      var youth = Youth(25);
+      var input = new PathwayOutcomeInput
+      {
+        LearningCompletions = [.. youth.Select(o => At(o, Plumbing, 1))],
+        JobCompletions = [new PathwayActivity(Guid.NewGuid(), Guid.NewGuid(), Start.AddDays(9))]
+      };
+
+      Assert.Equal(0m, Compute(input).Courses[Plumbing.OpportunityId].EmploymentRate);
     }
 
     [Fact]

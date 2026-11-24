@@ -82,12 +82,21 @@ namespace Yoma.Core.Domain.Pathway.Services
         outcome.ProgressionRate = Rate(progressed, completers.Count);
       }
 
-      var employed = completers.Count(c => jobs.TryGetValue(c.UserId, out var latest) && latest > c.Date);
-      outcome.EmploymentRate = Rate(employed, completers.Count);
+      // with no job completions anywhere on Yoma there is no employment data, which is unknown, not 0%
+      if (jobs.Count > 0)
+      {
+        var employed = completers.Count(c => jobs.TryGetValue(c.UserId, out var latest) && latest > c.Date);
+        outcome.EmploymentRate = Rate(employed, completers.Count);
+      }
 
       var parts = new List<string>();
       if (outcome.ProgressionRate.HasValue) parts.Add($"{Percent(outcome.ProgressionRate.Value)} later completed another course towards the same goal");
-      parts.Add($"{Percent(outcome.EmploymentRate.Value)} later completed a job opportunity on Yoma");
+      if (outcome.EmploymentRate.HasValue) parts.Add($"{Percent(outcome.EmploymentRate.Value)} later completed a job opportunity on Yoma");
+      if (parts.Count == 0)
+      {
+        outcome.Note = "No outcome data yet: Yoma has no job completions recorded and this course is not on a goal's path.";
+        return outcome;
+      }
 
       outcome.Note = $"Of {completers.Count} youth who completed this course on Yoma, {PathwayMatching.JoinList(parts)}. "
         + "This shows what happened next, not what the course caused.";
