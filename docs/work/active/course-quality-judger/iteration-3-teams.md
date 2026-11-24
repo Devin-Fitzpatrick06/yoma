@@ -1,6 +1,6 @@
 # Iteration 3: My Yoma pathways, outcomes and badges (team plan)
 
-Status: in-progress
+Status: review — My Yoma, outcomes and badges built; see handoffs/2026-11-24-d.md
 
 Builds on `iteration-3.md` (feedback positions) and the approved prototype
 (the clickable "My Yoma" demo shown to the project lead on 2026-11-24). Branch: `feature/course-quality-judger`.
