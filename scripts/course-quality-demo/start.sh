@@ -135,6 +135,14 @@ else
   else
     echo "This API has no learner feedback table yet, so no synthetic feedback was added."
   fi
+
+  # Live jobs, listed only, for the My Yoma pathways' job step. Nothing is invented about them.
+  if [ ! -f "$CACHE_DIR/live-jobs.json" ]; then
+    step "Downloading up to 2,000 live Yoma jobs (about a minute)"
+    in_runner node /demo/seed/fetch-live-catalogue.mjs --jobs 2>>"$LOG_DIR/fetch.log" || echo "The live jobs did not download, so pathways show no jobs."
+  fi
+  step "Adding the live jobs"
+  in_runner node /demo/seed/generate-jobs-sql.mjs 2>>"$LOG_DIR/seed.log" | sql >>"$LOG_DIR/seed.log" 2>&1
 fi
 
 # ---- Assess ----

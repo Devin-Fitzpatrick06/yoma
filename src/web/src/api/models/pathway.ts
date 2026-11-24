@@ -9,7 +9,11 @@
 //   GET  /pathway/badges/organization/{organizationId}  anonymous -> PartnerBadge
 //   GET  /pathway/outcomes/opportunity/{opportunityId}  anonymous -> CourseOutcome
 
-export type PathwayBackground = "InSchool" | "FinishedSchool" | "SomeStudy" | "Degree";
+export type PathwayBackground =
+  | "InSchool"
+  | "FinishedSchool"
+  | "SomeStudy"
+  | "Degree";
 
 export interface PathwayOption {
   key: string;
@@ -33,8 +37,8 @@ export interface PathwayProfileRequest {
   goalKey: string;
   background: PathwayBackground;
   knownSkillKeys: string[];
-  hoursPerWeek: number; // 2 | 5 | 10
-  countryId: string | null; // null = anywhere
+  hoursPerWeek: number; // 2 | 5 | 10; the question's option keys are "2", "5", "10"
+  countryId: string | null; // null = anywhere; the country question's "anywhere" option has key "anywhere", others the country id
 }
 
 export interface PathwayProfile extends PathwayProfileRequest {
@@ -70,6 +74,7 @@ export interface PathwayCourse {
   skillsAdded: string[]; // the skills this course contributes to the stage
   reason: string; // one sentence: why this course is at this point of the path
   grade: string | null; // Zeki grade A–D when graded
+  gradeLabel: string | null; // the grade band's label, e.g. "Top pick" for A
   status: PathwayStepStatus; // for the signed-in youth
   completedCount: number; // completions on Yoma
   outcome: CourseOutcome | null;
@@ -118,7 +123,12 @@ export interface LearnerBadge {
   progress: number | null; // 0–1 towards the badge when not earned
 }
 
-export type PartnerBadgeLevel = "None" | "Bronze" | "Silver" | "Gold" | "NotEnoughGraded";
+export type PartnerBadgeLevel =
+  | "None"
+  | "Bronze"
+  | "Silver"
+  | "Gold"
+  | "NotEnoughGraded";
 
 export interface PartnerBadge {
   organizationId: string;
