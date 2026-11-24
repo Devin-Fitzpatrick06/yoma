@@ -56,6 +56,14 @@ const getNavBarLinksUser = (
       selected: false,
     },
     {
+      title: "My Yoma",
+      description: "My Yoma: your path to the work you want",
+      url: "/my-yoma",
+      badgeCount: null,
+      selected: false,
+      tag: "New",
+    },
+    {
       title: "Marketplace",
       description: "Marketplace",
       url: "/marketplace",
@@ -91,6 +99,13 @@ const getNavBarLinksUser = (
 
   return links;
 };
+
+/** A small marker after a link's title, e.g. "New" on My Yoma. */
+const NavTag: React.FC<{ children: string }> = ({ children }) => (
+  <span className="bg-yellow ml-1.5 rounded px-1.5 py-px text-[10px] leading-4 font-bold tracking-wide text-black uppercase">
+    {children}
+  </span>
+);
 
 const navBarLinksAdmin: TabItem[] = [
   {
@@ -494,6 +509,7 @@ export const Navbar: React.FC<{ theme: string }> = (theme) => {
                             className="w-full"
                           >
                             <span>{link.title}</span>
+                            {link.tag && <NavTag>{link.tag}</NavTag>}
                             {link.iconImage && (
                               <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-white/20 p-4 text-sm shadow-md">
                                 {link.iconImage}
@@ -685,6 +701,7 @@ export const Navbar: React.FC<{ theme: string }> = (theme) => {
                       draggable={false}
                     >
                       <span>{link.title}</span>
+                      {link.tag && <NavTag>{link.tag}</NavTag>}
                       {link.iconImage && (
                         <span className="ml-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/20 p-4 text-sm shadow-md">
                           {link.iconImage}

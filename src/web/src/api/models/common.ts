@@ -38,6 +38,8 @@ export interface TabItem {
   itemClassName?: string;
   iconImage?: any;
   iconElement?: React.ReactElement;
+  /** a short marker after the title, e.g. "New" */
+  tag?: string;
   onClick?: () => void;
 }
 

@@ -7,6 +7,7 @@ import { type ParsedUrlQuery } from "querystring";
 import { useMemo, type ReactElement } from "react";
 import { getCourseQualityFixNotes } from "~/api/services/courseQualityAdmin";
 import { getOrganisationById } from "~/api/services/organisations";
+import { getPartnerBadge } from "~/api/services/pathway";
 import { BTN_SECONDARY } from "~/components/Common/buttonStyles";
 import {
   ListPageBody,
@@ -19,6 +20,7 @@ import FixNoteCard, {
   hasHardGateIssue,
 } from "~/components/CourseQuality/FixNoteCard";
 import MainLayout from "~/components/Layout/Main";
+import PartnerBadgeCard from "~/components/MyYoma/PartnerBadgeCard";
 import NoRowsMessage from "~/components/NoRowsMessage";
 import { ApiErrors } from "~/components/Status/ApiErrors";
 import { Unauthenticated } from "~/components/Status/Unauthenticated";
@@ -81,6 +83,14 @@ const CourseQualityFixNotes: NextPageWithLayout<{
     enabled: !error,
   });
 
+  // the badge is an extra above the notes: while it loads, or if it fails, the page goes without
+  const { data: partnerBadge } = useQuery({
+    queryKey: ["pathway", "partnerBadge", id],
+    queryFn: () => getPartnerBadge(id),
+    enabled: !error,
+    retry: false,
+  });
+
   const sortedNotes = useMemo(
     () =>
       [...(notes ?? [])].sort(
@@ -115,6 +125,8 @@ const CourseQualityFixNotes: NextPageWithLayout<{
         />
 
         <ListPageBody>
+          {partnerBadge && <PartnerBadgeCard badge={partnerBadge} />}
+
           <p className="text-gray-dark text-sm">
             These notes are shown here in Yoma only. They are not emailed, so
             check back here to see what to improve. A note updates after the
