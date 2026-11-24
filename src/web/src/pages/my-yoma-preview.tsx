@@ -1,0 +1,96 @@
+import { type GetServerSideProps } from "next";
+import Head from "next/head";
+import { useRouter } from "next/router";
+import { useEffect, useState, type ReactElement } from "react";
+import MainLayout from "~/components/Layout/Main";
+import {
+  MY_YOMA_FIXTURE,
+  PARTNER_BADGE_FIXTURES,
+  QUESTIONS_FIXTURE,
+} from "~/components/MyYoma/myYoma.fixtures";
+import MyYomaView from "~/components/MyYoma/MyYomaView";
+import { MyYomaShell } from "~/components/MyYoma/MyYomaShell";
+import PartnerBadgeCard from "~/components/MyYoma/PartnerBadgeCard";
+import PathwayOnboarding from "~/components/MyYoma/PathwayOnboarding";
+import { env } from "~/env.mjs";
+import { answersFromProfile, emptyAnswers } from "~/lib/pathway";
+import type { NextPageWithLayout } from "~/pages/_app";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// My Yoma with example data, without the API or a sign-in: the onboarding, the path and the
+// partner badges. Available in development and when the Course Quality demo is on
+// (NEXT_PUBLIC_COURSE_QUALITY_DEMO=true); a 404 otherwise. `?view=onboarding|path|partner`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  if (
+    env.NODE_ENV === "production" &&
+    env.NEXT_PUBLIC_COURSE_QUALITY_DEMO !== true
+  )
+    return { notFound: true };
+  return { props: {} };
+};
+
+type View = "onboarding" | "edit" | "path" | "partner";
+
+const MyYomaPreview: NextPageWithLayout = () => {
+  const router = useRouter();
+  const [view, setView] = useState<View>("onboarding");
+
+  useEffect(() => {
+    const requested = router.query.view;
+    if (
+      requested === "onboarding" ||
+      requested === "path" ||
+      requested === "partner"
+    )
+      setView(requested);
+  }, [router.query.view]);
+
+  return (
+    <>
+      <Head>
+        <meta name="robots" content="noindex" />
+      </Head>
+      {view === "partner" ? (
+        <MyYomaShell stage="path">
+          <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+            {PARTNER_BADGE_FIXTURES.map((badge) => (
+              <PartnerBadgeCard key={badge.organizationId} badge={badge} />
+            ))}
+          </div>
+        </MyYomaShell>
+      ) : view === "path" ? (
+        <MyYomaShell stage="path">
+          <MyYomaView
+            myYoma={MY_YOMA_FIXTURE}
+            onChangeAnswers={() => setView("edit")}
+          />
+        </MyYomaShell>
+      ) : (
+        <MyYomaShell stage="onboarding">
+          <PathwayOnboarding
+            key={view}
+            questions={QUESTIONS_FIXTURE.questions}
+            initialAnswers={
+              view === "edit"
+                ? answersFromProfile(
+                    MY_YOMA_FIXTURE.profile,
+                    QUESTIONS_FIXTURE.questions,
+                  )
+                : emptyAnswers()
+            }
+            onSubmit={() => setView("path")}
+            onCancel={view === "edit" ? () => setView("path") : undefined}
+          />
+        </MyYomaShell>
+      )}
+    </>
+  );
+};
+
+MyYomaPreview.getLayout = function getLayout(page: ReactElement) {
+  return <MainLayout>{page}</MainLayout>;
+};
+
+export default MyYomaPreview;
