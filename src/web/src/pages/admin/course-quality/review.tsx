@@ -53,6 +53,7 @@ import {
   CRITERION_LABELS,
   type FinalStatus,
   FORMAT_LABELS,
+  needsFormat,
   REVIEW_CONFIDENCE_THRESHOLD,
   STATUS_BADGES,
   STATUS_LABELS,
@@ -703,7 +704,11 @@ const CourseQualityReviewMode: NextPageWithLayout<{ error?: number }> = ({
     (target: FinalStatus) => {
       if (!current || isDeciding || isDecided(outcomes[current.id])) return;
       setShowHelp(false);
-      if (target === "Verified" && current.learnerCard.format === "Unknown")
+      if (
+        target === "Verified" &&
+        needsFormat(current) &&
+        current.learnerCard.format === "Unknown"
+      )
         setDecision({ item: current, target });
       else
         submitDecision({

@@ -16,7 +16,11 @@ import {
   ModalBody,
   ModalHeader,
 } from "~/components/Common/ModalChrome";
-import { type FinalStatus, getDecisionLabel } from "./reviewLabels";
+import {
+  type FinalStatus,
+  getDecisionLabel,
+  needsFormat,
+} from "./reviewLabels";
 
 const MAX_NOTE_LENGTH = 1000;
 
@@ -43,7 +47,8 @@ const DecisionForm: React.FC<{
   const [note, setNote] = useState("");
 
   // the API rejects Verified while the format is still Unknown
-  const isFormatRequired = decision.target === "Verified";
+  const isFormatRequired =
+    decision.target === "Verified" && needsFormat(decision.item);
   const isFormatMissing = isFormatRequired && format === "Unknown";
 
   return (

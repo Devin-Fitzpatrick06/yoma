@@ -1,5 +1,6 @@
 import type {
   CourseFormat,
+  CourseQualityAssessment,
   CourseQualityCriterion,
   CourseQualityReviewStatus,
   CourseQualityStatus,
@@ -54,3 +55,10 @@ export const getDecisionLabel = (
   if (status === "NeedsReview") return `Mark ${label}`;
   return `Override to ${label}`;
 };
+
+/**
+ * Events and jobs are checked without the course-only format check, so they carry no
+ * FormatIdentified criterion and a reviewer verifies them without choosing a format.
+ */
+export const needsFormat = (item: CourseQualityAssessment): boolean =>
+  item.criteria.some((c) => c.criterion === "FormatIdentified");

@@ -30,6 +30,7 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
         OrganizationId = organizationId,
         OrganizationName = organizationName,
         GradedCourses = counts.Graded,
+        WaitingForReview = counts.WaitingForReview,
         MinimumGradedCourses = minimum
       };
 

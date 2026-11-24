@@ -55,6 +55,11 @@ namespace Yoma.Core.Domain.Pathway.Badges.Models
     public int GradedCourses { get; set; }
 
     /// <summary>
+    /// Courses waiting for a reviewer: counted neither for nor against the partner.
+    /// </summary>
+    public int WaitingForReview { get; set; }
+
+    /// <summary>
     /// Share of graded courses at A or B. Null below the minimum number of graded courses.
     /// </summary>
     public decimal? ShareTopGrades { get; set; }

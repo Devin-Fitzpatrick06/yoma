@@ -26,6 +26,9 @@ const PartnerBadgeCard: React.FC<{ badge: PartnerBadge }> = ({ badge }) => {
     badge.shareHeldBack !== null
       ? `${percent(badge.shareHeldBack)}% not verified`
       : null,
+    badge.waitingForReview > 0
+      ? `${badge.waitingForReview.toLocaleString("en")} waiting for review`
+      : null,
   ].filter(Boolean);
 
   return (

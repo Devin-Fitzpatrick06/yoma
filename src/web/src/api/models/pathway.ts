@@ -135,6 +135,7 @@ export interface PartnerBadge {
   organizationName: string;
   level: PartnerBadgeLevel;
   gradedCourses: number;
+  waitingForReview: number; // courses waiting for a reviewer, counted neither for nor against the partner
   shareTopGrades: number | null; // share of graded courses at A or B
   shareHeldBack: number | null; // share Not verified
   minimumGradedCourses: number;
