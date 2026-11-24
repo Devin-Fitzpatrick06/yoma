@@ -87,12 +87,17 @@ Agreement with a person, not disagreement between the two systems, is the measur
    comparing anything with Zeki.
 4. **Zeki against the raters.** On listings where the raters agree: kappa for Verified against "live, link works, dates match and
    page matches", and weighted kappa for the grade band. Report the confusion table, especially Verified listings the raters fail.
-5. **The existing review against the raters.** It approves every one of the 100 (they are live), so its agreement is the share of
-   listings the raters pass. That figure, next to Zeki's kappa, is the comparison.
+5. **The existing review against the raters.** It approves every one of the 100 (they are live), so it agrees with the raters
+   exactly where they pass a listing. Its kappa is undefined (it never says "fail"), so compare **agreement** for both systems on
+   the same listings, with a paired bootstrap interval for the difference.
 6. **Report** n, kappa with a 95% interval (bootstrap), and the disagreements by failure type. Say "better" only where the
    interval for Zeki is clearly above the existing review's agreement.
 
 Cost: about 100 × 3 minutes per rater, roughly 5 hours each.
+
+**Tooling** (`scripts/course-quality-demo/validation/`): `sample.sh` draws the seeded, stratified sample from the demo database
+into `key.csv` (Zeki's results, kept from the raters) and two blank sheets in different orders; `score.mjs` checks the answers
+and prints steps 3 to 6 as a report, including whether "better" may be said. Tested on synthetic sheets only; no real rating yet.
 
 ## Decisions
 
