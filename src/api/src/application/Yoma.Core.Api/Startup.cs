@@ -21,6 +21,7 @@ using Yoma.Core.Domain.Core.Converters;
 using Yoma.Core.Domain.CourseQuality.Interfaces;
 using Yoma.Core.Domain.CourseQuality.Models;
 using Yoma.Core.Domain.CourseQuality.Services;
+using Yoma.Core.Domain.Pathway.Badges.Models;
 using Yoma.Core.Domain.Core.Extensions;
 using Yoma.Core.Domain.Core.Helpers;
 using Yoma.Core.Domain.Core.Interfaces;
@@ -83,6 +84,10 @@ namespace Yoma.Core.Api
           _configuration.GetSection(ScheduleJobOptions.Section).Bind(options));
       services.Configure<CourseQualityOptions>(options =>
           _configuration.GetSection(CourseQualityOptions.Section).Bind(options));
+      services.Configure<PartnerBadgeOptions>(options =>
+          _configuration.GetSection(PartnerBadgeOptions.Section).Bind(options));
+      services.Configure<LearnerBadgeOptions>(options =>
+          _configuration.GetSection(LearnerBadgeOptions.Section).Bind(options));
 
       services.AddSingleton<IEnvironmentProvider>(p => ActivatorUtilities.CreateInstance<EnvironmentProvider>(p, _webHostEnvironment.EnvironmentName));
 

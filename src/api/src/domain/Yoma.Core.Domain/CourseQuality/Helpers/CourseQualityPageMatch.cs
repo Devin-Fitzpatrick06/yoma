@@ -120,6 +120,16 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
     }
 
     /// <summary>
+    /// A job page saying the post is filled, expired or closed. Job wording only, so a course page is never read this way.
+    /// </summary>
+    public static bool IsJobClosed(string text)
+    {
+      ArgumentNullException.ThrowIfNull(text, nameof(text));
+
+      return JobClosedRegex().IsMatch(text);
+    }
+
+    /// <summary>
     /// Too little to judge: a thin page, a JavaScript shell or a bot challenge. Structured data cannot carry one, because a
     /// partner's claim needs a visible page behind it.
     /// </summary>
@@ -234,6 +244,9 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
 
     [GeneratedRegex(@"\b(?:enrol+ments?|registrations?|applications?|admissions?)\b[^.!?]{0,40}\b(?:closed|ended)\b|\b(?:course|programme|program|class|cohort|session|webinar|event|intake)\b[^.!?]{0,20}\b(?:has|have|is|was|are)\s+(?:now\s+|already\s+|been\s+)*(?:ended|finished|over|concluded|closed|archived|discontinued|cancell?ed|full)\b|\bhas\s+ended\b|\bhas\s+been\s+(?:archived|discontinued)\b|\bno\s+longer\s+offered\b|\bwill\s+not\s+run\b|\bnot\s+running\b|\bnot\s+accepting\s+(?:new\s+)?\w+|\bsold\s+out\b", SafeOptions, RegexTimeoutMilliseconds)]
     private static partial Regex ClosedRegex();
+
+    [GeneratedRegex(@"\b(?:position|vacancy|job|role|post(?:ing)?)\s+(?:has\s+been\s+|is\s+(?:now\s+)?|was\s+)(?:filled|closed|expired|withdrawn)\b|\b(?:job|vacancy|posting|advert)\s+(?:has\s+)?expired\b|\bno\s+longer\s+(?:accepting|taking)\s+applications\b|\bapplications?\s+(?:are\s+|is\s+)?(?:now\s+)?closed\b|\bthis\s+job\s+is\s+no\s+longer\s+available\b", SafeOptions, RegexTimeoutMilliseconds)]
+    private static partial Regex JobClosedRegex();
 
     [GeneratedRegex(@"/(?:log[-_]?in|sign[-_]?in)(?:/|\.|$)", SafeOptions, RegexTimeoutMilliseconds)]
     private static partial Regex LoginPathRegex();
