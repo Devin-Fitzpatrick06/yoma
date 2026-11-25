@@ -179,7 +179,7 @@ elif [ -n "$SAMPLE" ]; then
   step "Assessing a sample of $SAMPLE live courses from mixed hosts, then grading"
   live_summary="$(in_runner node /demo/seed/assess-live.mjs --sample "$SAMPLE" 2>"$LOG_DIR/assess-live.log")" || live_ok=$?
 else
-  live_count="$(sql -At -c "SELECT count(*) FROM \"Opportunity\".\"Opportunity\" WHERE \"Id\"::text NOT LIKE 'c0a7e000-%'")"
+  live_count="$(sql -At -c "SELECT count(*) FROM \"Opportunity\".\"Opportunity\" o JOIN \"Opportunity\".\"OpportunityType\" t ON t.\"Id\" = o.\"TypeId\" AND t.\"Name\" = 'Learning' WHERE o.\"Id\"::text NOT LIKE 'c0a7e000-%'")"
   step "Assessing all $live_count live courses at the product's pace, then grading (a few hours; progress is in .logs/assess-live.log)"
   live_summary="$(in_runner node /demo/seed/assess-live.mjs 2>"$LOG_DIR/assess-live.log")" || live_ok=$?
   if [ "$live_ok" -eq 0 ]; then
