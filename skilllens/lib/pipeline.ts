@@ -5,6 +5,8 @@ import { mockProvider } from "./ai/mock";
 import { evidenceFor, pickSuggestion, tipFor } from "./evidence";
 import { getSafety, type ContentSafety, type SafetyResult } from "./safety/contentSafety";
 import { groundStrengths } from "./safety/grounding";
+import { isConfused } from "./confusion";
+import { t } from "./i18n";
 import { redactPii, type PiiKind } from "./safety/pii";
 import type { Challenge, Feedback, Lang, Locale, PreviousAttempt, Rubric, Sample, Template } from "./schema";
 import { addFlag } from "./store";
@@ -32,7 +34,9 @@ export type ScoreOutcome =
     }
   | Flagged
   /** Too short to give useful feedback on: no model call, the learner is asked to add more. */
-  | { status: "too_short" };
+  | { status: "too_short" }
+  /** The learner said the question is confusing: nothing is scored, the question is explained instead. */
+  | { status: "confused" };
 
 /** Fewer than 4 words ("ok", "I don't know") cannot be scored against a rubric. */
 export const MIN_WORDS = 4;
@@ -61,6 +65,9 @@ export function checkAgainstAnswer(fb: Feedback, req: ScoreRequest, answer: stri
     scores[c.id] = Math.min(level + 1, Math.max(level - 1, scores[c.id]));
     if ((c.kind === "numbers" || c.kind === "understand") && level >= 3) scores[c.id] = Math.max(scores[c.id], 3);
   }
+  // "Did well" only for what the answer really shows ("Good" or better), never a criterion it barely touched.
+  const kept = fb.strengths.filter((x) => (scores[x.criterionId] ?? 0) >= 3);
+  fb = { ...fb, strengths: kept.length ? kept : [{ criterionId: req.rubric.criteria[0].id, text: t(req.lang, "effortStrength") }] };
   const target = pickSuggestion(req.rubric, scores, req.previous);
   const current = fb.suggestion.criterionId;
   const prev = req.previous;
@@ -81,6 +88,8 @@ export async function scoreSafely(req: ScoreRequest, deps: Deps = defaultDeps())
     addFlag({ ...context, stage: "answer", categories: input.categories, excerpt: answer });
     return { status: "flagged", categories: input.categories };
   }
+  // Screened first, so "I'm confused and I want to give up" still reaches a facilitator.
+  if (isConfused(answer)) return { status: "confused" };
 
   // The Level 1 answer comes back from the browser, so it gets the same stripping and screening as the new answer.
   let previous = req.previous;

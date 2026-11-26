@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Jost, Oswald } from "next/font/google";
+import { Nunito, Open_Sans } from "next/font/google";
 import "./globals.css";
 
-// P2E's fonts. next/font self-hosts them at build time: no request to Google from the learner's phone.
-const oswald = Oswald({ subsets: ["latin"], weight: ["500", "600"], variable: "--font-oswald", display: "swap" });
-const jost = Jost({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-jost", display: "swap" });
+// Yoma's fonts (yoma.world). next/font self-hosts them at build time: no request to Google from the learner's phone.
+const nunito = Nunito({ subsets: ["latin"], weight: ["700", "800"], variable: "--font-nunito", display: "swap" });
+const openSans = Open_Sans({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-open-sans", display: "swap" });
 
 export const metadata: Metadata = {
   title: "SkillLens",
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${oswald.variable} ${jost.variable}`}>
+    <html lang="en" className={`${nunito.variable} ${openSans.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );

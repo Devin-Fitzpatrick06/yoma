@@ -34,7 +34,7 @@ export default function Facilitator() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-4">
-      <header className="rounded-3xl bg-brand p-5 text-white">
+      <header className="rounded-3xl bg-brand p-5 text-paper">
         <h1 className="text-3xl">SkillLens facilitator view</h1>
         <p className="text-sm">Flags are kept for 72 hours. Excerpts have personal details removed. Raw answers and photos are never stored.</p>
       </header>

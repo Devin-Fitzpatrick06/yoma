@@ -1,0 +1,33 @@
+/* Yoma design tokens, imported from Yoma's web app so SkillLens looks like yoma.world.
+   Source: didx-xyz/yoma (fork Devin-Fitzpatrick06/yoma), src/web/src/styles/colors.css and globals.css, read 25 Nov 2026.
+   Values are copied unchanged; names gain a "yoma-" prefix so they cannot clash with Tailwind's own --color-white/black.
+   To update: copy the new values from those two files. Nothing else in SkillLens holds a colour or font value. */
+:root {
+  /* colors.css */
+  --yoma-white: #ffffff;
+  --yoma-white-shade: #f7f7f7;
+  --yoma-black: #020304;
+  --yoma-blue: #4cade9;
+  --yoma-blue-light: #edf6fd;
+  --yoma-blue-dark: #2487c5;
+  --yoma-purple: #41204b;
+  --yoma-purple-light: #8a8fd6;
+  --yoma-purple-dark: #5f65b9;
+  --yoma-purple-soft: #c3a2cd;
+  --yoma-purple-shade: #54365d;
+  --yoma-purple-tint: #e7d4ed;
+  --yoma-pink: #fe4d57;
+  --yoma-orange: #f9ab3e;
+  --yoma-orange-light: #fdeed8;
+  --yoma-green: #387f6a;
+  --yoma-green-light: #e6f5f3;
+  --yoma-yellow-tint: #fae4c6;
+  --yoma-beige: #f7f5eb;
+  --yoma-gray-dark: #545859;
+  --yoma-gray: #dce0e5;
+  --yoma-gray-light: #f3f6fa;
+
+  /* globals.css: Yoma's fonts are Nunito (headings) and Open Sans (body), loaded in app/layout.tsx */
+  --yoma-font-heading: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --yoma-font-body: var(--font-open-sans), ui-sans-serif, system-ui, sans-serif;
+}

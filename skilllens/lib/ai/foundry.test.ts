@@ -52,10 +52,11 @@ describe("foundryConfigFromEnv", () => {
 });
 
 describe("foundry provider", () => {
-  it("asks the model for slot values only and fills the educator template itself", async () => {
-    const fetchMock = stubReplies({ values: { name: "Bala", item: "yams", price: "₦2,000", unit: "tuber" } });
+  it("asks the model for names only; goods and amounts stay from the locale so the sums work", async () => {
+    const fetchMock = stubReplies({ values: { name: "Bala" } });
     const c = await provider.generateChallenge(template, locale, "en", 0);
-    expect(c.text).toBe("Bala sells yams in Kano for ₦2,000 a tuber. On rainy days sales drop and some yams spoil. How can Bala use sales records and an emergency fund to cope?");
+    expect(c.text).toBe("Bala sells tomatoes in Kaduna for ₦500 a basket. On a normal day Bala sells 10 baskets, but on a rainy day only 4, and 1 more spoils. How much money does Bala lose on a rainy day, and how can Bala use sales records and an emergency fund to cope?");
+    expect(body(fetchMock).messages[0].content).toContain("Slots to fill: name");
     expect(fetchMock.mock.calls[0][0]).toBe("https://res.openai.azure.com/openai/v1/chat/completions");
     expect(fetchMock.mock.calls[0][1].headers["api-key"]).toBe("test-key");
     expect(body(fetchMock)).toMatchObject({ model: "chat-dep", max_tokens: 600, response_format: { type: "json_object" } });
@@ -64,10 +65,10 @@ describe("foundry provider", () => {
 
   it("retries once when slot values break the rules, then succeeds", async () => {
     const fetchMock = stubReplies(
-      { values: { name: "{evil}", item: "yams", price: "₦2,000", unit: "tuber" } },
-      { values: { name: "Bala", item: "yams", price: "₦2,000", unit: "tuber" } },
+      { values: { name: "{evil}" } },
+      { values: { name: "Bala" } },
     );
-    expect((await provider.generateChallenge(template, locale, "pcm", 0)).text).toContain("Bala dey sell yams");
+    expect((await provider.generateChallenge(template, locale, "pcm", 0)).text).toContain("Bala dey sell tomatoes");
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 

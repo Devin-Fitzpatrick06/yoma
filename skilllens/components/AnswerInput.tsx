@@ -85,7 +85,7 @@ export function AnswerInput({ lang, value, onChange }: Props) {
   }
 
   const tab = (m: Mode) =>
-    `inline-flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-full font-heading text-lg tracking-wide transition ${mode === m ? "bg-brand text-white shadow-sm" : "text-brand hover:bg-white"}`;
+    `inline-flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-full font-heading text-lg transition ${mode === m ? "bg-brand text-paper shadow-sm" : "text-brand hover:bg-paper"}`;
 
   return (
     <div className="space-y-3">

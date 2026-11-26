@@ -185,3 +185,32 @@ Paths are in the Yoma repository ([Devin-Fitzpatrick06/yoma](https://github.com/
 | Infrastructure | A database with a 72-hour TTL for flags and ratings (`lib/store.ts`) | GenU |
 | Infrastructure | Rate limiting on `/api/*`, plus logging that holds flag ids only | GenU |
 | Review | Child-safeguarding and data-protection sign-off (section 4), and native-speaker review of the Pidgin text | UNICEF |
+
+## 8. Designed, with a mocked write: a passed challenge becomes a skill credential in YoID
+
+SkillLens never issues the credential. It reports a pass, and Yoma's existing pipeline issues it. Checked in Yoma's code on 25 Nov 2026:
+
+- When a verification is set to Completed, `MyOpportunityService` runs `UserService.AssignSkills`. If the opportunity has `CredentialIssuanceEnabled` and an `SSISchemaName`, it also calls `SSICredentialService.ScheduleIssuance(schemaName, myOpportunityId)`.
+- `SSIBackgroundService.ProcessCredentialIssuance` then issues the credential (JWS or AnonCreds) into the learner's wallet. The learner reads it through `POST /api/v3/ssi/wallet/user/search`.
+- Partner Sync verification pull (YOM-1202, live for Alison) imports partner-reported completions as automatically verified, matching learners through a stable partner-user link.
+
+**Pass rule (proposed):**
+
+- the Level 2 answer is Good or Strong on every criterion (`lib/credential.ts`)
+- not flagged by safety, and not a "confused" answer
+- one credential per learner per challenge
+- issued automatically only after AI–educator agreement reaches an agreed bar on real scored answers
+
+| Option | How Yoma hears about the pass | Approval | Yoma changes |
+| --- | --- | --- | --- |
+| A. Partner Sync pull (recommended) | Yoma pulls passes (no answer text) from P2E | The pass rule | A P2E provider client; P2E as a partner with verification scope; opportunities with automatic verification and credential issuance on |
+| B. Learner-submitted (works today) | `PUT /myOpportunity/action/{id}/verify` with the practice PDF | An organisation admin | None |
+
+**Safeguards:**
+
+- Nothing is sent before the learner taps "Add to my Yoma profile".
+- No answer text or photos go to Yoma.
+- Confirm whether the opportunity schema's date of birth and display name may appear on credentials for minors.
+- Agree a manual revocation path, because Partner Sync does not revoke.
+
+**In the prototype:** with the shared sample learner (Halima), a pass on `chal-001` writes `cred-002` to a mocked YoID record (`lib/yoid.ts`, `POST /api/yoid/credential`), only with a signed one-time pass from the feedback route and after the learner's tap. Nothing reaches Yoma. Without a sample learner, the end screen is a design preview (`components/CredentialHandoff.tsx`). The full design is in the project's Claude Doc.

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { badRequest, handle, parseJson } from "../../../lib/api";
 import { locale, templatesFor } from "../../../lib/data";
+import { fillTemplate } from "../../../lib/template";
 import { challengeSafely } from "../../../lib/pipeline";
 import { Lang } from "../../../lib/schema";
 
@@ -17,6 +18,7 @@ export async function POST(req: Request) {
     const template = options[Math.floor(Math.random() * options.length)];
     const seed = Math.floor(Math.random() * locale.slots.name.length);
     const { templateId, lang, values, text } = await challengeSafely(template, locale, body.lang, seed);
-    return Response.json({ templateId, lang, values, text, lesson: template.lesson ?? null });
+    const recap = template.recap ? fillTemplate(template.recap[lang], values) : null;
+    return Response.json({ templateId, lang, values, text, lesson: template.lesson ?? null, recap });
   });
 }

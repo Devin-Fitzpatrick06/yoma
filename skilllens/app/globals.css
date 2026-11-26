@@ -1,29 +1,41 @@
 @import "tailwindcss";
+@import "./yoma-tokens.css";
 
-/* P2E look (Passport to Earning site): blue #0a59a7, yellow #ffcb03, light-blue tints, Oswald headings, Jost body,
-   pill buttons with round icons, rounded cards. All brand values live here so a Yoma theme is a swap of this block. */
+/* Yoma look (yoma.world): purple, orange round icons, green for success, Nunito headings and Open Sans body.
+   Every value below points at a Yoma token in app/yoma-tokens.css; components use only these names, never raw values.
+   Spacing, text sizes and radii are Tailwind's scale, the same scale Yoma's web app uses. */
 @theme {
-  --color-brand: #0a59a7; /* P2E blue: white text on it is 7.0:1 */
-  --color-brand-mid: #5283be; /* P2E wave tint: decoration only */
-  --color-brand-soft: #abc2df; /* P2E wave tint: decoration only */
-  --color-brand-tint: #eaf1f9; /* card background: brand text on it is 6.1:1 */
-  --color-yellow: #ffcb03; /* P2E accent: brand text on it is 4.6:1; never white text on yellow */
-  --color-surface: #f5f7fb;
-  --color-ink: #1f2937; /* body text: 14.7:1 on white */
-  --color-coral: #c2410c; /* safety/error accent: 5.2:1 on white */
-  --font-heading: var(--font-oswald), "Arial Narrow", sans-serif;
-  --font-sans: var(--font-jost), -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --color-brand: var(--yoma-purple); /* white text on it is 13.7:1 */
+  --color-brand-mid: var(--yoma-purple-shade);
+  --color-brand-soft: var(--yoma-purple-soft); /* decoration and borders only */
+  --color-brand-tint: var(--yoma-purple-tint); /* card background: brand text on it is 9.8:1 */
+  --color-accent: var(--yoma-orange); /* Yoma's round-icon orange: brand text on it is 7.1:1; never white text on it */
+  --color-accent-light: var(--yoma-orange-light);
+  --color-success: var(--yoma-green); /* 4.8:1 on white */
+  /* Yoma green is 4.2:1 on its own light green, so text on that badge uses a darker mix of the same token. */
+  --color-success-ink: color-mix(in oklab, var(--yoma-green) 75%, var(--yoma-black));
+  --color-success-light: var(--yoma-green-light);
+  --color-surface: var(--yoma-gray-light);
+  --color-line: var(--yoma-gray);
+  --color-ink: var(--yoma-black);
+  --color-muted: var(--yoma-gray-dark); /* 7.2:1 on white, 6.6:1 on surface */
+  --color-paper: var(--yoma-white);
+  /* Yoma's error pink is 3.3:1 on white, too light for text, so text uses a darker mix of the same token (7.9:1). */
+  --color-coral: color-mix(in oklab, var(--yoma-pink) 62%, var(--yoma-black));
+  --font-heading: var(--yoma-font-heading);
+  --font-sans: var(--yoma-font-body);
+  --radius-device: 2.5rem; /* the phone frame on the demo page */
 }
 
-/* Large tap targets for cheap phones; pill shape like P2E's "Go to Courses". */
+/* Large tap targets for cheap phones; pill buttons like yoma.world. */
 @utility btn {
-  @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brand px-6 font-heading text-lg tracking-wide text-white shadow-sm transition hover:brightness-110 disabled:opacity-50;
+  @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-brand px-6 font-heading text-lg font-bold text-paper shadow-sm transition hover:bg-brand-mid disabled:opacity-50;
 }
 @utility btn-secondary {
-  @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-brand bg-white px-6 font-heading text-lg tracking-wide text-brand transition hover:bg-brand-tint disabled:opacity-50;
+  @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border-2 border-brand bg-paper px-6 font-heading text-lg font-bold text-brand transition hover:bg-brand-tint disabled:opacity-50;
 }
-@utility btn-yellow {
-  @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-yellow px-6 font-heading text-lg tracking-wide text-brand shadow-sm transition hover:brightness-105 disabled:opacity-50;
+@utility btn-accent {
+  @apply inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-accent px-6 font-heading text-lg font-bold text-brand shadow-sm transition hover:brightness-105 disabled:opacity-50;
 }
 @utility card {
   @apply rounded-2xl bg-surface p-4;
@@ -31,30 +43,42 @@
 @utility card-brand {
   @apply rounded-2xl bg-brand-tint p-4;
 }
-@utility card-yellow {
-  @apply rounded-2xl border-2 border-yellow bg-yellow/15 p-4;
+@utility card-accent {
+  @apply rounded-2xl border-2 border-accent bg-accent-light p-4;
 }
 @utility card-alert {
   @apply rounded-2xl border-2 border-coral/40 bg-coral/5 p-4;
 }
 @utility chip {
-  @apply rounded-full bg-brand-tint px-3 py-1 text-sm font-medium text-brand;
+  @apply rounded-full bg-brand-tint px-3 py-1 text-sm font-semibold text-brand;
+}
+/* Yoma's orange circle icons. Yoma draws them white, but white on orange is 1.9:1, so the icon is purple (7.1:1). */
+@utility icon-circle {
+  @apply grid place-items-center rounded-full bg-accent text-brand;
+}
+/* Demo page: a 9:16 phone frame that fits the window above the view toggle. */
+@utility device-frame {
+  @apply aspect-9/16 max-w-full overflow-hidden rounded-device border-10 border-ink bg-paper shadow-xl;
+  height: calc(100vh - --spacing(34));
+}
+@utility demo-frame-wide {
+  height: calc(100vh - --spacing(48));
 }
 
 h1,
 h2,
 h3 {
   font-family: var(--font-heading);
-  letter-spacing: 0.01em;
+  font-weight: 800;
 }
 
 body {
-  background: #ffffff;
+  background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-brand); /* 7.0:1 on white; yellow would fail 3:1 */
+  outline: 3px solid var(--color-brand); /* 14:1 on white; orange would fail 3:1 */
   outline-offset: 2px;
 }

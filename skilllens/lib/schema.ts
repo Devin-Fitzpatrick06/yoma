@@ -39,6 +39,12 @@ export const Template = z.object({
   rubricId: z.string(),
   /** The P2E lesson this challenge practises, so educators and learners can see where it comes from. */
   lesson: z.string().optional(),
+  /** The lesson facts the challenge relies on, shown on the card, since learners will not remember them. */
+  recap: Localized.optional(),
+  /** A step-by-step way to start, shown when the learner says the question is confusing. */
+  help: Localized.optional(),
+  /** The course tools that fit this challenge: the "concepts" criterion looks for these and names them in its tips. */
+  tools: z.object({ keywords: z.array(z.string().min(2)).min(1), named: Localized }).optional(),
   text: Localized,
 });
 

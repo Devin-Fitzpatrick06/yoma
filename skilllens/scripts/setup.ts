@@ -31,6 +31,7 @@ async function main() {
   set("AI_PROVIDER", local ? "local" : "mock");
   set("CONTENT_SAFETY_PROVIDER", local ? "model" : "stub");
   set("FACILITATOR_PASSWORD", randomBytes(8).toString("hex"));
+  set("PASS_SIGNING_SECRET", randomBytes(32).toString("hex"));
   writeFileSync(target, env);
 
   console.log("Wrote .env.local");

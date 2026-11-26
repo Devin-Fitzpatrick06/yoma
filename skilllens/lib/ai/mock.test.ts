@@ -16,7 +16,7 @@ async function score(answer: string, lang: "en" | "pcm" = "en") {
 describe("mock provider", () => {
   it("fills the template with local details", async () => {
     const c = await mockProvider.generateChallenge(template, locale, "en", 0);
-    expect(c.text).toBe("Amina sells tomatoes in Kano for ₦500 a basket. On rainy days sales drop and some tomatoes spoil. How can Amina use sales records and an emergency fund to cope?");
+    expect(c.text).toBe("Amina sells tomatoes in Kaduna for ₦500 a basket. On a normal day Amina sells 10 baskets, but on a rainy day only 4, and 1 more spoils. How much money does Amina lose on a rainy day, and how can Amina use sales records and an emergency fund to cope?");
     const pcm = await mockProvider.generateChallenge(template, locale, "pcm", 0);
     expect(pcm.text).toContain("dey sell");
   });

@@ -1,6 +1,114 @@
 {
-  "note": "SYNTHETIC PLACEHOLDER rubrics, built from the public P2E lesson lists (global.passport2earning.org, read 18 Nov 2026: Khan Academy Financial Literacy 101, Microsoft Business 101 Budgeting, How to get a Job, UNICEF Communication Skills). Educators: replace with approved rubrics (3-4 criteria, levels 1-4). Learners see the level descriptors in words, never a number. 'kind' tells lib/evidence.ts how to read an answer; 'keywords' are the course's own terms. Pidgin text needs native-speaker review.",
+  "note": "SYNTHETIC PLACEHOLDER rubrics, built from the public P2E lesson lists (global.passport2earning.org, read 18 Nov 2026: Khan Academy Financial Literacy 101, Microsoft Business 101 Budgeting, How to get a Job, UNICEF Communication Skills). Educators: replace with approved rubrics (3-4 criteria, levels 1-4). Learners see the level descriptors in words, never a number. 'kind' tells lib/evidence.ts how to read an answer; 'keywords' are the course's own terms; for kind 'concepts', each challenge template supplies its own keywords and fills {tools}, so the tip fits the question. Pidgin text needs native-speaker review.",
   "items": [
+    {
+      "id": "solar-rubric",
+      "courseId": "solar-pv",
+      "criteria": [
+        {
+          "id": "diagnosis",
+          "kind": "understand",
+          "name": {
+            "en": "Finds what could be wrong",
+            "pcm": "Find wetin fit spoil"
+          },
+          "levels": [
+            {
+              "en": "No possible cause named yet",
+              "pcm": "You never talk wetin fit cause am"
+            },
+            {
+              "en": "Names a part, but not why it could fail",
+              "pcm": "You talk one part, but no be why e fit spoil"
+            },
+            {
+              "en": "Explains what could stop it charging",
+              "pcm": "You explain wetin fit stop am to charge"
+            },
+            {
+              "en": "Explains several causes and how each stops the charging",
+              "pcm": "You explain plenty causes and how each one dey stop the charging"
+            }
+          ],
+          "strength": {
+            "en": "You explained what could stop the light charging.",
+            "pcm": "You explain wetin fit stop the light to charge."
+          },
+          "improve": {
+            "en": "Say why each part could stop the charging, using “because”.",
+            "pcm": "Talk why each part fit stop the charging, use “because”."
+          }
+        },
+        {
+          "id": "tools",
+          "kind": "concepts",
+          "name": {
+            "en": "Uses the course tools",
+            "pcm": "Use wetin the course teach"
+          },
+          "levels": [
+            {
+              "en": "No idea from the course yet",
+              "pcm": "No idea from the course yet"
+            },
+            {
+              "en": "Mentions one course idea",
+              "pcm": "You mention one idea from the course"
+            },
+            {
+              "en": "Uses a course tool, like {tools}",
+              "pcm": "You use one course tool, like {tools}"
+            },
+            {
+              "en": "Uses two or more course tools together: {tools}",
+              "pcm": "You use two or more course tools together: {tools}"
+            }
+          ],
+          "strength": {
+            "en": "You used a tool from the course.",
+            "pcm": "You use tool wey the course teach."
+          },
+          "improve": {
+            "en": "Use a tool from the course by name: {tools}.",
+            "pcm": "Use one course tool by name: {tools}."
+          }
+        },
+        {
+          "id": "order",
+          "kind": "action",
+          "name": {
+            "en": "Checks in a sensible order",
+            "pcm": "Check am one by one"
+          },
+          "levels": [
+            {
+              "en": "No check yet",
+              "pcm": "No check yet"
+            },
+            {
+              "en": "A general idea, like “fix it”",
+              "pcm": "General talk, like “fix am”"
+            },
+            {
+              "en": "One clear check someone could do",
+              "pcm": "One clear check wey person fit do"
+            },
+            {
+              "en": "Three clear checks in order, quickest first",
+              "pcm": "Three clear checks one by one, the quick one first"
+            }
+          ],
+          "strength": {
+            "en": "Your checks are clear and in a sensible order.",
+            "pcm": "Your checks clear and dem dey correct order."
+          },
+          "improve": {
+            "en": "Write three checks in order: first, then, finally, starting with the quickest.",
+            "pcm": "Write three checks one by one: first, then, last, start with the quick one."
+          }
+        }
+      ]
+    },
     {
       "id": "fl-rubric",
       "courseId": "financial-literacy",
@@ -8,55 +116,163 @@
         {
           "id": "cause",
           "kind": "understand",
-          "name": { "en": "Spots the money problem", "pcm": "See the money wahala" },
+          "name": {
+            "en": "Spots the money problem",
+            "pcm": "See the money wahala"
+          },
           "levels": [
-            { "en": "The money problem is not named yet", "pcm": "You never talk the money wahala yet" },
-            { "en": "Names the problem, but not why it happens", "pcm": "You talk the wahala, but no be why e dey happen" },
-            { "en": "Explains what is causing the problem", "pcm": "You explain wetin dey cause the wahala" },
-            { "en": "Explains the cause and how it affects the money", "pcm": "You explain the cause and how e dey touch the money" }
+            {
+              "en": "The money problem is not named yet",
+              "pcm": "You never talk the money wahala yet"
+            },
+            {
+              "en": "Names the problem, but not why it happens",
+              "pcm": "You talk the wahala, but no be why e dey happen"
+            },
+            {
+              "en": "Explains what is causing the problem",
+              "pcm": "You explain wetin dey cause the wahala"
+            },
+            {
+              "en": "Explains the cause and how it affects the money",
+              "pcm": "You explain the cause and how e dey touch the money"
+            }
           ],
-          "strength": { "en": "You explained what is causing the money problem.", "pcm": "You explain wetin dey cause the money wahala." },
-          "improve": { "en": "Start with one sentence on what is causing the problem, using “because”.", "pcm": "Start with one sentence wey talk wetin cause the wahala, use “because”." }
+          "strength": {
+            "en": "You explained what is causing the money problem.",
+            "pcm": "You explain wetin dey cause the money wahala."
+          },
+          "improve": {
+            "en": "Start with one sentence on what is causing the problem, using “because”.",
+            "pcm": "Start with one sentence wey talk wetin cause the wahala, use “because”."
+          }
         },
         {
           "id": "tools",
           "kind": "concepts",
-          "keywords": ["budget", "50:30:20", "50/30/20", "needs", "wants", "savings", "pay yourself first", "save first", "emergency fund", "track", "record", "expenses", "income", "profit", "revenue", "interest", "compare", "predatory", "goal", "cash flow", "esusu", "ajo", "cooperative"],
-          "name": { "en": "Uses the course tools", "pcm": "Use wetin the course teach" },
-          "levels": [
-            { "en": "No idea from the course yet", "pcm": "No idea from the course yet" },
-            { "en": "Mentions one course idea", "pcm": "You mention one idea from the course" },
-            { "en": "Uses a course tool, like a budget or the 50:30:20 rule", "pcm": "You use one course tool, like budget or 50:30:20" },
-            { "en": "Uses several course tools together, like a budget, an emergency fund and tracking", "pcm": "You use plenty course tools together, like budget, emergency fund and record" }
+          "keywords": [
+            "budget",
+            "50:30:20",
+            "50/30/20",
+            "needs",
+            "wants",
+            "savings",
+            "pay yourself first",
+            "save first",
+            "emergency fund",
+            "track",
+            "record",
+            "expenses",
+            "income",
+            "profit",
+            "revenue",
+            "interest",
+            "compare",
+            "predatory",
+            "goal",
+            "cash flow",
+            "esusu",
+            "ajo",
+            "cooperative"
           ],
-          "strength": { "en": "You used a tool from the course.", "pcm": "You use tool wey the course teach." },
-          "improve": { "en": "Use a tool from the course by name: a budget, the 50:30:20 rule, paying yourself first or an emergency fund.", "pcm": "Use one course tool by name: budget, 50:30:20, pay yourself first or emergency fund." }
+          "name": {
+            "en": "Uses the course tools",
+            "pcm": "Use wetin the course teach"
+          },
+          "levels": [
+            {
+              "en": "No idea from the course yet",
+              "pcm": "No idea from the course yet"
+            },
+            {
+              "en": "Mentions one course idea",
+              "pcm": "You mention one idea from the course"
+            },
+            {
+              "en": "Uses a course tool, like {tools}",
+              "pcm": "You use one course tool, like {tools}"
+            },
+            {
+              "en": "Uses two or more course tools together: {tools}",
+              "pcm": "You use two or more course tools together: {tools}"
+            }
+          ],
+          "strength": {
+            "en": "You used a tool from the course.",
+            "pcm": "You use tool wey the course teach."
+          },
+          "improve": {
+            "en": "Use a tool from the course by name: {tools}.",
+            "pcm": "Use one course tool by name: {tools}."
+          }
         },
         {
           "id": "numbers",
           "kind": "numbers",
-          "name": { "en": "Works it out with numbers", "pcm": "Use number calculate am" },
+          "name": {
+            "en": "Works it out with numbers",
+            "pcm": "Use number calculate am"
+          },
           "levels": [
-            { "en": "No numbers or money reasoning yet", "pcm": "No number or money calculation yet" },
-            { "en": "Talks about money, but with no amounts", "pcm": "You talk about money, but no amount" },
-            { "en": "Uses naira amounts", "pcm": "You use naira amount" },
-            { "en": "Works out a sum and compares options with numbers", "pcm": "You calculate and compare options with number" }
+            {
+              "en": "No numbers or money reasoning yet",
+              "pcm": "No number or money calculation yet"
+            },
+            {
+              "en": "Talks about money, but with no amounts",
+              "pcm": "You talk about money, but no amount"
+            },
+            {
+              "en": "Uses naira amounts",
+              "pcm": "You use naira amount"
+            },
+            {
+              "en": "Works out a sum and compares options with numbers",
+              "pcm": "You calculate and compare options with number"
+            }
           ],
-          "strength": { "en": "You used real amounts to back up your idea.", "pcm": "You use real amount take support your idea." },
-          "improve": { "en": "Add a sum: how much is earned, spent, saved or lost each week or month?", "pcm": "Add calculation: how much dem dey make, spend, save or lose every week or month?" }
+          "strength": {
+            "en": "You used real amounts to back up your idea.",
+            "pcm": "You use real amount take support your idea."
+          },
+          "improve": {
+            "en": "Add a sum: how much is earned, spent, saved or lost each week or month?",
+            "pcm": "Add calculation: how much dem dey make, spend, save or lose every week or month?"
+          }
         },
         {
           "id": "action",
           "kind": "action",
-          "name": { "en": "Makes a realistic plan", "pcm": "Make plan wey fit work" },
+          "name": {
+            "en": "Makes a realistic plan",
+            "pcm": "Make plan wey fit work"
+          },
           "levels": [
-            { "en": "No plan yet", "pcm": "No plan yet" },
-            { "en": "A general idea with no clear step", "pcm": "General idea, no clear step" },
-            { "en": "One clear step someone could really do", "pcm": "One clear step wey person fit really do" },
-            { "en": "Several clear steps with when to do them", "pcm": "Plenty clear steps and when to do dem" }
+            {
+              "en": "No plan yet",
+              "pcm": "No plan yet"
+            },
+            {
+              "en": "A general idea with no clear step",
+              "pcm": "General idea, no clear step"
+            },
+            {
+              "en": "One clear step someone could really do",
+              "pcm": "One clear step wey person fit really do"
+            },
+            {
+              "en": "Several clear steps with when to do them",
+              "pcm": "Plenty clear steps and when to do dem"
+            }
           ],
-          "strength": { "en": "Your plan has steps someone could really do.", "pcm": "Your plan get steps wey person fit really do." },
-          "improve": { "en": "Add a clear step someone could really do, and say when, like “every payday”.", "pcm": "Add one clear step wey person fit really do, and talk when, like “every pay day”." }
+          "strength": {
+            "en": "Your plan has steps someone could really do.",
+            "pcm": "Your plan get steps wey person fit really do."
+          },
+          "improve": {
+            "en": "Add a clear step someone could really do, and say when, like “every payday”.",
+            "pcm": "Add one clear step wey person fit really do, and talk when, like “every pay day”."
+          }
         }
       ]
     },
@@ -67,55 +283,166 @@
         {
           "id": "understanding",
           "kind": "understand",
-          "name": { "en": "Understands the situation", "pcm": "Understand the matter" },
+          "name": {
+            "en": "Understands the situation",
+            "pcm": "Understand the matter"
+          },
           "levels": [
-            { "en": "The situation is not explained yet", "pcm": "You never explain the matter yet" },
-            { "en": "Notices the situation, but not why it matters", "pcm": "You see the matter, but no be why e important" },
-            { "en": "Explains what the other person needs", "pcm": "You explain wetin the other person need" },
-            { "en": "Explains what the other person needs and why", "pcm": "You explain wetin the other person need and why" }
+            {
+              "en": "The situation is not explained yet",
+              "pcm": "You never explain the matter yet"
+            },
+            {
+              "en": "Notices the situation, but not why it matters",
+              "pcm": "You see the matter, but no be why e important"
+            },
+            {
+              "en": "Explains what the other person needs",
+              "pcm": "You explain wetin the other person need"
+            },
+            {
+              "en": "Explains what the other person needs and why",
+              "pcm": "You explain wetin the other person need and why"
+            }
           ],
-          "strength": { "en": "You understood what the employer or customer needs.", "pcm": "You understand wetin the oga or customer need." },
-          "improve": { "en": "Say what the other person needs, and why, using “because”.", "pcm": "Talk wetin the other person need and why, use “because”." }
+          "strength": {
+            "en": "You understood what the employer or customer needs.",
+            "pcm": "You understand wetin the oga or customer need."
+          },
+          "improve": {
+            "en": "Say what the other person needs, and why, using “because”.",
+            "pcm": "Talk wetin the other person need and why, use “because”."
+          }
         },
         {
           "id": "tools",
           "kind": "concepts",
-          "keywords": ["STAR", "situation", "task", "result", "research", "CV", "resume", "cover letter", "tailor", "active listening", "listen", "empathy", "apologise", "apologize", "email", "subject", "professional", "first impression", "on time", "punctual", "follow up", "verify", "official", "report", "scam", "questions"],
-          "name": { "en": "Uses the course tools", "pcm": "Use wetin the course teach" },
-          "levels": [
-            { "en": "No idea from the course yet", "pcm": "No idea from the course yet" },
-            { "en": "Mentions one course idea", "pcm": "You mention one idea from the course" },
-            { "en": "Uses a course tool, like the STAR method or active listening", "pcm": "You use one course tool, like STAR or active listening" },
-            { "en": "Uses several course tools together, like research, STAR and a follow-up", "pcm": "You use plenty course tools together, like research, STAR and follow-up" }
+          "keywords": [
+            "STAR",
+            "situation",
+            "task",
+            "result",
+            "research",
+            "CV",
+            "resume",
+            "cover letter",
+            "tailor",
+            "active listening",
+            "listen",
+            "empathy",
+            "apologise",
+            "apologize",
+            "email",
+            "subject",
+            "professional",
+            "first impression",
+            "on time",
+            "punctual",
+            "follow up",
+            "verify",
+            "official",
+            "report",
+            "scam",
+            "questions"
           ],
-          "strength": { "en": "You used a tool from the course.", "pcm": "You use tool wey the course teach." },
-          "improve": { "en": "Use a tool from the course by name: the STAR method, active listening, a professional email or checking the employer.", "pcm": "Use one course tool by name: STAR, active listening, professional email or check the employer." }
+          "name": {
+            "en": "Uses the course tools",
+            "pcm": "Use wetin the course teach"
+          },
+          "levels": [
+            {
+              "en": "No idea from the course yet",
+              "pcm": "No idea from the course yet"
+            },
+            {
+              "en": "Mentions one course idea",
+              "pcm": "You mention one idea from the course"
+            },
+            {
+              "en": "Uses a course tool, like {tools}",
+              "pcm": "You use one course tool, like {tools}"
+            },
+            {
+              "en": "Uses two or more course tools together: {tools}",
+              "pcm": "You use two or more course tools together: {tools}"
+            }
+          ],
+          "strength": {
+            "en": "You used a tool from the course.",
+            "pcm": "You use tool wey the course teach."
+          },
+          "improve": {
+            "en": "Use a tool from the course by name: {tools}.",
+            "pcm": "Use one course tool by name: {tools}."
+          }
         },
         {
           "id": "steps",
           "kind": "action",
-          "name": { "en": "Clear steps in order", "pcm": "Clear steps one by one" },
+          "name": {
+            "en": "Clear steps in order",
+            "pcm": "Clear steps one by one"
+          },
           "levels": [
-            { "en": "No useful step yet", "pcm": "No useful step yet" },
-            { "en": "A general intention, like “get ready”", "pcm": "General talk, like “get ready”" },
-            { "en": "One clear, useful step", "pcm": "One clear, useful step" },
-            { "en": "Several clear steps in a sensible order", "pcm": "Plenty clear steps for correct order" }
+            {
+              "en": "No useful step yet",
+              "pcm": "No useful step yet"
+            },
+            {
+              "en": "A general intention, like “get ready”",
+              "pcm": "General talk, like “get ready”"
+            },
+            {
+              "en": "One clear, useful step",
+              "pcm": "One clear, useful step"
+            },
+            {
+              "en": "Several clear steps in a sensible order",
+              "pcm": "Plenty clear steps for correct order"
+            }
           ],
-          "strength": { "en": "You listed clear steps in a sensible order.", "pcm": "You list clear steps one by one." },
-          "improve": { "en": "Write your steps in order: first, then, finally.", "pcm": "Arrange your steps: first, after, last." }
+          "strength": {
+            "en": "You listed clear steps in a sensible order.",
+            "pcm": "You list clear steps one by one."
+          },
+          "improve": {
+            "en": "Write your steps in order: first, then, finally.",
+            "pcm": "Arrange your steps: first, after, last."
+          }
         },
         {
           "id": "communication",
           "kind": "communication",
-          "name": { "en": "Professional words", "pcm": "Professional talk" },
+          "name": {
+            "en": "Professional words",
+            "pcm": "Professional talk"
+          },
           "levels": [
-            { "en": "No words to the other person yet", "pcm": "No talk to the other person yet" },
-            { "en": "A general instruction, like “be nice”", "pcm": "General talk, like “be nice”" },
-            { "en": "Polite words, like please, thank you or sorry", "pcm": "Polite words, like please, thank you or sorry" },
-            { "en": "The exact polite words to say or write", "pcm": "The exact polite words to talk or write" }
+            {
+              "en": "No words to the other person yet",
+              "pcm": "No talk to the other person yet"
+            },
+            {
+              "en": "A general instruction, like “be nice”",
+              "pcm": "General talk, like “be nice”"
+            },
+            {
+              "en": "Polite words, like please, thank you or sorry",
+              "pcm": "Polite words, like please, thank you or sorry"
+            },
+            {
+              "en": "The exact polite words to say or write",
+              "pcm": "The exact polite words to talk or write"
+            }
           ],
-          "strength": { "en": "Your words are polite and professional.", "pcm": "Your talk get respect and e professional." },
-          "improve": { "en": "Write the exact words you would say or send, in quotes, starting with a greeting.", "pcm": "Write the exact words wey you go talk or send, inside quote, start with greeting." }
+          "strength": {
+            "en": "Your words are polite and professional.",
+            "pcm": "Your talk get respect and e professional."
+          },
+          "improve": {
+            "en": "Write the exact words you would say or send, in quotes, starting with a greeting.",
+            "pcm": "Write the exact words wey you go talk or send, inside quote, start with greeting."
+          }
         }
       ]
     }

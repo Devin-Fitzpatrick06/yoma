@@ -30,11 +30,25 @@ describe("scoreSafely", () => {
   });
 
   it("replaces flagged model feedback with educator-written rubric text", async () => {
-    const bad = { ...mockProvider, scoreAnswer: async () => ({ scores: { cause: 1, tools: 1, action: 1, numbers: 1 }, strengths: [{ criterionId: "cause", text: "You are naked" }], suggestion: { criterionId: "numbers", text: "x" } }) };
+    const bad = { ...mockProvider, scoreAnswer: async () => ({ scores: { cause: 1, tools: 1, action: 1, numbers: 1 }, strengths: [{ criterionId: "cause", text: "x" }], suggestion: { criterionId: "numbers", text: "You are naked" } }) };
     const out = await scoreSafely(request("Buy fewer tomatoes when raining"), { provider: bad, safety: stubSafety });
     expect(out.status === "ok" && out.fallback).toBe(true);
     expect(JSON.stringify(out)).not.toContain("naked");
     expect(listFlags()[0]).toMatchObject({ stage: "feedback", excerpt: "" });
+  });
+
+  it("explains the question instead of scoring when the learner says they are confused", async () => {
+    let called = false;
+    const spy = { ...mockProvider, scoreAnswer: async (i: Parameters<typeof mockProvider.scoreAnswer>[0]) => { called = true; return mockProvider.scoreAnswer(i); } };
+    const out = await scoreSafely(request("I'm still confused, this question is bad"), { provider: spy, safety: stubSafety });
+    expect(out.status).toBe("confused");
+    expect(called).toBe(false);
+  });
+
+  it("never says 'Did well' about a criterion the answer barely touches", async () => {
+    const model = { scores: { cause: 3, tools: 3, action: 3, numbers: 3 }, strengths: [{ criterionId: "cause", text: "You explained what is causing the money problem." }], suggestion: { criterionId: "numbers", text: "Add numbers." } };
+    const out = await scoreSafely(request("Amina should think about it and do better next time"), { provider: { ...mockProvider, scoreAnswer: async () => model }, safety: stubSafety });
+    expect(out.status === "ok" && out.feedback.strengths.map((s) => s.text)).toEqual(["You tried the challenge and wrote in your own words."]);
   });
 
   it("drops model praise for ideas the answer never contains", async () => {

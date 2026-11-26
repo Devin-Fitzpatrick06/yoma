@@ -208,6 +208,26 @@
         "Asking for money to apply is a sign of a scam.",
         "{name} should verify the job on {employer}'s official website, never pay a fee, and report the post as a scam."
       ]
+    },
+    "chal-001": {
+      "diagnosis": [
+        "I don't know.",
+        "Maybe the panel.",
+        "The panel could be dirty or in shade, so it does not make enough power to charge the battery.",
+        "If a cable is loose no power reaches the battery, and if the battery is old it cannot hold the charge, so the light stays off at night."
+      ],
+      "tools": [
+        "",
+        "I would check the fuse.",
+        "I would check the panel output with a multimeter.",
+        "I would check the fuse, measure the panel voltage with a multimeter in sunlight, and measure the battery voltage."
+      ],
+      "order": [
+        "Call someone.",
+        "I would try to fix it.",
+        "First I would check the cables are tight.",
+        "First I would switch it off and check the cables, then look at the panel in the sun, and finally check the battery."
+      ]
     }
   }
 }

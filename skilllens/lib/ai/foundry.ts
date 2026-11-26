@@ -3,9 +3,12 @@
 // - "local":   a model on this machine through Ollama (real model calls with no account, until Azure keys exist)
 import { z } from "zod";
 import { Feedback, SlotValue, type Challenge, type Lang, type Locale, type Rubric, type Template } from "../schema";
-import { fillTemplate, templateSlots } from "../template";
+import { fillTemplate, slotValues, templateSlots } from "../template";
 import { loadPrompt } from "./prompts";
 import type { AIProvider, ScoreInput } from "./provider";
+
+/** The only slots the model localises: people and workplaces. Never goods or amounts, which must add up. */
+const MODEL_SLOTS = new Set(["name", "job", "employer", "role"]);
 
 export interface FoundryConfig {
   baseUrl: string;
@@ -112,9 +115,11 @@ export function checkFeedback(raw: unknown, rubric: Rubric): Feedback {
 
 export function createFoundryProvider(config: FoundryConfig): AIProvider {
   return {
-    async generateChallenge(template: Template, locale: Locale, lang: Lang): Promise<Challenge> {
+    async generateChallenge(template: Template, locale: Locale, lang: Lang, seed: number): Promise<Challenge> {
       // The model only picks slot values; the educator-approved wording is filled in here, never generated.
-      const slots = templateSlots(template.text.en).filter((s) => s !== "city");
+      // Goods and amounts come index-aligned from the locale so costs, prices and sums always fit together.
+      const fixed = slotValues(locale, seed);
+      const slots = templateSlots(template.text.en).filter((s) => MODEL_SLOTS.has(s));
       const Values = z.object({ values: z.object(Object.fromEntries(slots.map((s) => [s, SlotValue]))) });
       const prompt = loadPrompt("generate", {
         city: locale.city,
@@ -123,7 +128,7 @@ export function createFoundryProvider(config: FoundryConfig): AIProvider {
         examples: slots.map((s) => `- ${s}: ${locale.slots[s]?.join(", ") ?? "(no examples)"}`).join("\n"),
       });
       const { values } = await chatJson(config, config.chatModel, [{ role: "system", content: prompt }], (raw) => Values.parse(raw), 0.8); // some variety in names and goods
-      const all = { ...values, city: locale.city };
+      const all = { ...Object.fromEntries(templateSlots(template.text.en).map((s) => [s, fixed[s]])), ...values };
       return {
         templateId: template.id,
         courseId: template.courseId,

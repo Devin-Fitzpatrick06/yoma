@@ -1920,6 +1920,226 @@
         "communication": 4
       },
       "split": "test"
+    },
+    {
+      "id": "chal-001-01",
+      "templateId": "chal-001",
+      "answer": "The panel could be dirty or in shade, so it does not make enough power to charge the battery. I would check the fuse. First I would check the cables are tight.",
+      "scores": {
+        "diagnosis": 3,
+        "tools": 2,
+        "order": 3
+      },
+      "split": "example"
+    },
+    {
+      "id": "chal-001-02",
+      "templateId": "chal-001",
+      "answer": "I don't know. I would check the fuse. First I would switch it off and check the cables, then look at the panel in the sun, and finally check the battery.",
+      "scores": {
+        "diagnosis": 1,
+        "tools": 2,
+        "order": 4
+      },
+      "split": "example"
+    },
+    {
+      "id": "chal-001-03",
+      "templateId": "chal-001",
+      "answer": "The panel could be dirty or in shade, so it does not make enough power to charge the battery. I would check the fuse. First I would switch it off and check the cables, then look at the panel in the sun, and finally check the battery.",
+      "scores": {
+        "diagnosis": 3,
+        "tools": 2,
+        "order": 4
+      },
+      "split": "example"
+    },
+    {
+      "id": "chal-001-04",
+      "templateId": "chal-001",
+      "answer": "The panel could be dirty or in shade, so it does not make enough power to charge the battery. I would check the fuse. First I would check the cables are tight.",
+      "scores": {
+        "diagnosis": 3,
+        "tools": 2,
+        "order": 3
+      },
+      "split": "example"
+    },
+    {
+      "id": "chal-001-05",
+      "templateId": "chal-001",
+      "answer": "I don't know. I would check the panel output with a multimeter. First I would switch it off and check the cables, then look at the panel in the sun, and finally check the battery.",
+      "scores": {
+        "diagnosis": 1,
+        "tools": 4,
+        "order": 4
+      },
+      "split": "example"
+    },
+    {
+      "id": "chal-001-06",
+      "templateId": "chal-001",
+      "answer": "Maybe the panel. I would check the fuse. I would try to fix it.",
+      "scores": {
+        "diagnosis": 2,
+        "tools": 2,
+        "order": 2
+      },
+      "split": "example"
+    },
+    {
+      "id": "chal-001-07",
+      "templateId": "chal-001",
+      "answer": "I don't know. Call someone.",
+      "scores": {
+        "diagnosis": 1,
+        "tools": 1,
+        "order": 1
+      },
+      "split": "example"
+    },
+    {
+      "id": "chal-001-08",
+      "templateId": "chal-001",
+      "answer": "If a cable is loose no power reaches the battery, and if the battery is old it cannot hold the charge, so the light stays off at night. I would check the panel output with a multimeter. First I would switch it off and check the cables, then look at the panel in the sun, and finally check the battery.",
+      "scores": {
+        "diagnosis": 4,
+        "tools": 3,
+        "order": 4
+      },
+      "split": "example"
+    },
+    {
+      "id": "chal-001-09",
+      "templateId": "chal-001",
+      "answer": "The panel could be dirty or in shade, so it does not make enough power to charge the battery. I would check the fuse. Call someone.",
+      "scores": {
+        "diagnosis": 3,
+        "tools": 1,
+        "order": 1
+      },
+      "split": "example"
+    },
+    {
+      "id": "chal-001-10",
+      "templateId": "chal-001",
+      "answer": "If a cable is loose no power reaches the battery, and if the battery is old it cannot hold the charge, so the light stays off at night. I would check the panel output with a multimeter. I would try to fix it.",
+      "scores": {
+        "diagnosis": 4,
+        "tools": 3,
+        "order": 2
+      },
+      "split": "example"
+    },
+    {
+      "id": "chal-001-11",
+      "templateId": "chal-001",
+      "answer": "The panel could be dirty or in shade, so it does not make enough power to charge the battery. I would check the fuse, measure the panel voltage with a multimeter in sunlight, and measure the battery voltage. Call someone.",
+      "scores": {
+        "diagnosis": 3,
+        "tools": 4,
+        "order": 1
+      },
+      "split": "test"
+    },
+    {
+      "id": "chal-001-12",
+      "templateId": "chal-001",
+      "answer": "If a cable is loose no power reaches the battery, and if the battery is old it cannot hold the charge, so the light stays off at night. First I would switch it off and check the cables, then look at the panel in the sun, and finally check the battery.",
+      "scores": {
+        "diagnosis": 4,
+        "tools": 2,
+        "order": 4
+      },
+      "split": "test"
+    },
+    {
+      "id": "chal-001-13",
+      "templateId": "chal-001",
+      "answer": "I don't know. I would check the fuse. I would try to fix it.",
+      "scores": {
+        "diagnosis": 1,
+        "tools": 2,
+        "order": 2
+      },
+      "split": "test"
+    },
+    {
+      "id": "chal-001-14",
+      "templateId": "chal-001",
+      "answer": "I don't know. Call someone.",
+      "scores": {
+        "diagnosis": 1,
+        "tools": 1,
+        "order": 1
+      },
+      "split": "test"
+    },
+    {
+      "id": "chal-001-15",
+      "templateId": "chal-001",
+      "answer": "If a cable is loose no power reaches the battery, and if the battery is old it cannot hold the charge, so the light stays off at night. I would check the fuse. Call someone.",
+      "scores": {
+        "diagnosis": 4,
+        "tools": 2,
+        "order": 1
+      },
+      "split": "test"
+    },
+    {
+      "id": "chal-001-16",
+      "templateId": "chal-001",
+      "answer": "The panel could be dirty or in shade, so it does not make enough power to charge the battery. First I would check the cables are tight.",
+      "scores": {
+        "diagnosis": 3,
+        "tools": 1,
+        "order": 3
+      },
+      "split": "test"
+    },
+    {
+      "id": "chal-001-17",
+      "templateId": "chal-001",
+      "answer": "If a cable is loose no power reaches the battery, and if the battery is old it cannot hold the charge, so the light stays off at night. First I would switch it off and check the cables, then look at the panel in the sun, and finally check the battery.",
+      "scores": {
+        "diagnosis": 4,
+        "tools": 1,
+        "order": 4
+      },
+      "split": "test"
+    },
+    {
+      "id": "chal-001-18",
+      "templateId": "chal-001",
+      "answer": "Maybe the panel. Call someone.",
+      "scores": {
+        "diagnosis": 2,
+        "tools": 1,
+        "order": 1
+      },
+      "split": "test"
+    },
+    {
+      "id": "chal-001-19",
+      "templateId": "chal-001",
+      "answer": "Maybe the panel. I would check the panel output with a multimeter. I would try to fix it.",
+      "scores": {
+        "diagnosis": 2,
+        "tools": 3,
+        "order": 3
+      },
+      "split": "test"
+    },
+    {
+      "id": "chal-001-20",
+      "templateId": "chal-001",
+      "answer": "The panel could be dirty or in shade, so it does not make enough power to charge the battery. I would check the panel output with a multimeter. I would try to fix it.",
+      "scores": {
+        "diagnosis": 3,
+        "tools": 2,
+        "order": 2
+      },
+      "split": "test"
     }
   ]
 }

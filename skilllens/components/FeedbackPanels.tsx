@@ -34,7 +34,7 @@ export function FeedbackPanels({ feedback, lang }: { feedback: LearnerFeedback; 
           ))}
         </ul>
       </section>
-      <section aria-labelledby="to-improve" className="card-yellow">
+      <section aria-labelledby="to-improve" className="card-accent">
         <h3 id="to-improve" className="flex items-center gap-2 text-xl text-brand"><Icon name="arrow" />{t(lang, "toImprove")}</h3>
         <p className="mt-2">{feedback.suggestion.text}</p>
       </section>
@@ -53,7 +53,7 @@ export function RubricPanel({ rows, lang }: { rows: RubricRow[]; lang: Lang }) {
         <p className="text-sm">{t(lang, "rubricIntro")}</p>
       </div>
       {second && (
-        <p role="status" className={`flex gap-2 rounded-xl p-3 text-sm font-medium ${improved.length ? "bg-brand-tint text-brand" : "bg-yellow/15"}`}>
+        <p role="status" className={`flex gap-2 rounded-xl p-3 text-sm font-medium ${improved.length ? "bg-brand-tint text-brand" : "bg-accent/15"}`}>
           <Icon name={improved.length ? "star" : "info"} className="size-5 shrink-0" />
           {improved.length ? `${t(lang, "progressSome")}: ${improved.map((r) => r.name).join(", ")}.` : t(lang, "progressNone")}
         </p>
@@ -63,7 +63,7 @@ export function RubricPanel({ rows, lang }: { rows: RubricRow[]; lang: Lang }) {
           <li key={r.id} className="card space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h4 className="font-heading text-lg text-brand">{r.name}</h4>
-              <span className={`rounded-full px-3 py-0.5 text-sm font-medium ${r.level >= 3 ? "bg-brand text-white" : "bg-yellow text-brand"}`}>{levelName(lang, r.level)}</span>
+              <span className={`rounded-full px-3 py-0.5 text-sm font-medium ${r.level >= 3 ? "bg-brand text-paper" : "bg-accent text-brand"}`}>{levelName(lang, r.level)}</span>
             </div>
             <div className="flex gap-1" role="img" aria-label={`${r.name}: ${levelName(lang, r.level)}`}>
               {[1, 2, 3, 4].map((n) => (

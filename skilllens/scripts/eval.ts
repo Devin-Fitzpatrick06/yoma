@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { PROMPT_VERSION } from "../lib/ai/prompts";
 import redteamJson from "../data/synthetic/redteam.json";
-import { examplesFor, getRubric, getTemplate, locale, rubrics, samples } from "../lib/data";
+import { examplesFor, getTemplate, locale, rubricFor, rubrics, samples } from "../lib/data";
 import { agreement, type Agreement } from "../lib/eval/metrics";
 import { defaultDeps, scoreSafely, type ScoreOutcome } from "../lib/pipeline";
 import type { Template } from "../lib/schema";
@@ -33,7 +33,7 @@ async function pool<T, R>(items: T[], fn: (item: T) => Promise<R>): Promise<R[]>
 
 function score(template: Template, answer: string): Promise<ScoreOutcome | { status: "error"; message: string }> {
   const challenge = { templateId: template.id, courseId: template.courseId, rubricId: template.rubricId, lang: "en" as const, values, text: fillTemplate(template.text.en, values) };
-  return scoreSafely({ challenge, rubric: getRubric(template.rubricId), examples: examplesFor(template.id), answer, lang: "en" }, deps).catch((e: Error) => ({
+  return scoreSafely({ challenge, rubric: rubricFor(template), examples: examplesFor(template.id), answer, lang: "en" }, deps).catch((e: Error) => ({
     status: "error" as const,
     message: e.message,
   }));

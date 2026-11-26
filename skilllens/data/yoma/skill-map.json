@@ -1,6 +1,17 @@
 {
   "note": "Educators: which Yoma skills each rubric criterion practises. Use exact Yoma skill names (search with GET /api/v3/lookup/skill?nameContains=...). Run `npm run yoma:skills` after editing to refresh skills.json.",
   "rubrics": {
+    "solar-rubric": {
+      "diagnosis": [
+        "Electrical Diagnostics And Repairs"
+      ],
+      "tools": [
+        "Solar Panel"
+      ],
+      "order": [
+        "Troubleshooting (Problem Solving)"
+      ]
+    },
     "fl-rubric": {
       "cause": [
         "Problem Solving"
