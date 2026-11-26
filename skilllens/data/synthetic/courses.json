@@ -1,0 +1,76 @@
+{
+  "note": "Course objectives written from the public P2E lesson lists on global.passport2earning.org (read 18 Nov 2026). Financial Literacy: Khan Academy Financial Literacy 101 and Microsoft Business 101 Budgeting. Job Readiness: How to get a Job and UNICEF Communication Skills. Lesson text needs a P2E login, so educators should check these against the lessons. Pidgin text needs native-speaker review. Solar PV Installation Basics is opp-course-001 from the BBS x GenU shared mock data (fictional sample course); its objectives are written for the demo, not taken from a real course.",
+  "items": [
+    {
+      "id": "solar-pv",
+      "title": {
+        "en": "Solar PV Installation Basics",
+        "pcm": "Solar PV Installation Basics"
+      },
+      "objectives": [
+        {
+          "en": "Find why a solar system is not charging by checking the simplest causes first.",
+          "pcm": "Find why solar system no dey charge, start with the easy things."
+        },
+        {
+          "en": "Use a multimeter to test a panel's output and a battery's voltage.",
+          "pcm": "Use multimeter test the panel output and the battery voltage."
+        },
+        {
+          "en": "Switch off and disconnect before touching any wiring.",
+          "pcm": "Off am and disconnect before you touch any wire."
+        }
+      ]
+    },
+    {
+      "id": "financial-literacy",
+      "title": {
+        "en": "Financial Literacy",
+        "pcm": "How to Manage Money"
+      },
+      "objectives": [
+        {
+          "en": "Build a budget with the 50:30:20 rule: needs, wants and savings.",
+          "pcm": "Make budget with the 50:30:20 rule: wetin you need, wetin you want, and savings."
+        },
+        {
+          "en": "Pay yourself first and keep an emergency fund.",
+          "pcm": "Pay yourself first and keep emergency fund."
+        },
+        {
+          "en": "Work out profit (money in minus costs) and track sales and spending.",
+          "pcm": "Calculate profit (money wey enter minus cost) and keep record of sales and spending."
+        },
+        {
+          "en": "Compare loans and spot predatory lending.",
+          "pcm": "Compare loans and know predatory lending."
+        }
+      ]
+    },
+    {
+      "id": "job-readiness",
+      "title": {
+        "en": "Job Readiness",
+        "pcm": "Ready for Work"
+      },
+      "objectives": [
+        {
+          "en": "Prepare for an interview: research the employer and answer with the STAR method.",
+          "pcm": "Prepare for interview: research the company and answer with the STAR method."
+        },
+        {
+          "en": "Write clear, professional workplace messages and emails.",
+          "pcm": "Write clear, professional message and email for work."
+        },
+        {
+          "en": "Use active listening and empathy to calm a conflict.",
+          "pcm": "Use active listening and empathy take calm quarrel."
+        },
+        {
+          "en": "Check online job posts and avoid job scams.",
+          "pcm": "Check job post for internet and avoid job scam."
+        }
+      ]
+    }
+  ]
+}

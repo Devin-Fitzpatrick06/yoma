@@ -1,0 +1,66 @@
+{
+  "source": "https://v3api.stage.yoma.world/api/v3",
+  "fetchedAt": "2026-11-26",
+  "courses": {
+    "financial-literacy": [
+      {
+        "id": "01a153c8-6ebc-79bd-9c9a-df7395829ae2",
+        "title": "Business Development / Sales Associate in Remote (Work From Home)",
+        "type": "Job",
+        "organization": "Jobberman - Nigeria",
+        "url": "https://stage.yoma.world/opportunities/01a153c8-6ebc-79bd-9c9a-df7395829ae2"
+      },
+      {
+        "id": "01a18d4f-0f55-780a-a616-40e29b1b07b2",
+        "title": "Lemonade for sale",
+        "type": "Entrepreneurship",
+        "organization": "Generation Unlimited (GenU)",
+        "url": "https://stage.yoma.world/opportunities/01a18d4f-0f55-780a-a616-40e29b1b07b2"
+      },
+      {
+        "id": "0198c6a9-1aa6-7809-89f5-1e7ccb0efac1",
+        "title": "Business Foundations Specialization",
+        "type": "Learning",
+        "organization": "Sam Torg",
+        "url": "https://stage.yoma.world/opportunities/0198c6a9-1aa6-7809-89f5-1e7ccb0efac1"
+      },
+      {
+        "id": "0198c6a9-1c46-78b3-9d41-8527db12d623",
+        "title": "Corporate Finance Essentials",
+        "type": "Learning",
+        "organization": "Sam Torg",
+        "url": "https://stage.yoma.world/opportunities/0198c6a9-1c46-78b3-9d41-8527db12d623"
+      }
+    ],
+    "job-readiness": [
+      {
+        "id": "01a153c8-6cc7-7fc6-af13-8fd98775a328",
+        "title": "Sales & Customer Service Officer in Lagos",
+        "type": "Job",
+        "organization": "Jobberman - Nigeria",
+        "url": "https://stage.yoma.world/opportunities/01a153c8-6cc7-7fc6-af13-8fd98775a328"
+      },
+      {
+        "id": "01a153c8-76df-75ce-b937-eadb22f6075d",
+        "title": "Interview & Onboarding Scheduling Coordinator Intern in Remote (Work From Home)",
+        "type": "Job",
+        "organization": "Jobberman - Nigeria",
+        "url": "https://stage.yoma.world/opportunities/01a153c8-76df-75ce-b937-eadb22f6075d"
+      },
+      {
+        "id": "019d9523-2819-72ae-bcef-5f1ac60c7d3c",
+        "title": "Retail Sales Assistant",
+        "type": "Job",
+        "organization": "Yoma (Youth Agency Marketplace)",
+        "url": "https://stage.yoma.world/opportunities/019d9523-2819-72ae-bcef-5f1ac60c7d3c"
+      },
+      {
+        "id": "01a153c8-51b2-77f5-a1a5-168da93173fc",
+        "title": "ServiceNow Certified Professional Training in Ghana",
+        "type": "Job",
+        "organization": "Jobberman - Ghana",
+        "url": "https://stage.yoma.world/opportunities/01a153c8-51b2-77f5-a1a5-168da93173fc"
+      }
+    ]
+  }
+}

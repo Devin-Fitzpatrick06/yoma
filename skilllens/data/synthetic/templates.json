@@ -1,0 +1,335 @@
+{
+  "note": "SYNTHETIC PLACEHOLDER challenge templates, each tied to a lesson in the public P2E course lists (global.passport2earning.org, read 18 Nov 2026; lesson text itself needs a P2E login). Educators approve these; the AI only picks names and workplaces, while goods and every amount come index-aligned from data/synthetic/locales so the sums always work. Each challenge gives every number it needs, 'recap' repeats the lesson facts it relies on (learners will not remember them), and 'help' is the step-by-step start shown when a learner says they are confused, and 'tools' are the course tools that fit this challenge. Pidgin text needs native-speaker review. chal-001 is the BBS x GenU shared challenge (skillChallenge in data/shared/shared-mock-data.json): task wording unchanged.",
+  "items": [
+    {
+      "id": "fl-rainy-sales",
+      "courseId": "financial-literacy",
+      "rubricId": "fl-rubric",
+      "text": {
+        "en": "{name} sells {item} in {city} for {price} a {unit}. On a normal day {name} sells 10 {unit}s, but on a rainy day only 4, and 1 more spoils. How much money does {name} lose on a rainy day, and how can {name} use sales records and an emergency fund to cope?",
+        "pcm": "{name} dey sell {item} for {city}, {price} for one {unit}. For normal day {name} dey sell 10 {unit}, but when rain fall na only 4 e dey sell, and 1 more dey spoil. How much money {name} dey lose for rainy day, and how {name} fit use record of sales and emergency fund take manage am?"
+      },
+      "lesson": "Financial Literacy 101: The Importance of Regular Tracking; Emergency Funds",
+      "recap": {
+        "en": "Sales records: write down what you sell and what you lose each day, so you can see the pattern. Emergency fund: money saved a little at a time, kept only for bad days, so you do not have to borrow.",
+        "pcm": "Record of sales: write wetin you sell and wetin you lose every day, so you go see the pattern. Emergency fund: money wey you dey save small small, keep am only for bad day, so you no go borrow."
+      },
+      "tools": {
+        "keywords": [
+          "record",
+          "track",
+          "write down",
+          "emergency fund",
+          "save",
+          "savings",
+          "pattern",
+          "forecast",
+          "loss",
+          "lose"
+        ],
+        "named": {
+          "en": "sales records, tracking losses or an emergency fund",
+          "pcm": "record of sales, record of loss or emergency fund"
+        }
+      },
+      "help": {
+        "en": "Start here: 1. Money on a normal day = 10 × {price}. 2. Money on a rainy day = 4 × {price}. 3. Take the rainy day away from the normal day, then add the {unit} that spoils. 4. Say how writing down sales each day and saving a little on good days would help.",
+        "pcm": "Start here: 1. Money for normal day = 10 × {price}. 2. Money for rainy day = 4 × {price}. 3. Remove the rainy day money from normal day money, then add the {unit} wey spoil. 4. Talk how to write sales every day and to save small for good day go help."
+      }
+    },
+    {
+      "id": "fl-weekly-saving",
+      "courseId": "financial-literacy",
+      "rubricId": "fl-rubric",
+      "text": {
+        "en": "{name} earns {wage} a week from {job} in {city} (about 4 weeks in a month), but by the end of the month nothing is left. Use the 50:30:20 rule to make a monthly plan for {name}.",
+        "pcm": "{name} dey make {wage} every week from {job} for {city} (about 4 weeks for one month), but before month end, money don finish. Use the 50:30:20 rule take make monthly plan for {name}."
+      },
+      "lesson": "Financial Literacy 101: Budgeting and the 50:30:20 rule; Paying Yourself First",
+      "recap": {
+        "en": "The 50:30:20 rule: 50% of income for needs (food, transport, rent), 30% for wants, 20% for savings. Pay yourself first: put the savings aside on payday, before spending.",
+        "pcm": "The 50:30:20 rule: 50% of the money for wetin you need (food, transport, rent), 30% for wetin you want, 20% for savings. Pay yourself first: keep the savings aside for pay day, before you spend."
+      },
+      "tools": {
+        "keywords": [
+          "50:30:20",
+          "50/30/20",
+          "needs",
+          "wants",
+          "savings",
+          "budget",
+          "pay yourself first",
+          "save first",
+          "goal"
+        ],
+        "named": {
+          "en": "the 50:30:20 rule, paying yourself first or a savings goal",
+          "pcm": "the 50:30:20 rule, pay yourself first or savings goal"
+        }
+      },
+      "help": {
+        "en": "Start here: 1. Money for a month = {wage} × 4. 2. Needs = half of that (50%). 3. Wants = 30%. 4. Savings = 20%, put aside on payday first. 5. Say what goes in needs and wants for {name}.",
+        "pcm": "Start here: 1. Money for one month = {wage} × 4. 2. Wetin you need = half (50%). 3. Wetin you want = 30%. 4. Savings = 20%, keep am first for pay day. 5. Talk wetin go inside need and want for {name}."
+      }
+    },
+    {
+      "id": "fl-ingredient-costs",
+      "courseId": "financial-literacy",
+      "rubricId": "fl-rubric",
+      "text": {
+        "en": "{name} makes {snack} in {city} and sells each one for {snackPrice}, about 100 a day. Last month the flour, oil and other ingredients for one {snack} cost {snackCostBefore}; this month they cost {snackCost}. Work out {name}'s profit on each {snack} and for a day, before and now, and say what {name} should change.",
+        "pcm": "{name} dey make {snack} for {city}, e dey sell one for {snackPrice}, about 100 every day. Last month, flour, oil and other things wey e need for one {snack} cost {snackCostBefore}; this month dem cost {snackCost}. Calculate {name} profit for each {snack} and for one day, before and now, and talk wetin {name} suppose change."
+      },
+      "lesson": "Business 101, Budgeting: income, costs and profit (peanut seller case study)",
+      "recap": {
+        "en": "Profit on each item = selling price minus what it costs to make. Profit for a day = profit on each item times how many you sell. When costs go up, you can raise the price, make each item smaller, or buy ingredients more cheaply, for example in bulk.",
+        "pcm": "Profit for one = the price wey you sell minus wetin e cost to make am. Profit for one day = profit for one times how many you sell. When cost go up, you fit raise price, make am small, or buy the things cheaper, like to buy plenty at once."
+      },
+      "tools": {
+        "keywords": [
+          "profit",
+          "minus",
+          "cost to make",
+          "income",
+          "revenue",
+          "expenses",
+          "margin",
+          "raise the price",
+          "increase the price",
+          "smaller",
+          "bulk",
+          "supplier",
+          "record",
+          "track"
+        ],
+        "named": {
+          "en": "profit per item (price minus cost), profit per day, or ways to cut costs like buying in bulk",
+          "pcm": "profit for one (price minus cost), profit for one day, or how to reduce cost like to buy plenty at once"
+        }
+      },
+      "help": {
+        "en": "Start here: 1. Profit on one {snack} before = {snackPrice} − {snackCostBefore}. 2. Profit on one now = {snackPrice} − {snackCost}. 3. Times each by 100 for a day. 4. Say one thing {name} can change, like the price, the size, or buying ingredients in bulk.",
+        "pcm": "Start here: 1. Profit for one {snack} before = {snackPrice} − {snackCostBefore}. 2. Profit for one now = {snackPrice} − {snackCost}. 3. Times each one by 100 for one day. 4. Talk one thing {name} fit change, like the price, the size, or to buy plenty at once."
+      }
+    },
+    {
+      "id": "fl-loan-offer",
+      "courseId": "financial-literacy",
+      "rubricId": "fl-rubric",
+      "text": {
+        "en": "A lender in {city} offers {name} {loan} to buy more stock, but wants {repay} back after one month. {name}'s savings group (ajo) lends members money at 5% for a month. Is the lender's offer fair or predatory lending? Work out what each option costs and say what {name} should do.",
+        "pcm": "One lender for {city} wan give {name} {loan} make e buy more market, but e wan collect {repay} back after one month. {name} savings group (ajo) dey lend members money for 5% for one month. The lender offer fair or na predatory lending? Calculate how much each one go cost and talk wetin {name} suppose do."
+      },
+      "lesson": "Financial Literacy 101: Sources of Loans; Predatory Lending; Debt",
+      "recap": {
+        "en": "Interest = what you pay back minus what you borrowed. As a percentage: interest ÷ amount borrowed × 100. Predatory lending: very high interest, pressure to sign fast, or unclear terms.",
+        "pcm": "Interest = wetin you go pay back minus wetin you borrow. For percent: interest ÷ the money wey you borrow × 100. Predatory lending: interest wey too high, dem dey rush you to sign, or the terms no clear."
+      },
+      "tools": {
+        "keywords": [
+          "interest",
+          "percent",
+          "predatory",
+          "compare",
+          "ajo",
+          "esusu",
+          "savings group",
+          "cooperative",
+          "debt",
+          "repay",
+          "terms"
+        ],
+        "named": {
+          "en": "working out the interest, spotting predatory lending, or comparing with the savings group",
+          "pcm": "to calculate the interest, to see predatory lending, or to compare with the savings group"
+        }
+      },
+      "help": {
+        "en": "Start here: 1. The lender's interest = {repay} − {loan}. 2. The savings group's interest = 5% of {loan} (that is {loan} ÷ 100 × 5). 3. Compare the two. 4. Say if the lender's offer looks like predatory lending, and what {name} should do.",
+        "pcm": "Start here: 1. The lender interest = {repay} − {loan}. 2. The savings group interest = 5% of {loan} ({loan} ÷ 100 × 5). 3. Compare the two. 4. Talk if the lender offer be like predatory lending, and wetin {name} suppose do."
+      }
+    },
+    {
+      "id": "jr-interview-prep",
+      "courseId": "job-readiness",
+      "rubricId": "jr-rubric",
+      "text": {
+        "en": "{name} has an interview tomorrow for a {role} job at {employer} in {city}. They will ask: “Tell me about a time you solved a problem.” How should {name} prepare, and how could {name} answer using the STAR method?",
+        "pcm": "{name} get interview tomorrow for {role} work for {employer} for {city}. Dem go ask: “Tell us one time wey you solve problem.” How {name} go prepare, and how {name} fit answer with the STAR method?"
+      },
+      "lesson": "How to get a Job, Module 3: Research the Job and Company; The STAR Method",
+      "recap": {
+        "en": "The STAR method: Situation (where you were), Task (what you had to do), Action (what you did), Result (what happened). Before an interview, research the company and practise your answers out loud.",
+        "pcm": "The STAR method: Situation (where you dey), Task (wetin you suppose do), Action (wetin you do), Result (wetin happen after). Before interview, find out about the company and practise your answer for mouth."
+      },
+      "tools": {
+        "keywords": [
+          "STAR",
+          "situation",
+          "task",
+          "action",
+          "result",
+          "research",
+          "practise",
+          "practice",
+          "questions",
+          "CV"
+        ],
+        "named": {
+          "en": "the STAR method (Situation, Task, Action, Result) or researching the company",
+          "pcm": "the STAR method (Situation, Task, Action, Result) or to find out about the company"
+        }
+      },
+      "help": {
+        "en": "Start here: 1. Write two things {name} can do today to prepare, like finding out about {employer}. 2. Then answer the question in four short parts: Situation (where), Task (the problem), Action (what {name} did), Result (what happened).",
+        "pcm": "Start here: 1. Write two things {name} fit do today to prepare, like to find out about {employer}. 2. Then answer the question for four short parts: Situation (where), Task (the problem), Action (wetin {name} do), Result (wetin happen)."
+      }
+    },
+    {
+      "id": "jr-late-first-day",
+      "courseId": "job-readiness",
+      "rubricId": "jr-rubric",
+      "text": {
+        "en": "It is {name}'s first day as a {role} at {employer} in {city}. Traffic means {name} will be 30 minutes late. What should {name} do, and what exactly should the message to the manager say?",
+        "pcm": "Today na {name} first day as {role} for {employer} for {city}. Traffic go make {name} late 30 minutes. Wetin {name} suppose do, and wetin exactly the message to the manager go talk?"
+      },
+      "lesson": "Communication Skills, M7: Emails in the Workplace; M8: Professional Communication",
+      "recap": {
+        "en": "A professional message: a greeting, who you are, the problem in one line, when you will arrive, a short apology, and thanks. Send it before you are late, not after.",
+        "pcm": "Professional message: greet, talk who you be, the wahala for one line, when you go reach, small sorry, and thank you. Send am before you late, no be after."
+      },
+      "tools": {
+        "keywords": [
+          "professional",
+          "message",
+          "call",
+          "email",
+          "apologise",
+          "apologize",
+          "sorry",
+          "on time",
+          "early",
+          "punctual",
+          "first impression",
+          "plan"
+        ],
+        "named": {
+          "en": "a professional message (greeting, the problem, when you will arrive, an apology) or planning to leave early",
+          "pcm": "professional message (greeting, the wahala, when you go reach, sorry) or to plan to comot early"
+        }
+      },
+      "help": {
+        "en": "Start here: 1. Say what {name} should do right now, before being late. 2. Then write the exact message to the manager, in quotes: a greeting, the problem, when {name} will arrive, a short apology and thanks.",
+        "pcm": "Start here: 1. Talk wetin {name} suppose do now now, before e late. 2. Then write the exact message to the manager inside quote: greeting, the wahala, when {name} go reach, small sorry and thank you."
+      }
+    },
+    {
+      "id": "jr-angry-customer",
+      "courseId": "job-readiness",
+      "rubricId": "jr-rubric",
+      "text": {
+        "en": "{name} works as a {role} at {employer} in {city}. A customer is angry because their order is wrong. Using active listening, what should {name} do and say?",
+        "pcm": "{name} dey work as {role} for {employer} for {city}. One customer vex because dem give am wrong order. With active listening, wetin {name} go do and talk?"
+      },
+      "lesson": "Communication Skills, M2: Active Listening and Empathy; M10: Conflict Resolution",
+      "recap": {
+        "en": "Active listening: let the person finish, repeat back what you heard, and show you understand how they feel (empathy). Then apologise and offer a clear solution.",
+        "pcm": "Active listening: make the person finish talk, repeat wetin you hear, and show say you understand how e dey feel (empathy). Then talk sorry and give clear solution."
+      },
+      "tools": {
+        "keywords": [
+          "active listening",
+          "listen",
+          "repeat",
+          "empathy",
+          "understand",
+          "apologise",
+          "apologize",
+          "sorry",
+          "solution",
+          "calm",
+          "fix"
+        ],
+        "named": {
+          "en": "active listening, showing empathy or offering a clear solution",
+          "pcm": "active listening, to show empathy or to give clear solution"
+        }
+      },
+      "help": {
+        "en": "Start here: 1. Say what {name} should do first while the customer talks (listen, do not interrupt). 2. Write what {name} would say to show they understood, in quotes. 3. Say how {name} would fix the order.",
+        "pcm": "Start here: 1. Talk wetin {name} go do first as the customer dey talk (listen, no cut am). 2. Write wetin {name} go talk to show say e understand, inside quote. 3. Talk how {name} go fix the order."
+      }
+    },
+    {
+      "id": "jr-fee-scam",
+      "courseId": "job-readiness",
+      "rubricId": "jr-rubric",
+      "text": {
+        "en": "{name} in {city} sees an online job post for a {role} at {employer}. It asks for {fee} to “register” before the interview. What should {name} check and do, and how should {name} reply?",
+        "pcm": "{name} for {city} see job post for internet for {role} for {employer}. E say make {name} pay {fee} to “register” before interview. Wetin {name} suppose check and do, and how {name} go reply?"
+      },
+      "lesson": "How to get a Job, Module 2: Things To Be Careful About (online job portals)",
+      "recap": {
+        "en": "Real employers do not ask you to pay to apply, register or get an interview. Check the employer through their official phone number, website or office, never through the contacts in the post, and report fake posts.",
+        "pcm": "Real employer no dey ask you to pay money to apply, register or get interview. Check the employer through their correct phone number, website or office, no be the contact wey dey the post, and report fake post."
+      },
+      "tools": {
+        "keywords": [
+          "scam",
+          "fake",
+          "verify",
+          "official",
+          "check",
+          "website",
+          "office",
+          "report",
+          "refuse",
+          "never pay",
+          "block"
+        ],
+        "named": {
+          "en": "checking the employer through official contacts, refusing to pay, or reporting the post",
+          "pcm": "to check the employer through correct contact, to refuse to pay, or to report the post"
+        }
+      },
+      "help": {
+        "en": "Start here: 1. Ask: do real employers ask for money to register? 2. Say how {name} can check if the job is real, using {employer}'s own official contacts. 3. Write the reply {name} would send, in quotes.",
+        "pcm": "Start here: 1. Ask: real employer dey collect money to register? 2. Talk how {name} fit check if the work real, with {employer} correct contact. 3. Write the reply wey {name} go send, inside quote."
+      }
+    },
+    {
+      "id": "chal-001",
+      "courseId": "solar-pv",
+      "rubricId": "solar-rubric",
+      "text": {
+        "en": "A customer's solar light stopped charging. List three things you would check, in order.",
+        "pcm": "Customer solar light no dey charge again. List three things wey you go check, one after the other."
+      },
+      "lesson": "Solar PV Installation Basics (sample course): fault-finding when a system will not charge",
+      "recap": {
+        "en": "Fault-finding: check the simplest and most common causes first, then test one part at a time. A multimeter measures voltage: a panel in full sun should read close to the voltage on its label. Always switch off and disconnect before you touch wiring.",
+        "pcm": "To find fault: check the easy and common things first, then test one part at a time. Multimeter dey measure voltage: panel wey dey full sun suppose read near the voltage wey dey its label. Always off am and disconnect before you touch wire."
+      },
+      "help": {
+        "en": "Start here: 1. Name the parts: the panel, the cables and connections, the battery, the light. 2. Which one is quickest to check? Start there. 3. Write three checks, starting with First, Then and Finally, and say how you would test each one, for example with a multimeter.",
+        "pcm": "Start here: 1. Name the parts: the panel, the cable and connection, the battery, the light. 2. Which one quick pass to check? Start from there. 3. Write three checks, start with First, Then and Finally, and talk how you go test each one, like with multimeter."
+      },
+      "tools": {
+        "keywords": [
+          "multimeter",
+          "voltage",
+          "volt",
+          "output",
+          "measure",
+          "reading",
+          "fuse",
+          "charge controller"
+        ],
+        "named": {
+          "en": "testing the panel's output with a multimeter, checking the connections and fuse, or testing the battery",
+          "pcm": "to test the panel output with multimeter, to check the connection and fuse, or to test the battery"
+        }
+      }
+    }
+  ]
+}
