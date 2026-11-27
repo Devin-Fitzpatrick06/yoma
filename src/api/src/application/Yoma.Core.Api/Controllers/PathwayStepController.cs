@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Yoma.Core.Api.Attributes;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
@@ -10,9 +11,9 @@ namespace Yoma.Core.Api.Controllers
 {
   /// <summary>
   /// "My Yoma" iteration 4: lock and swap steps, step events for drop-off (W5), pathway health, and the YoID "My path" card.
-  /// TODO(lead): apply the Pathway:Enabled switch filter (A1) here as on PathwayController; it was not in this branch's base.
   /// </summary>
   [Route($"api/{Common.Constants.Api_Version}/pathway")]
+  [PathwayEnabled]
   [ApiController]
   [Authorize(Policy = Common.Constants.Authorization_Policy)]
   [SwaggerTag("(by default, User role required)")]

@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using StackExchange.Redis;
 using System.Net.Mime;
 using tusdotnet.Helpers;
+using Yoma.Core.Api.Attributes;
 using Yoma.Core.Api.Common;
 using Yoma.Core.Api.Middleware;
 using Yoma.Core.Domain;
@@ -210,6 +211,8 @@ namespace Yoma.Core.Api
       if (_appSettings.HttpsRedirectionEnabledEnvironmentsAsEnum.HasFlag(_environment)) app.UseHttpsRedirection();
       app.UseStaticFiles();
       app.UseRouting();
+      // Pathway:Enabled off: every /pathway endpoint answers 404, also before sign-in is checked
+      app.UsePathwayEnabledSwitch();
       app.UseCors();
       app.UseAuthentication();
       app.UseAuthorization();

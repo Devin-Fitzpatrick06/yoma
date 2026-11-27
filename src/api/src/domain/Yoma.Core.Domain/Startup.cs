@@ -116,6 +116,7 @@ namespace Yoma.Core.Domain
 
       #region Course Quality
       services.AddScoped<ICourseQualityService, CourseQualityService>();
+      services.AddScoped<ICourseQualityDraftService, CourseQualityDraftService>();
       services.AddScoped<ICourseQualityGradingService, CourseQualityGradingService>();
       services.AddScoped<ICourseQualityFeedbackService, CourseQualityFeedbackService>();
       services.AddScoped<ICourseQualityBackgroundService, CourseQualityBackgroundService>();
