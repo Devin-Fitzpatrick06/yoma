@@ -41,6 +41,19 @@ namespace Yoma.Core.Test.Pathway
     }
 
     [Fact]
+    public void UsuallyNext_NeverNamesAStepTakenByFewerThanFiveYouth()
+    {
+      var (a, b, c) = (Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+      var completions = Youth(16, a, b).Concat(Youth(4, a, c)).ToList();
+      var titles = new Dictionary<Guid, string> { [a] = "A", [b] = "B", [c] = "C" };
+
+      var next = PathwayNextSteps.Compute(completions, id => titles.GetValueOrDefault(id), 20, 2)[a];
+
+      // A has 20 completers, but only 4 went on to C: naming C would describe a handful of youth
+      Assert.Equal(["B"], next.Select(o => o.Title));
+    }
+
+    [Fact]
     public void UsuallyNext_IsHiddenBelowTheMinimumGroupSize()
     {
       var (a, b) = (Guid.NewGuid(), Guid.NewGuid());

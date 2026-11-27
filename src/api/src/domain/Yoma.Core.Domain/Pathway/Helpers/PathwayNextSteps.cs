@@ -10,6 +10,11 @@ namespace Yoma.Core.Domain.Pathway.Helpers
   /// </summary>
   public static class PathwayNextSteps
   {
+    /// <summary>
+    /// A next step is named only when at least this many youth took it, so no single youth's choice is published.
+    /// </summary>
+    public const int MinimumNextCount = 5;
+
     #region Public Members
     /// <param name="completions">Completed verifications of any opportunity type.</param>
     /// <param name="titleOf">The title of an opportunity youth can open today, null for one that is no longer listed (never shown).</param>
@@ -56,7 +61,7 @@ namespace Yoma.Core.Domain.Pathway.Helpers
 
         var steps = counts
           .Select(o => (o.Key, Count: o.Value, Title: titleOf(o.Key)))
-          .Where(o => !string.IsNullOrWhiteSpace(o.Title))
+          .Where(o => !string.IsNullOrWhiteSpace(o.Title) && o.Count >= Math.Min(MinimumNextCount, min))
           .OrderByDescending(o => o.Count).ThenBy(o => o.Key)
           .Take(max)
           .Select(o => new PathwayNextStep

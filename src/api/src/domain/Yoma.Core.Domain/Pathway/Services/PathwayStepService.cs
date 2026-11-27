@@ -88,7 +88,16 @@ namespace Yoma.Core.Domain.Pathway.Services
 
       var existing = _lockRepository.Query().FirstOrDefault(o => o.UserId == userId && o.OpportunityId == opportunityId);
       if (request.Locked && existing == null)
-        await _lockRepository.Create(new PathwayStepLockRecord { Id = Guid.NewGuid(), UserId = userId, OpportunityId = opportunityId });
+      {
+        try
+        {
+          await _lockRepository.Create(new PathwayStepLockRecord { Id = Guid.NewGuid(), UserId = userId, OpportunityId = opportunityId });
+        }
+        // a double submit lost the race to the unique index: the pin exists, which is what was asked
+        catch (Exception) when (_lockRepository.Query().Any(o => o.UserId == userId && o.OpportunityId == opportunityId))
+        {
+        }
+      }
       else if (!request.Locked && existing != null)
         await _lockRepository.Delete(existing);
       else
@@ -160,16 +169,26 @@ namespace Yoma.Core.Domain.Pathway.Services
         if (repeat) return;
       }
 
-      var myYoma = await _pathwayService.Get();
-      var stage = FindStage(myYoma, request.OpportunityId);
+      // Shown arrives once per card as the map scrolls: the goal comes from the saved profile and the stage is resolved
+      // when drop-off is aggregated, so opening the map does not rebuild the path once per card
+      string goalKey;
+      int? stageOrder = null;
+      if (request.Event == PathwayStepEventType.Shown)
+        goalKey = _pathwayService.GetProfile().GoalKey;
+      else
+      {
+        var myYoma = await _pathwayService.Get();
+        goalKey = myYoma.Profile.GoalKey;
+        stageOrder = FindStage(myYoma, request.OpportunityId)?.Order;
+      }
 
       await _eventRepository.Create(new PathwayStepEventRecord
       {
         Id = Guid.NewGuid(),
         UserId = userId,
         OpportunityId = request.OpportunityId,
-        GoalKey = myYoma.Profile.GoalKey,
-        StageOrder = stage?.Order,
+        GoalKey = goalKey,
+        StageOrder = stageOrder,
         Event = request.Event
       });
     }

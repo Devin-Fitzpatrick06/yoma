@@ -86,6 +86,9 @@ namespace Yoma.Core.Test.Pathway
           return Onboarded ? Task.FromResult(MyYoma) : throw new EntityNotFoundException("You have not set up My Yoma yet");
         });
 
+        pathway.Setup(o => o.GetProfile()).Returns(() =>
+          Onboarded ? MyYoma.Profile : throw new EntityNotFoundException("You have not set up My Yoma yet"));
+
         // the engine's ListAlternatives caps the list at Pathway:MaxAlternatives (3)
         pathway.Setup(o => o.ListAlternatives(It.IsAny<Guid>())).Returns((Guid id) =>
           MyYoma.Stages.Any(s => s.Courses.Any(c => c.OpportunityId == id)) ? Task.FromResult(Alternatives.Take(3).ToList()) : throw new EntityNotFoundException("This step is not on your path"));
