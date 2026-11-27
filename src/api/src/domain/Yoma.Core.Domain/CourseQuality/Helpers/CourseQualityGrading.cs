@@ -96,7 +96,8 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
         errors.Add($"The version must be 1 to {MaxVersionLength} characters");
 
       rubric.Factors ??= [];
-      foreach (var factor in Enum.GetValues<CourseGradeFactor>())
+      // the course factors only: the job factors have their own rubric
+      foreach (var factor in CourseQualityGradingDefaults.Factors.Keys)
       {
         if (!rubric.Factors.TryGetValue(factor, out var options) || options == null)
         {
@@ -158,8 +159,8 @@ namespace Yoma.Core.Domain.CourseQuality.Helpers
       if (rubric.AMinSyllabusScore is < 0 or > 100) errors.Add("The syllabus floor for A must be from 0 to 100");
       if (rubric.AMinFeedbackScore is < 0 or > 100) errors.Add("The feedback floor for A must be from 0 to 100");
       if (rubric.AFeedbackFloorMinResponses < 0) errors.Add("The answers needed before the feedback floor applies cannot be negative");
-      if (rubric.MinFactorsWithData < 0 || rubric.MinFactorsWithData > Enum.GetValues<CourseGradeFactor>().Length)
-        errors.Add($"The factors needed to grade must be from 0 to {Enum.GetValues<CourseGradeFactor>().Length}");
+      if (rubric.MinFactorsWithData < 0 || rubric.MinFactorsWithData > CourseQualityGradingDefaults.Factors.Count)
+        errors.Add($"The factors needed to grade must be from 0 to {CourseQualityGradingDefaults.Factors.Count}");
 
       return [.. errors.Distinct()];
     }

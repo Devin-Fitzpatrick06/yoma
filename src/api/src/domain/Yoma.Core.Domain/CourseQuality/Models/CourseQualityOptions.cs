@@ -35,7 +35,11 @@ namespace Yoma.Core.Domain.CourseQuality.Models
       [CourseQualityCriterion.LinkWorks] = new() { Weight = 20, HardGate = true },
       [CourseQualityCriterion.DatesAccurate] = new() { Weight = 30, HardGate = true },
       [CourseQualityCriterion.DataComplete] = new() { Weight = 15, HardGate = false },
-      [CourseQualityCriterion.FormatIdentified] = new() { Weight = 15, HardGate = false }
+      [CourseQualityCriterion.FormatIdentified] = new() { Weight = 15, HardGate = false },
+      [CourseQualityCriterion.JobOpen] = new() { Weight = 25, HardGate = true },
+      [CourseQualityCriterion.NoScamSignals] = new() { Weight = 25, HardGate = true },
+      [CourseQualityCriterion.JobDetailsClear] = new() { Weight = 35, HardGate = false },
+      [CourseQualityCriterion.JobFresh] = new() { Weight = 15, HardGate = false }
     };
 
     public int VerifiedScoreThreshold { get; set; } = 80;
@@ -130,6 +134,51 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public CourseGradeRubric Grading { get; set; } = CourseQualityGradingDefaults.Rubric();
 
     public CourseQualityLearnerFeedbackOptions LearnerFeedback { get; set; } = new();
+
+    public CourseQualityJobOptions Jobs { get; set; } = new();
+  }
+
+  /// <summary>
+  /// Job listings. Their criteria and weights sit in Criteria with the course ones; a score only ever counts the criteria
+  /// its own check produced, so the two never mix.
+  /// </summary>
+  public class CourseQualityJobOptions
+  {
+    /// <summary>
+    /// Off by default, so jobs are neither assessed nor queued for review until turned on.
+    /// </summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Separate from the course rubric version, so a change to one does not reassess the other catalogue.
+    /// </summary>
+    public string RubricVersion { get; set; } = "jobs-v1";
+
+    /// <summary>
+    /// Posted this many days ago or fewer counts as fresh.
+    /// </summary>
+    public int FreshDays { get; set; } = 45;
+
+    /// <summary>
+    /// Posted this many days ago or more counts as stale.
+    /// </summary>
+    public int StaleDays { get; set; } = 90;
+
+    /// <summary>
+    /// The checks read only the listing, so a clear result is near certain. Below 1, because the listing can still be wrong.
+    /// </summary>
+    public decimal RuleConfidence { get; set; } = 0.9m;
+
+    /// <summary>
+    /// Shows each job's status and grade in opportunity search and ranks graded jobs first, as ShowInBrowse does for courses.
+    /// Off by default, so job search stays as it is until turned on. Needs Enabled.
+    /// </summary>
+    public bool ShowInBrowse { get; set; }
+
+    /// <summary>
+    /// The job grading rubric. Jobs are ranked only against other jobs. Configuration only for now: the rubric page edits courses.
+    /// </summary>
+    public CourseGradeRubric Grading { get; set; } = CourseQualityJobGradingDefaults.Rubric();
   }
 
   public class CourseQualitySelfPacedProvider

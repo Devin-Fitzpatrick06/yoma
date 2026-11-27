@@ -13,14 +13,25 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     LinkWorks,
     DatesAccurate,
     DataComplete,
-    FormatIdentified
+    FormatIdentified,
+
+    // jobs: checked from the listing and its feed, not from a course page
+    JobOpen,
+    JobDetailsClear,
+    JobFresh,
+    NoScamSignals
   }
 
   public enum CourseFormat
   {
     Unknown,
     Course,
-    Webinar
+    Webinar,
+
+    /// <summary>
+    /// A job listing. Set from the opportunity type, never detected, so a job never waits for a format.
+    /// </summary>
+    Job
   }
 
   public enum CourseQualityReviewStatus
@@ -211,6 +222,11 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     /// Only courses with this grade.
     /// </summary>
     public CourseGrade? Grade { get; set; }
+
+    /// <summary>
+    /// Only courses (Learning) or only jobs (Job). Null lists both.
+    /// </summary>
+    public Opportunity.Type? OpportunityType { get; set; }
 
     public int PageNumber { get; set; } = 1;
 

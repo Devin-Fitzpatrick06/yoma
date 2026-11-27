@@ -139,7 +139,7 @@ const ConfidenceMeter: React.FC<{ confidence: number }> = ({ confidence }) => {
         </span>
         <span className="text-gray-dark text-xs">
           {below
-            ? `${threshold - percent} points under the ${threshold}% needed to decide on its own`
+            ? `${threshold - percent} ${threshold - percent === 1 ? "point" : "points"} under the ${threshold}% needed to decide on its own`
             : `At or above the ${threshold}% threshold`}
         </span>
       </div>

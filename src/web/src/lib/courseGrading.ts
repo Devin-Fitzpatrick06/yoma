@@ -2,6 +2,7 @@ import type {
   CourseGrade,
   CourseGradeBand,
   CourseGradeFactor,
+  JobGradeFactor,
   CourseGradeFactorRow,
   CourseGradeRubric,
 } from "~/api/models/courseQuality";
@@ -45,6 +46,23 @@ export const GRADE_FACTOR_LABELS: Record<CourseGradeFactor, string> = {
   ListingIntegrity: "Listing integrity",
   Accessibility: "Accessibility",
 };
+
+export const JOB_GRADE_FACTOR_LABELS: Record<JobGradeFactor, string> = {
+  PayTransparency: "Pay stated",
+  JobClarity: "Job details",
+  YouthFit: "Youth fit",
+  ListingSafety: "Listing safety",
+  PartnerReliability: "Partner reliability",
+  ApplicantFeedback: "Applicant feedback",
+};
+
+/** The label of a course or job grade factor, as a grade breakdown shows it. */
+export const gradeFactorLabel = (
+  factor: CourseGradeFactor | JobGradeFactor,
+): string =>
+  (GRADE_FACTOR_LABELS as Record<string, string>)[factor] ??
+  (JOB_GRADE_FACTOR_LABELS as Record<string, string>)[factor] ??
+  factor;
 
 export const GRADES: CourseGrade[] = ["A", "B", "C", "D", "Ungraded"];
 

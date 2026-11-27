@@ -15,12 +15,17 @@ export const CRITERION_LABELS: Record<CourseQualityCriterion, string> = {
   DatesAccurate: "Dates are accurate",
   DataComplete: "Data is complete",
   FormatIdentified: "Format is identified",
+  JobOpen: "Job is open",
+  JobDetailsClear: "Job details are clear",
+  JobFresh: "Recently posted",
+  NoScamSignals: "No scam warning signs",
 };
 
 export const FORMAT_LABELS: Record<CourseFormat, string> = {
   Course: "Course",
   Webinar: "Webinar",
   Unknown: "Format not identified",
+  Job: "Job",
 };
 
 export const STATUS_LABELS: Record<CourseQualityStatus, string> = {

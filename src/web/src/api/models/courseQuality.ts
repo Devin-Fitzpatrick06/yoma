@@ -5,9 +5,13 @@ export type CourseQualityCriterion =
   | "LinkWorks"
   | "DatesAccurate"
   | "DataComplete"
-  | "FormatIdentified";
+  | "FormatIdentified"
+  | "JobOpen"
+  | "JobDetailsClear"
+  | "JobFresh"
+  | "NoScamSignals";
 
-export type CourseFormat = "Unknown" | "Course" | "Webinar";
+export type CourseFormat = "Unknown" | "Course" | "Webinar" | "Job";
 
 export type CourseQualityReviewStatus =
   | "NotRequired"
@@ -131,10 +135,19 @@ export type CourseGradeFactor =
   | "ListingIntegrity"
   | "Accessibility";
 
+/** Job grade factors: graded with the job rubric and ranked only against other jobs. Never part of the course rubric. */
+export type JobGradeFactor =
+  | "PayTransparency"
+  | "JobClarity"
+  | "YouthFit"
+  | "ListingSafety"
+  | "PartnerReliability"
+  | "ApplicantFeedback";
+
 export type CourseGrade = "Ungraded" | "A" | "B" | "C" | "D";
 
 export interface CourseGradeFactorResult {
-  factor: CourseGradeFactor;
+  factor: CourseGradeFactor | JobGradeFactor;
   /** 0 to 100 before weighting. */
   score: number;
   /** Share of 100 across the factors. */

@@ -140,6 +140,94 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     }
 
     /// <summary>
+    /// A job: checked from the listing and its feed, with no page reader. A job the feed still lists is open; one a partner
+    /// posted on Yoma is open while its link works. A strong scam signal or a link that said nothing either way goes to a
+    /// person; a job that is definitely closed is not verified without one.
+    /// </summary>
+    /// <param name="link">Null for a job from a partner feed.</param>
+    public static CourseQualityAssessment AssessJob(Opportunity.Models.Opportunity opportunity, CourseQualityLinkCheckResult? link,
+      CourseQualityOptions options, DateTimeOffset now, out CourseQualityFreshCheck fresh)
+    {
+      ArgumentNullException.ThrowIfNull(opportunity, nameof(opportunity));
+      ArgumentNullException.ThrowIfNull(options, nameof(options));
+
+      var rules = CourseQualityJobRules.Evaluate(opportunity, link, options.Jobs, now, out var signals);
+      var criteria = rules.Select(o => new CourseQualityCriterionResult
+      {
+        Criterion = o.Criterion,
+        Score = o.Score,
+        Reason = o.Reason,
+        Recommendation = o.Recommendation,
+        HardGateFailed = o.Failed && options.Criteria.TryGetValue(o.Criterion, out var criterion) && criterion.HardGate
+      }).ToList();
+
+      var open = rules.Single(o => o.Criterion == CourseQualityCriterion.JobOpen);
+      var definite = open.Failed;
+      var inconclusive = rules.Any(o => o.Inconclusive);
+      var scam = signals.Any(o => o.Strong);
+      var partner = CourseQualityJobRules.FeedPartner(opportunity);
+
+      fresh = new CourseQualityFreshCheck
+      {
+        DefiniteFailure = definite,
+        // the feed is the proof for a pulled job, so its partner stands in for the host a reviewer's decision was made on
+        HttpSuccess = partner.HasValue || link?.Outcome == CourseQualityLinkOutcome.Reachable,
+        Inconclusive = inconclusive,
+        FinalHost = partner.HasValue ? $"feed:{partner.Value.ToString().ToLowerInvariant()}"
+          : Uri.TryCreate(link?.FinalUrl, UriKind.Absolute, out var final) ? final.IdnHost.ToLowerInvariant() : null,
+        PageGone = false,
+        StrongMatch = true,
+        ProviderLinkFailed = false
+      };
+
+      var score = Score(criteria, options);
+      var confidence = Math.Clamp(options.Jobs.RuleConfidence, 0m, 1m);
+      if (inconclusive) confidence -= options.InconclusiveLinkConfidencePenalty;
+      confidence = Math.Round(Math.Clamp(confidence, 0m, 1m), ConfidenceDecimals, MidpointRounding.AwayFromZero);
+
+      var (status, reviewStatus) = Route(score, confidence, criteria.Any(o => o.HardGateFailed), definite, scam || inconclusive, options);
+
+      List<string> reasons = [];
+      if (reviewStatus == CourseQualityReviewStatus.Pending)
+      {
+        reasons.AddRange(signals.Where(o => o.Strong).Select(o => $"{o.Reason} It reads: \"{o.Quote}\"."));
+        if (inconclusive) reasons.Add($"The link to apply could not be confirmed either way ({LinkFailure(link!)}), so confidence was lowered by {options.InconclusiveLinkConfidencePenalty.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)}.");
+      }
+
+      var assessment = new CourseQualityAssessment
+      {
+        Id = Guid.NewGuid(),
+        OpportunityId = opportunity.Id,
+        OpportunityTitle = opportunity.Title,
+        OrganizationId = opportunity.OrganizationId,
+        OrganizationName = opportunity.OrganizationName,
+        RubricVersion = options.Jobs.RubricVersion,
+        Score = score,
+        Confidence = confidence,
+        Status = status,
+        ReviewStatus = reviewStatus,
+        Criteria = criteria,
+        AIUsed = false,
+        DateAssessed = now,
+        ReviewReasons = reasons,
+        LearnerCard = new LearnerCard
+        {
+          OpportunityId = opportunity.Id,
+          Status = status,
+          Format = CourseFormat.Job,
+          DateStart = opportunity.DateStart,
+          DateEnd = opportunity.DateEnd,
+          CommitmentHours = opportunity.CommitmentIntervalTotalHours,
+          Cost = new LearnerCardCost { Type = CourseCostType.Unknown },
+          DateAssessed = now
+        }
+      };
+
+      RefreshOutputs(assessment);
+      return assessment;
+    }
+
+    /// <summary>
     /// Rebuilds the card status, highlights and fix note from the assessment's final status.
     /// A fix note exists only for NotVerified, so a NeedsReview listing gets one only once a reviewer resolves it that way.
     /// </summary>
@@ -159,6 +247,11 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     {
       ArgumentNullException.ThrowIfNull(assessment, nameof(assessment));
       ArgumentNullException.ThrowIfNull(options, nameof(options));
+
+      // a job's format comes from its type, and a course's can never be Job
+      if ((format == CourseFormat.Job) != (assessment.LearnerCard.Format == CourseFormat.Job))
+        throw new InvalidOperationException("A job's format cannot be changed, and a course cannot be marked as a job");
+      if (format == CourseFormat.Job) return;
 
       assessment.LearnerCard.Format = format;
 
@@ -390,6 +483,10 @@ namespace Yoma.Core.Domain.CourseQuality.Services
           CourseQualityCriterion.DatesAccurate => "Dates checked",
           CourseQualityCriterion.DataComplete => "Key details provided",
           CourseQualityCriterion.FormatIdentified => "Format confirmed",
+          CourseQualityCriterion.JobOpen => "Job is open",
+          CourseQualityCriterion.JobDetailsClear => "Pay and key details stated",
+          CourseQualityCriterion.JobFresh => "Recently posted",
+          CourseQualityCriterion.NoScamSignals => "No scam warning signs",
           _ => throw new InvalidOperationException($"{nameof(CourseQualityCriterion)} of '{item.Criterion}' not supported")
         });
       }
@@ -415,15 +512,20 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         .Where(o => !(assessment.LearnerCard.SelfPaced && o.Criterion == CourseQualityCriterion.DatesAccurate))
         .ToList();
 
+      var job = assessment.LearnerCard.Format == CourseFormat.Job;
+      var noun = job ? "job" : "course";
+
       string summary;
       if (assessment.ReviewStatus is CourseQualityReviewStatus.Confirmed or CourseQualityReviewStatus.Overridden)
         summary = issues.Count > 0
-          ? "A reviewer could not verify this course yet. The items below need attention."
-          : "A reviewer could not verify this course yet. Please check that the listing matches the course page.";
+          ? $"A reviewer could not verify this {noun} yet. The items below need attention."
+          : job
+            ? "A reviewer could not verify this job yet. Please check that the listing matches the job advert."
+            : "A reviewer could not verify this course yet. Please check that the listing matches the course page.";
       else if (issues.Any(o => o.HardGateFailed))
-        summary = "This course is not verified yet because a required check did not pass. The items below need attention.";
+        summary = $"This {noun} is not verified yet because a required check did not pass. The items below need attention.";
       else
-        summary = "This course is not verified yet because its score is below the required level. The items below will raise it.";
+        summary = $"This {noun} is not verified yet because its score is below the required level. The items below will raise it.";
 
       return new PartnerFixNote
       {
