@@ -412,6 +412,9 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       {
         assessment.Grade = grades.GetValueOrDefault(assessment.OpportunityId);
         assessment.Feedback = feedback.GetValueOrDefault(assessment.OpportunityId);
+
+        // no drop-off data until the pilot: the reviewer card shows the reserved slot, never a number
+        assessment.DropOff = CourseQualityDropOff.Collecting();
         SetCardGrade(assessment.LearnerCard, assessment.Grade);
       }
     }

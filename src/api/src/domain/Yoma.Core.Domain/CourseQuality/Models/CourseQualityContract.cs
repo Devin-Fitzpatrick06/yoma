@@ -210,6 +210,37 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     /// What learners said, or null when nobody has answered.
     /// </summary>
     public CourseFeedbackSummary? Feedback { get; set; }
+
+    /// <summary>
+    /// Pathway drop-off on this listing for the reviewer card (iteration 4, W5). Always "Collecting" until the pilot gives data;
+    /// set with the grade, null on an assessment that has not been through the service.
+    /// </summary>
+    public CourseQualityDropOff? DropOff { get; set; }
+  }
+
+  public enum CourseQualityDropOffStatus
+  {
+    Collecting,
+    Available
+  }
+
+  /// <summary>
+  /// Mirrors StepDropOff in the web's pathway.ts. No drop-off data exists yet, so nothing invented is shown: only Collecting.
+  /// </summary>
+  public class CourseQualityDropOff
+  {
+    public const string CollectingNote = "Collecting from the pilot";
+
+    public CourseQualityDropOffStatus Status { get; set; }
+
+    /// <summary>
+    /// Share who started and did not continue, once Available; null while collecting.
+    /// </summary>
+    public decimal? Rate { get; set; }
+
+    public string Note { get; set; } = null!;
+
+    public static CourseQualityDropOff Collecting() => new() { Status = CourseQualityDropOffStatus.Collecting, Rate = null, Note = CollectingNote };
   }
 
   public class CourseQualityReviewSearchFilter

@@ -45,6 +45,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         Opportunity.Type.Learning => "course",
         Opportunity.Type.Event => "event",
         Opportunity.Type.Job => "job",
+        Opportunity.Type.ImpactAction => "impact action",
         _ => "opportunity"
       };
     }
