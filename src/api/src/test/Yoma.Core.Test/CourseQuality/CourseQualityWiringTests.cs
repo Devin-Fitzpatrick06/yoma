@@ -410,6 +410,7 @@ namespace Yoma.Core.Test.CourseQuality
     [InlineData(nameof(CourseQualityController.ListPendingFeedback), "GET", "feedback/pending")]
     [InlineData(nameof(CourseQualityController.SubmitFeedback), "POST", "opportunity/{opportunityId}/feedback")]
     [InlineData(nameof(CourseQualityController.GetFeedbackSummary), "GET", "opportunity/{opportunityId}/feedback/summary")]
+    [InlineData(nameof(CourseQualityController.CheckDraft), "POST", "organization/{organizationId}/draft/check")]
     public void Routes_MatchTheContract(string action, string method, string template)
     {
       var attribute = Action(action).GetCustomAttribute<HttpMethodAttribute>()!;
@@ -435,6 +436,7 @@ namespace Yoma.Core.Test.CourseQuality
     [InlineData(nameof(CourseQualityController.ListPendingFeedback), "User")]
     [InlineData(nameof(CourseQualityController.SubmitFeedback), "User")]
     [InlineData(nameof(CourseQualityController.GetFeedbackSummary), "Admin, OrganisationAdmin")]
+    [InlineData(nameof(CourseQualityController.CheckDraft), "Admin, OrganisationAdmin")]
     public void Roles_MatchTheContract(string action, string roles)
     {
       Assert.Equal(roles, Action(action).GetCustomAttribute<AuthorizeAttribute>()!.Roles);
@@ -546,7 +548,7 @@ namespace Yoma.Core.Test.CourseQuality
       {
         "id", "opportunityId", "opportunityTitle", "organizationId", "organizationName", "rubricVersion", "score", "confidence", "status",
         "reviewStatus", "criteria", "aiUsed", "aiModel", "aiSummary", "learnerCard", "fixNote", "reviewedByEmail", "reviewNote", "dateReviewed", "dateAssessed",
-        "reviewReasons", "grade", "feedback"
+        "reviewReasons", "grade", "feedback", "dropOff"
       };
       Assert.Equal(expected.Order(), json.Properties().Select(o => o.Name).Order());
 

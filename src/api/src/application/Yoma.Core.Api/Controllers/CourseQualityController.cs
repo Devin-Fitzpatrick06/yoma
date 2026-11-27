@@ -280,6 +280,22 @@ namespace Yoma.Core.Api.Controllers
       return StatusCode((int)HttpStatusCode.OK, result);
     }
 
+    [SwaggerOperation(Summary = "Check a draft listing before it is published, storing nothing; 404 unless the pre-publish check is on (Admin or Organization Admin roles required)")]
+    [HttpPost("organization/{organizationId}/draft/check")]
+    [ProducesResponseType(typeof(DraftCheckResult), (int)HttpStatusCode.OK)]
+    [Authorize(Roles = $"{Constants.Role_Admin}, {Constants.Role_OrganizationAdmin}")]
+    public async Task<IActionResult> CheckDraft([FromRoute] Guid organizationId, [FromBody] CourseQualityDraftRequest request,
+      [FromServices] ICourseQualityDraftService draftService)
+    {
+      if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Handling request {requestName}", nameof(CheckDraft));
+
+      var result = await draftService.Check(organizationId, request, HttpContext.RequestAborted);
+
+      if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Request {requestName} handled", nameof(CheckDraft));
+
+      return StatusCode((int)HttpStatusCode.OK, result);
+    }
+
     [SwaggerOperation(Summary = "Get what learners said about a course; comments for Admins only (Admin or Organization Admin roles required)")]
     [HttpGet("opportunity/{opportunityId}/feedback/summary")]
     [ProducesResponseType(typeof(CourseFeedbackSummary), (int)HttpStatusCode.OK)]

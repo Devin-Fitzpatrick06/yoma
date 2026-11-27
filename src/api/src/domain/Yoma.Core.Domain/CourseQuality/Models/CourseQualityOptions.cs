@@ -137,16 +137,16 @@ namespace Yoma.Core.Domain.CourseQuality.Models
 
     /// <summary>
     /// Opportunity types whose listings are checked (live, link works, real dates, enough data). Only Learning is graded or
-    /// shown on a learner card; Event gets the listing checks only (jobs have their own checks and grades under Jobs), so a held-back one reaches the review queue and
-    /// the partner's fix notes. Configuration adds to this list, so Learning is always checked. Types other than Learning
-    /// and Event are ignored until a product decision says what "good" means for them.
+    /// shown on a learner card; Event and ImpactAction get the listing checks only, with no grade (jobs have their own checks and
+    /// grades under Jobs), so a held-back one reaches the review queue and the partner's fix notes. Configuration adds to this
+    /// list, so Learning is always checked. Other types are ignored until a product decision says what "good" means for them.
     /// </summary>
     public List<Opportunity.Type> VerifyTypes { get; set; } = [Opportunity.Type.Learning];
 
-    public static readonly Opportunity.Type[] SupportedVerifyTypes = [Opportunity.Type.Learning, Opportunity.Type.Event];
+    public static readonly Opportunity.Type[] SupportedVerifyTypes = [Opportunity.Type.Learning, Opportunity.Type.Event, Opportunity.Type.ImpactAction];
 
     /// <summary>
-    /// The types checked by the listing rules: Learning always, plus Event when configured. Jobs are added by Jobs:Enabled.
+    /// The types checked by the listing rules: Learning always, plus Event and ImpactAction when configured. Jobs are added by Jobs:Enabled.
     /// </summary>
     public List<Opportunity.Type> VerifiedTypes()
     {
@@ -154,6 +154,9 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     }
 
     public CourseQualityJobOptions Jobs { get; set; } = new();
+
+    // TEMPORARY (A2): engineer A1 owns this section; see CourseQualityPrePublishOptions.cs
+    public CourseQualityPrePublishOptions PrePublish { get; set; } = new();
   }
 
   /// <summary>
