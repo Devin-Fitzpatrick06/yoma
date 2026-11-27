@@ -1,6 +1,6 @@
 # Ziqi iteration 4: answer Yoma's AI-use-case note, and a visual journey map
 
-Status: planning
+Status: review — built into the demo; see handoffs/2026-11-27-i4.md
 
 Source: "Yoma AI use cases mapped against the BBS concepts" (Yoma, 19 Nov 2026, working draft). Builds on
 `handoffs/2026-11-27-a.md`. Branch: `feature/course-quality-judger`. Everything below ships **into the demo first**,

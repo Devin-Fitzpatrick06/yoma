@@ -1,6 +1,6 @@
 # Iteration 4: teams, engineers and handoffs
 
-Status: in-progress
+Status: review — integrated, reviewed and tested; see handoffs/2026-11-27-i4.md
 
 Plan: `iteration-4.md` (W0–W7). Lead: the integrating session. Base commit for every engineer: the commit that adds this
 file. Every engineer works in its own worktree and branch, commits there, never pushes; the lead merges.
