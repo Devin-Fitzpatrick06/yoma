@@ -41,6 +41,7 @@ namespace Yoma.Core.Domain.Pathway.Badges.Models
     Bronze,
     Silver,
     Gold,
+    Platinum,
     NotEnoughGraded
   }
 
@@ -76,5 +77,10 @@ namespace Yoma.Core.Domain.Pathway.Badges.Models
     /// What the partner would need to reach the next level, in plain words, and how many courses are waiting for review.
     /// </summary>
     public string? NextLevelHint { get; set; }
+
+    /// <summary>
+    /// Badges are reviewed each quarter: the first day of the next calendar quarter (UTC). Serialized as an ISO date ("2027-01-01").
+    /// </summary>
+    public DateOnly ReviewDue { get; set; }
   }
 }

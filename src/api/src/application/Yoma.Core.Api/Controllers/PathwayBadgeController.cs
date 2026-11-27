@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
+using Yoma.Core.Api.Attributes;
 using Yoma.Core.Domain.Core;
 using Yoma.Core.Domain.Pathway.Badges.Interfaces;
 using Yoma.Core.Domain.Pathway.Badges.Models;
@@ -10,6 +11,7 @@ namespace Yoma.Core.Api.Controllers
 {
   [Route($"api/{Common.Constants.Api_Version}/pathway/badges")]
   [ApiController]
+  [PathwayEnabled]
   [Authorize(Policy = Common.Constants.Authorization_Policy)]
   [SwaggerTag("(by default, User role required)")]
   public class PathwayBadgeController : ControllerBase
@@ -40,6 +42,22 @@ namespace Yoma.Core.Api.Controllers
       var result = _pathwayBadgeService.GetPartnerBadge(organizationId);
 
       if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Request {requestName} handled", nameof(GetPartnerBadge));
+
+      return StatusCode((int)HttpStatusCode.OK, result);
+    }
+
+    [SwaggerOperation(Summary = "List partner badges for up to 50 organisations in one call, for course cards (Anonymous)",
+      Description = "ids: comma-separated organisation ids. Badges come back in the order asked, each organisation once; organisations that do not exist or are not active are left out. 400 for no ids, a malformed id or more than 50.")]
+    [HttpGet("organizations")]
+    [ProducesResponseType(typeof(List<PartnerBadge>), (int)HttpStatusCode.OK)]
+    [AllowAnonymous]
+    public IActionResult ListPartnerBadges([FromQuery] string? ids)
+    {
+      if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Handling request {requestName}", nameof(ListPartnerBadges));
+
+      var result = _pathwayBadgeService.ListPartnerBadges(ids);
+
+      if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Request {requestName} handled", nameof(ListPartnerBadges));
 
       return StatusCode((int)HttpStatusCode.OK, result);
     }

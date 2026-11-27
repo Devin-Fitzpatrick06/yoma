@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using System.ComponentModel.DataAnnotations;
 using Yoma.Core.Domain.Core.Exceptions;
 using Yoma.Core.Domain.Core.Helpers;
 using Yoma.Core.Domain.Core.Interfaces;
@@ -8,6 +9,7 @@ using Yoma.Core.Domain.CourseQuality.Models;
 using Yoma.Core.Domain.Entity;
 using Yoma.Core.Domain.Entity.Interfaces;
 using Yoma.Core.Domain.Entity.Interfaces.Lookups;
+using Yoma.Core.Domain.Entity.Models;
 using Yoma.Core.Domain.MyOpportunity;
 using Yoma.Core.Domain.MyOpportunity.Interfaces;
 using Yoma.Core.Domain.Opportunity;
@@ -34,7 +36,7 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
     private readonly PartnerBadgeOptions _partnerOptions;
     private readonly LearnerBadgeOptions _learnerOptions;
     private readonly IUserService _userService;
-    private readonly IOrganizationService _organizationService;
+    private readonly IRepositoryBatchedValueContainsWithNavigation<Organization> _organizationRepository;
     private readonly IOpportunityTypeService _opportunityTypeService;
     private readonly IOpportunityStatusService _opportunityStatusService;
     private readonly IOrganizationStatusService _organizationStatusService;
@@ -56,7 +58,7 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
       IOptions<PartnerBadgeOptions> partnerOptions,
       IOptions<LearnerBadgeOptions> learnerOptions,
       IUserService userService,
-      IOrganizationService organizationService,
+      IRepositoryBatchedValueContainsWithNavigation<Organization> organizationRepository,
       IOpportunityTypeService opportunityTypeService,
       IOpportunityStatusService opportunityStatusService,
       IOrganizationStatusService organizationStatusService,
@@ -76,7 +78,7 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
       _partnerOptions = partnerOptions?.Value ?? throw new ArgumentNullException(nameof(partnerOptions));
       _learnerOptions = learnerOptions?.Value ?? throw new ArgumentNullException(nameof(learnerOptions));
       _userService = userService ?? throw new ArgumentNullException(nameof(userService));
-      _organizationService = organizationService ?? throw new ArgumentNullException(nameof(organizationService));
+      _organizationRepository = organizationRepository ?? throw new ArgumentNullException(nameof(organizationRepository));
       _opportunityTypeService = opportunityTypeService ?? throw new ArgumentNullException(nameof(opportunityTypeService));
       _opportunityStatusService = opportunityStatusService ?? throw new ArgumentNullException(nameof(opportunityStatusService));
       _organizationStatusService = organizationStatusService ?? throw new ArgumentNullException(nameof(organizationStatusService));
@@ -114,11 +116,73 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
       if (organizationId == Guid.Empty) throw new ArgumentNullException(nameof(organizationId));
 
       // one message for every case, so the response does not reveal an organisation that is not public
-      var organization = _organizationService.GetByIdOrNull(organizationId, false, false, false);
-      if (organization == null || organization.Status != OrganizationStatus.Active)
-        throw new EntityNotFoundException($"Organization with id '{organizationId}' does not exist");
+      return ListPartnerBadges([organizationId]).SingleOrDefault()
+        ?? throw new EntityNotFoundException($"Organization with id '{organizationId}' does not exist");
+    }
 
-      return PartnerBadgeCalculator.Calculate(organization.Id, organization.Name, CountPartnerCourses(organization.Id), _partnerOptions);
+    public List<PartnerBadge> ListPartnerBadges(string? organizationIds)
+    {
+      return ListPartnerBadges(ParseOrganizationIds(organizationIds, _partnerOptions.MaxOrganizationsPerRequest));
+    }
+
+    /// <summary>
+    /// The comma-separated ids of a batched request, in order, each once. Throws ValidationException (400) for none, a malformed id
+    /// or more than <paramref name="max"/> distinct ids.
+    /// </summary>
+    public static List<Guid> ParseOrganizationIds(string? organizationIds, int max)
+    {
+      var parts = (organizationIds ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+      if (parts.Length == 0) throw new ValidationException("At least one organization id is required");
+
+      var result = new List<Guid>();
+      foreach (var part in parts)
+      {
+        if (!Guid.TryParse(part, out var id) || id == Guid.Empty) throw new ValidationException($"'{part}' is not a valid organization id");
+        if (!result.Contains(id)) result.Add(id);
+      }
+
+      if (result.Count > max) throw new ValidationException($"At most {max} organization ids per request ({result.Count} requested)");
+
+      return result;
+    }
+
+    /// <summary>
+    /// Pure: one badge per requested organisation that is public, in the order requested. Organisations that do not exist or are not
+    /// active are left out without saying which, as the single endpoint answers them all with the same 404.
+    /// </summary>
+    public static List<PartnerBadge> BuildPartnerBadges(IReadOnlyList<Guid> organizationIds, IReadOnlyDictionary<Guid, string> activeOrganizationNames,
+      IReadOnlyDictionary<Guid, PartnerBadgeCounts> counts, PartnerBadgeOptions options, DateTimeOffset now)
+    {
+      ArgumentNullException.ThrowIfNull(organizationIds, nameof(organizationIds));
+      ArgumentNullException.ThrowIfNull(activeOrganizationNames, nameof(activeOrganizationNames));
+      ArgumentNullException.ThrowIfNull(counts, nameof(counts));
+
+      return [.. organizationIds.Distinct()
+        .Where(activeOrganizationNames.ContainsKey)
+        .Select(id => PartnerBadgeCalculator.Calculate(id, activeOrganizationNames[id], counts.GetValueOrDefault(id) ?? new PartnerBadgeCounts(0, 0, 0, 0), options, now))];
+    }
+
+    /// <summary>
+    /// Pure: per organisation, over its publicly visible Learning courses: grades A to D, held back (latest Not verified, no grade) and
+    /// waiting (latest needs review, no grade). An organisation with none of these has no entry.
+    /// </summary>
+    public static Dictionary<Guid, PartnerBadgeCounts> CountByOrganization(IEnumerable<PartnerCourseGradeRow> grades, IEnumerable<PartnerCourseAssessmentRow> latest)
+    {
+      ArgumentNullException.ThrowIfNull(grades, nameof(grades));
+      ArgumentNullException.ThrowIfNull(latest, nameof(latest));
+
+      var graded = grades.Where(o => o.Grade != CourseGrade.Ungraded).ToList();
+      var gradedIds = graded.Select(o => o.OpportunityId).ToHashSet();
+      var ungraded = latest.Where(o => !gradedIds.Contains(o.OpportunityId)).ToList();
+
+      var gradedBy = graded.ToLookup(o => o.OrganizationId);
+      var ungradedBy = ungraded.ToLookup(o => o.OrganizationId);
+
+      return gradedBy.Select(o => o.Key).Concat(ungradedBy.Select(o => o.Key)).Distinct().ToDictionary(id => id, id => new PartnerBadgeCounts(
+        TopGrades: gradedBy[id].Count(o => o.Grade is CourseGrade.A or CourseGrade.B),
+        Graded: gradedBy[id].Count(),
+        HeldBack: ungradedBy[id].Count(o => o.Status == CourseQualityStatus.NotVerified),
+        WaitingForReview: ungradedBy[id].Count(o => o.Status == CourseQualityStatus.NeedsReview)));
     }
     #endregion
 
@@ -170,16 +234,41 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
     }
 
     /// <summary>
-    /// The organisation's publicly visible Learning courses, as a subquery.
+    /// The organisations' publicly visible Learning courses, as a subquery.
     /// </summary>
-    public static IQueryable<Guid> QueryPartnerCourseIds(IQueryable<Opportunity.Models.Opportunity> opportunities, Guid organizationId, Guid typeLearningId,
-      Guid statusActiveId, Guid organizationStatusActiveId)
+    public static IQueryable<PartnerCourseRow> QueryPartnerCourses(IQueryable<Opportunity.Models.Opportunity> opportunities, IReadOnlyCollection<Guid> organizationIds,
+      Guid typeLearningId, Guid statusActiveId, Guid organizationStatusActiveId)
     {
       ArgumentNullException.ThrowIfNull(opportunities, nameof(opportunities));
+      ArgumentNullException.ThrowIfNull(organizationIds, nameof(organizationIds));
 
-      return opportunities.Where(o => o.OrganizationId == organizationId && o.TypeId == typeLearningId
+      return opportunities.Where(o => organizationIds.Contains(o.OrganizationId) && o.TypeId == typeLearningId
         && o.StatusId == statusActiveId && o.OrganizationStatusId == organizationStatusActiveId && (!o.Hidden.HasValue || o.Hidden == false))
-        .Select(o => o.Id);
+        .Select(o => new PartnerCourseRow { Id = o.Id, OrganizationId = o.OrganizationId });
+    }
+
+    /// <summary>
+    /// The courses' grades: one query for every organisation.
+    /// </summary>
+    public static IQueryable<PartnerCourseGradeRow> QueryPartnerGrades(IQueryable<CourseQualityGradeRecord> grades, IQueryable<PartnerCourseRow> courses)
+    {
+      ArgumentNullException.ThrowIfNull(grades, nameof(grades));
+      ArgumentNullException.ThrowIfNull(courses, nameof(courses));
+
+      return grades.Join(courses, o => o.OpportunityId, o => o.Id, (grade, course) =>
+        new PartnerCourseGradeRow { OrganizationId = course.OrganizationId, OpportunityId = grade.OpportunityId, Grade = grade.Grade });
+    }
+
+    /// <summary>
+    /// The courses' latest assessments: one query for every organisation.
+    /// </summary>
+    public static IQueryable<PartnerCourseAssessmentRow> QueryPartnerLatestAssessments(IQueryable<CourseQualityAssessmentRecord> assessments, IQueryable<PartnerCourseRow> courses)
+    {
+      ArgumentNullException.ThrowIfNull(assessments, nameof(assessments));
+      ArgumentNullException.ThrowIfNull(courses, nameof(courses));
+
+      return assessments.Where(o => o.IsLatest).Join(courses, o => o.OpportunityId, o => o.Id, (assessment, course) =>
+        new PartnerCourseAssessmentRow { OrganizationId = course.OrganizationId, OpportunityId = assessment.OpportunityId, Status = assessment.Status });
     }
 
     /// <summary>
@@ -197,32 +286,54 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
     }
 
     /// <summary>
-    /// Over the organisation's publicly visible Learning courses: grades A to D, held back (latest Not verified) and waiting
-    /// (latest needs review, no grade). Event and Job assessments never count, because only courses are graded.
+    /// Three queries whatever the number of organisations: the active ones among them, their courses' grades, and their courses'
+    /// latest assessments. Event and Job assessments never count, because only courses are graded.
     /// </summary>
-    private PartnerBadgeCounts CountPartnerCourses(Guid organizationId)
+    private List<PartnerBadge> ListPartnerBadges(List<Guid> organizationIds)
     {
-      var typeLearningId = _opportunityTypeService.GetByName(Opportunity.Type.Learning.ToString()).Id;
-      var statusActiveId = _opportunityStatusService.GetByName(Status.Active.ToString()).Id;
       var organizationStatusActiveId = _organizationStatusService.GetByName(OrganizationStatus.Active.ToString()).Id;
 
-      var courseIds = QueryPartnerCourseIds(_opportunityRepository.Query(), organizationId, typeLearningId, statusActiveId, organizationStatusActiveId);
+      var names = _organizationRepository.Query().Where(o => organizationIds.Contains(o.Id) && o.StatusId == organizationStatusActiveId)
+        .Select(o => new { o.Id, o.Name }).ToDictionary(o => o.Id, o => o.Name);
+      if (names.Count == 0) return [];
 
-      var grades = _gradeRepository.Query().Where(o => courseIds.Contains(o.OpportunityId))
-        .Select(o => new { o.OpportunityId, o.Grade }).ToList();
-      var graded = grades.Where(o => o.Grade != CourseGrade.Ungraded).ToList();
-      var gradedIds = graded.Select(o => o.OpportunityId).ToHashSet();
+      var activeIds = names.Keys.ToList();
+      var typeLearningId = _opportunityTypeService.GetByName(Opportunity.Type.Learning.ToString()).Id;
+      var statusActiveId = _opportunityStatusService.GetByName(Status.Active.ToString()).Id;
+      var courses = QueryPartnerCourses(_opportunityRepository.Query(), activeIds, typeLearningId, statusActiveId, organizationStatusActiveId);
 
-      var latest = _assessmentRepository.Query().Where(o => o.IsLatest && courseIds.Contains(o.OpportunityId))
-        .Select(o => new { o.OpportunityId, o.Status }).ToList();
+      var counts = CountByOrganization(
+        QueryPartnerGrades(_gradeRepository.Query(), courses).ToList(),
+        QueryPartnerLatestAssessments(_assessmentRepository.Query(), courses).ToList());
 
-      return new PartnerBadgeCounts(
-        TopGrades: graded.Count(o => o.Grade is CourseGrade.A or CourseGrade.B),
-        Graded: graded.Count,
-        HeldBack: latest.Count(o => o.Status == CourseQualityStatus.NotVerified && !gradedIds.Contains(o.OpportunityId)),
-        WaitingForReview: latest.Count(o => o.Status == CourseQualityStatus.NeedsReview && !gradedIds.Contains(o.OpportunityId)));
+      return BuildPartnerBadges(organizationIds, names, counts, _partnerOptions, DateTimeOffset.UtcNow);
     }
     #endregion
+  }
+
+  public sealed class PartnerCourseRow
+  {
+    public Guid Id { get; init; }
+
+    public Guid OrganizationId { get; init; }
+  }
+
+  public sealed class PartnerCourseGradeRow
+  {
+    public Guid OrganizationId { get; init; }
+
+    public Guid OpportunityId { get; init; }
+
+    public CourseGrade Grade { get; init; }
+  }
+
+  public sealed class PartnerCourseAssessmentRow
+  {
+    public Guid OrganizationId { get; init; }
+
+    public Guid OpportunityId { get; init; }
+
+    public CourseQualityStatus Status { get; init; }
   }
 
   public sealed class LearnerBadgeCompletionRow

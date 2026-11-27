@@ -34,5 +34,12 @@ namespace Yoma.Core.Domain.Pathway.Badges.Interfaces
     /// An active organisation's partner badge. Throws EntityNotFoundException for one that does not exist or is not active.
     /// </summary>
     PartnerBadge GetPartnerBadge(Guid organizationId);
+
+    /// <summary>
+    /// Partner badges for a comma-separated list of organisation ids (course cards), in the order asked, each once. Organisations that
+    /// do not exist or are not active are left out. Throws ValidationException for no ids, a malformed id or more than
+    /// Pathway:PartnerBadges:MaxOrganizationsPerRequest (50).
+    /// </summary>
+    List<PartnerBadge> ListPartnerBadges(string? organizationIds);
   }
 }

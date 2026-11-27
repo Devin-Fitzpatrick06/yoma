@@ -13,12 +13,18 @@ namespace Yoma.Core.Domain.Pathway.Badges.Models
     public int MinimumGradedCourses { get; set; } = 10;
 
     /// <summary>
+    /// The most organisations one batched request (GET pathway/badges/organizations?ids=) may ask for.
+    /// </summary>
+    public int MaxOrganizationsPerRequest { get; set; } = 50;
+
+    /// <summary>
     /// Each level needs at least this share of graded courses at A or B and at most this share held back as Not verified.
     /// Binding merges by level, so configuration may override one threshold. Grades are catalogue percentiles (A and B are
     /// about 40% of all graded courses), so these shares are relative to the rest of the catalogue.
     /// </summary>
     public Dictionary<PartnerBadgeLevel, PartnerBadgeThreshold> Levels { get; set; } = new()
     {
+      [PartnerBadgeLevel.Platinum] = new() { MinShareTopGrades = 0.75m, MaxShareHeldBack = 0.02m, MinimumGradedCourses = 25 },
       [PartnerBadgeLevel.Gold] = new() { MinShareTopGrades = 0.60m, MaxShareHeldBack = 0.05m },
       [PartnerBadgeLevel.Silver] = new() { MinShareTopGrades = 0.45m, MaxShareHeldBack = 0.10m },
       [PartnerBadgeLevel.Bronze] = new() { MinShareTopGrades = 0.30m, MaxShareHeldBack = 0.20m }
@@ -30,6 +36,12 @@ namespace Yoma.Core.Domain.Pathway.Badges.Models
     public decimal MinShareTopGrades { get; set; }
 
     public decimal MaxShareHeldBack { get; set; }
+
+    /// <summary>
+    /// A level may need more graded courses than the badge minimum (Platinum: 25), so the top level is not given from a small
+    /// catalogue. Null or below the badge minimum: the badge minimum applies.
+    /// </summary>
+    public int? MinimumGradedCourses { get; set; }
   }
 
   /// <summary>
