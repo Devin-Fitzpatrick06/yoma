@@ -32,7 +32,6 @@ namespace Yoma.Core.Test.Pathway
 
       Assert.Equal(typeof(PathwayStepStore), services.Last(o => o.ServiceType == typeof(IPathwayStepStore)).ImplementationType);
       Assert.Contains(services, o => o.ServiceType == typeof(IPathwayStepService) && o.ImplementationType == typeof(PathwayStepService));
-      Assert.Contains(services, o => o.ServiceType == typeof(IPathwayStepAlternatives));
     }
     #endregion
 
@@ -69,51 +68,5 @@ namespace Yoma.Core.Test.Pathway
     }
     #endregion
 
-    #region Alternatives adapter
-    private static (MyYoma MyYoma, PathwayStepAlternatives Adapter) Built()
-    {
-      var catalogue = new PathwayCatalogue { Courses = PathwayTestData.MarketingCatalogue() };
-      var request = PathwayTestData.Request();
-      var result = PathwayEngine.Build(catalogue, request, PathwayTestData.Options);
-
-      var myYoma = new MyYoma
-      {
-        Profile = new PathwayProfile { GoalKey = "marketing", GoalLabel = "Digital marketer", Background = PathwayBackground.FinishedSchool, HoursPerWeek = 5 },
-        GoalLabel = "Digital marketer",
-        ThroughLine = result.ThroughLine,
-        Stages = result.Stages
-      };
-
-      var catalogueService = new Mock<IPathwayCatalogueService>();
-      catalogueService.Setup(o => o.Get()).Returns(catalogue);
-      return (myYoma, new PathwayStepAlternatives(Options.Create(new PathwayOptions()), catalogueService.Object));
-    }
-
-    [Fact]
-    public void Alternatives_AreAtMostThree_FromTheSameStage_NoneOnThePath()
-    {
-      var (myYoma, adapter) = Built();
-      var stage = myYoma.Stages[1];
-      var stageOptions = PathwayTestData.Goal("marketing").Stages[1];
-      var onPath = myYoma.Stages.SelectMany(o => o.Courses).Select(o => o.OpportunityId).ToHashSet();
-
-      var result = adapter.List(myYoma, stage.Courses[0].OpportunityId);
-
-      Assert.NotEmpty(result);
-      Assert.True(result.Count <= PathwayStepAlternatives.MaxAlternatives);
-      Assert.All(result, o => Assert.DoesNotContain(o.OpportunityId, onPath));
-      Assert.All(result, o => Assert.True(PathwayMatching.IsMatch(stageOptions.Pattern, o.Title) || o.SkillsAdded.Any(s => PathwayMatching.IsMatch(stageOptions.Pattern, s))));
-      Assert.All(result, o => Assert.False(string.IsNullOrWhiteSpace(o.Reason)));
-      Assert.Equal(result.Count, result.Select(o => o.OpportunityId).Distinct().Count());
-    }
-
-    [Fact]
-    public void Alternatives_ForAStepNotOnThePath_AreNotFound()
-    {
-      var (myYoma, adapter) = Built();
-
-      Assert.Throws<EntityNotFoundException>(() => adapter.List(myYoma, Guid.NewGuid()));
-    }
-    #endregion
   }
 }

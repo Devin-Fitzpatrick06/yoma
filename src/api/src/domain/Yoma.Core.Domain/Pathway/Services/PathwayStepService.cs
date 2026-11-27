@@ -39,7 +39,6 @@ namespace Yoma.Core.Domain.Pathway.Services
     private readonly PathwayOptions _options;
     private readonly IUserService _userService;
     private readonly IPathwayService _pathwayService;
-    private readonly IPathwayStepAlternatives _alternatives;
     private readonly IOpportunityService _opportunityService;
     private readonly IRepository<PathwayStepLockRecord> _lockRepository;
     private readonly IRepository<PathwayStepSwapRecord> _swapRepository;
@@ -55,7 +54,6 @@ namespace Yoma.Core.Domain.Pathway.Services
       IOptions<PathwayOptions> options,
       IUserService userService,
       IPathwayService pathwayService,
-      IPathwayStepAlternatives alternatives,
       IOpportunityService opportunityService,
       IRepository<PathwayStepLockRecord> lockRepository,
       IRepository<PathwayStepSwapRecord> swapRepository,
@@ -69,7 +67,6 @@ namespace Yoma.Core.Domain.Pathway.Services
       _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
       _userService = userService ?? throw new ArgumentNullException(nameof(userService));
       _pathwayService = pathwayService ?? throw new ArgumentNullException(nameof(pathwayService));
-      _alternatives = alternatives ?? throw new ArgumentNullException(nameof(alternatives));
       _opportunityService = opportunityService ?? throw new ArgumentNullException(nameof(opportunityService));
       _lockRepository = lockRepository ?? throw new ArgumentNullException(nameof(lockRepository));
       _swapRepository = swapRepository ?? throw new ArgumentNullException(nameof(swapRepository));
@@ -102,8 +99,8 @@ namespace Yoma.Core.Domain.Pathway.Services
 
     public async Task<List<PathwayCourse>> ListAlternatives(Guid opportunityId)
     {
-      var myYoma = await _pathwayService.Get();
-      return [.. _alternatives.List(myYoma, opportunityId).Take(PathwayStepAlternatives.MaxAlternatives)];
+      // the engine's own alternatives: same stage and step type, not on the path, at most Pathway:MaxAlternatives
+      return await _pathwayService.ListAlternatives(opportunityId);
     }
 
     public async Task<MyYoma> Swap(Guid opportunityId, PathwayStepSwapRequest request)
@@ -116,7 +113,7 @@ namespace Yoma.Core.Domain.Pathway.Services
       var myYoma = await _pathwayService.Get();
       var stage = FindStage(myYoma, opportunityId) ?? throw new EntityNotFoundException("This step is not on your path");
 
-      var alternatives = _alternatives.List(myYoma, opportunityId).Take(PathwayStepAlternatives.MaxAlternatives);
+      var alternatives = await _pathwayService.ListAlternatives(opportunityId);
       if (!alternatives.Any(o => o.OpportunityId == request.ReplacementOpportunityId))
         throw new ValidationException("The replacement must be one of this step's alternatives");
 

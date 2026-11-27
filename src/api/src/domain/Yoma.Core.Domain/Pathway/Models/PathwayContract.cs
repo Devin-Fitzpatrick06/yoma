@@ -39,12 +39,6 @@ namespace Yoma.Core.Domain.Pathway.Models
     Task
   }
 
-  public enum StepDropOffStatus
-  {
-    Collecting,
-    Available
-  }
-
   /// <summary>
   /// "Young people who completed this usually go on to ...": share and count, hidden below the minimum group size.
   /// </summary>
@@ -60,23 +54,6 @@ namespace Yoma.Core.Domain.Pathway.Models
     public decimal Share { get; set; }
 
     public int Count { get; set; }
-  }
-
-  /// <summary>
-  /// Drop-off is reserved for the pilot: no data yet, so the status is Collecting and the rate null until then.
-  /// </summary>
-  public class StepDropOff
-  {
-    public StepDropOffStatus Status { get; set; }
-
-    /// <summary>
-    /// Share who started this step and did not continue, once Available.
-    /// </summary>
-    public decimal? Rate { get; set; }
-
-    public string Note { get; set; } = null!;
-
-    public static StepDropOff Collecting() => new() { Status = StepDropOffStatus.Collecting, Rate = null, Note = "Collecting from the pilot" };
   }
 
   public class PathwayOption

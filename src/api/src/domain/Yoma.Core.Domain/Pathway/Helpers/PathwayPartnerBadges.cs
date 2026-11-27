@@ -61,7 +61,7 @@ namespace Yoma.Core.Domain.Pathway.Helpers
         if (organizationId == Guid.Empty || result.ContainsKey(organizationId)) continue;
 
         var name = string.IsNullOrWhiteSpace(organizationName) ? "Organisation" : organizationName;
-        result[organizationId] = PartnerBadgeCalculator.Calculate(organizationId, name, counts.GetValueOrDefault(organizationId) ?? new PartnerBadgeCounts(0, 0, 0, 0), options).Level;
+        result[organizationId] = PartnerBadgeCalculator.Calculate(organizationId, name, counts.GetValueOrDefault(organizationId) ?? new PartnerBadgeCounts(0, 0, 0, 0), options, DateTimeOffset.UtcNow).Level;
       }
 
       return result;

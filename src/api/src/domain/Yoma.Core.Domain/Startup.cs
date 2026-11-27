@@ -136,7 +136,6 @@ namespace Yoma.Core.Domain
       services.AddScoped<IPathwayStepStore, PathwayStepStore>();
       services.AddScoped<IPathwayStepService, PathwayStepService>();
       // until IPathwayService.ListAlternatives lands (A3); the lead reconciles
-      services.AddScoped<IPathwayStepAlternatives, PathwayStepAlternatives>();
 
       #endregion Pathway
 

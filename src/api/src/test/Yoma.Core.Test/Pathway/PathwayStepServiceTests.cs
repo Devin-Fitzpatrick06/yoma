@@ -86,9 +86,9 @@ namespace Yoma.Core.Test.Pathway
           return Onboarded ? Task.FromResult(MyYoma) : throw new EntityNotFoundException("You have not set up My Yoma yet");
         });
 
-        var alternatives = new Mock<IPathwayStepAlternatives>();
-        alternatives.Setup(o => o.List(It.IsAny<MyYoma>(), It.IsAny<Guid>())).Returns((MyYoma m, Guid id) =>
-          m.Stages.Any(s => s.Courses.Any(c => c.OpportunityId == id)) ? [.. Alternatives] : throw new EntityNotFoundException("This step is not on your path"));
+        // the engine's ListAlternatives caps the list at Pathway:MaxAlternatives (3)
+        pathway.Setup(o => o.ListAlternatives(It.IsAny<Guid>())).Returns((Guid id) =>
+          MyYoma.Stages.Any(s => s.Courses.Any(c => c.OpportunityId == id)) ? Task.FromResult(Alternatives.Take(3).ToList()) : throw new EntityNotFoundException("This step is not on your path"));
 
         var opportunities = new Mock<IOpportunityService>();
         opportunities.Setup(o => o.GetByIdOrNull(It.IsAny<Guid>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<bool>(), It.IsAny<LockMode?>()))
@@ -105,7 +105,7 @@ namespace Yoma.Core.Test.Pathway
         return new PathwayStepService(accessor.Object,
           new ConfigurationBuilder().AddInMemoryCollection(Configuration).Build(),
           Options.Create(new PathwayOptions()),
-          users.Object, pathway.Object, alternatives.Object, opportunities.Object,
+          users.Object, pathway.Object, opportunities.Object,
           Locks, Swaps, Events, myOpportunities.Object, actions.Object, statuses.Object);
       }
 
