@@ -10,14 +10,17 @@ import { type ReactElement } from "react";
 import { IoMdArrowRoundBack } from "react-icons/io";
 import { type Organization } from "~/api/models/organisation";
 import { getOrganisationById } from "~/api/services/organisations";
+import { getPartnerBadge } from "~/api/services/pathway";
 import MainLayout from "~/components/Layout/Main";
 import { OrgOverview } from "~/components/Organisation/Detail/OrgOverview";
+import PartnerBadgeCard from "~/components/MyYoma/PartnerBadgeCard";
 import { LogoTitle } from "~/components/Organisation/LogoTitle";
 import OrganizationRewardStats from "~/components/Organisation/Rewards/OrganizationRewardStats";
 import { PageBackground } from "~/components/PageBackground";
 import { InternalServerError } from "~/components/Status/InternalServerError";
 import { Unauthenticated } from "~/components/Status/Unauthenticated";
 import { Unauthorized } from "~/components/Status/Unauthorized";
+import { env } from "~/env.mjs";
 import { config } from "~/lib/react-query-config";
 import { getSafeUrl, getThemeFromRole } from "~/lib/utils";
 import type { NextPageWithLayout } from "~/pages/_app";
@@ -91,6 +94,15 @@ const OrganisationOverview: NextPageWithLayout<{
     enabled: !error,
   });
 
+  // the Ziqi partner badge (W2); nothing while it loads, when it fails or with the switch off
+  const { data: partnerBadge } = useQuery({
+    queryKey: ["pathway", "partnerBadge", id],
+    queryFn: () => getPartnerBadge(id),
+    enabled: !error && env.NEXT_PUBLIC_PATHWAY_ENABLED,
+    staleTime: 15 * 60 * 1000,
+    retry: false,
+  });
+
   if (error) {
     if (error === 401) return <Unauthenticated />;
     else if (error === 403) return <Unauthorized />;
@@ -130,6 +142,12 @@ const OrganisationOverview: NextPageWithLayout<{
           <div className="flex w-full flex-col gap-2 rounded-lg bg-white p-8 shadow-lg lg:w-[600px]">
             <OrgOverview organisation={organisation} />
           </div>
+
+          {partnerBadge && (
+            <div className="w-full lg:w-[600px]">
+              <PartnerBadgeCard badge={partnerBadge} />
+            </div>
+          )}
 
           {/* REWARDS — read-only.
               NB: this endpoint is Role_Admin + Role_OrganizationAdmin, so an org admin sees their own

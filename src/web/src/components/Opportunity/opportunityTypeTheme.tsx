@@ -1,5 +1,6 @@
 import { TimeIntervalOption } from "~/api/models/common";
 import type { OpportunityInfo } from "~/api/models/opportunity";
+import PartnerBadgeChip from "./PartnerBadgeChip";
 
 // ---------------------------------------------------------------------------
 // Shared per-opportunity-type theming + small presentational pieces.
@@ -281,6 +282,8 @@ export const OpportunityOrgCountriesRow: React.FC<{
       >
         {data.organizationName}
       </span>
+      {/* nothing unless a PartnerBadgesProvider above has an earned badge for it */}
+      <PartnerBadgeChip organizationId={data.organizationId} className="ml-1" />
       {countries && <span title={countries}> · {countries}</span>}
     </div>
   );

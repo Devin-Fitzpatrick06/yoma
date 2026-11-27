@@ -130,8 +130,8 @@ const navBarLinksAdmin: TabItem[] = [
     selected: false,
   },
   {
-    title: "Course Quality",
-    description: "Course Quality",
+    title: "Ziqi",
+    description: "Ziqi",
     url: "/admin/course-quality",
     badgeCount: null,
     selected: false,
@@ -261,8 +261,8 @@ export const Navbar: React.FC<{ theme: string }> = (theme) => {
           selected: false,
         },
         {
-          title: "Course Quality",
-          description: "Course Quality",
+          title: "Ziqi",
+          description: "Ziqi",
           url: `/organisations/${currentOrganisationId}/course-quality`,
           badgeCount: null,
           selected: false,
