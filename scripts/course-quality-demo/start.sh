@@ -196,11 +196,37 @@ else
   fi
 fi
 
+# ---- Impact actions ----
+# Live Yoma's "Task" listings are this branch's ImpactAction type (the same id, renamed by the custom-field migration).
+# They are added once, before the jobs: a saved database that already has them keeps them, and an older saved database
+# gets them here. The same step adds the synthetic, labelled pathway completions (course -> impact action -> course) of
+# the demo learners, so "usually go on to" can show, then runs Ziqi's listing checks on the impact actions.
+type_count() { sql -At -c "SELECT count(*) FROM \"Opportunity\".\"Opportunity\" o JOIN \"Opportunity\".\"OpportunityType\" t ON t.\"Id\" = o.\"TypeId\" WHERE t.\"Name\" = '$1'"; }
+snapshot_wanted() { [ -z "$SAMPLE" ] && { [ "$FROM_SNAPSHOT" = true ] || [ "$live_ok" -eq 0 ]; }; }
+tasks_added=false
+task_summary=""
+if [ "$(type_count ImpactAction)" = "0" ]; then
+  if [ ! -f "$CACHE_DIR/live-tasks.json" ]; then
+    current_step="downloading the live impact action list"
+    step "Downloading the public list of live Yoma impact actions (seconds)"
+    in_runner node /demo/seed/fetch-live-catalogue.mjs --tasks 2>"$LOG_DIR/fetch-tasks.log"
+  fi
+  current_step="adding the impact actions"
+  step "Adding every live Yoma impact action, and the demo learners' synthetic pathway completions on them"
+  in_runner node /demo/seed/generate-tasks-sql.mjs 2>>"$LOG_DIR/seed.log" | sql >"$LOG_DIR/seed-tasks.log" 2>&1
+  tasks_added=true
+  rm -f "$CACHE_DIR/task-assessment-progress.jsonl"
+  current_step="checking the impact actions"
+  step "Running Ziqi's listing checks on the impact actions (progress is in .logs/assess-tasks.log)"
+  task_summary="$(in_runner node /demo/seed/assess-live.mjs --tasks --no-grade 2>"$LOG_DIR/assess-tasks.log")" \
+    || echo "Some impact actions could not be checked; see .logs/assess-tasks.log. The demo carries on."
+fi
+
 # ---- Jobs ----
 # Live jobs are added once: a saved database that already has them keeps them. Feed jobs need no link check, so this
 # takes minutes. The run grades jobs too, then saves the database again so the next start includes them.
 job_summary=""
-if grep -q '^CourseQuality__Jobs__Enabled=true' "$DEMO_DIR/demo.env" && [ "$(sql -At -c "SELECT count(*) FROM \"Opportunity\".\"Opportunity\" o JOIN \"Opportunity\".\"OpportunityType\" t ON t.\"Id\" = o.\"TypeId\" WHERE t.\"Name\" = 'Job'")" = "0" ]; then
+if grep -q '^CourseQuality__Jobs__Enabled=true' "$DEMO_DIR/demo.env" && [ "$(type_count Job)" = "0" ]; then
   if [ ! -f "$CACHE_DIR/live-jobs.json" ]; then
     current_step="downloading the live job list"
     step "Downloading the public list of live Yoma jobs (a few minutes)"
@@ -214,11 +240,18 @@ if grep -q '^CourseQuality__Jobs__Enabled=true' "$DEMO_DIR/demo.env" && [ "$(sql
   step "Checking and grading every job (progress is in .logs/assess-jobs.log)"
   jobs_ok=0
   job_summary="$(in_runner node /demo/seed/assess-live.mjs --jobs --concurrency 8 2>"$LOG_DIR/assess-jobs.log")" || jobs_ok=$?
-  if [ "$jobs_ok" -eq 0 ] && [ -z "$SAMPLE" ] && { [ "$FROM_SNAPSHOT" = true ] || [ "$live_ok" -eq 0 ]; }; then
+  if [ "$jobs_ok" -eq 0 ] && snapshot_wanted; then
     current_step="saving the demo database"
     step "Saving the demo database with the jobs"
     save_snapshot
+    tasks_added=false
   fi
+fi
+# Impact actions added to a saved database that already had its jobs: save once more, so the next start includes them.
+if [ "$tasks_added" = true ] && snapshot_wanted; then
+  current_step="saving the demo database"
+  step "Saving the demo database with the impact actions"
+  save_snapshot
 fi
 
 # ---- Website ----
@@ -232,8 +265,11 @@ warm_browse
 # ---- Done ----
 trap - ERR
 web="http://localhost:3000"
-courses_total="$(sql -At -c 'SELECT count(*) FROM "Opportunity"."Opportunity"')"
+courses_total="$(type_count Learning)"
+impact_total="$(type_count ImpactAction)"
+jobs_total="$(type_count Job)"
 assessed_total="$(sql -At -c 'SELECT count(*) FROM "CourseQuality"."Assessment" WHERE "IsLatest"')"
+pathway_demo="$(sql -At -F ' ' -c "SELECT count(*), count(DISTINCT \"OpportunityId\") FROM \"Opportunity\".\"MyOpportunity\" WHERE \"CommentVerification\" LIKE 'Demo data: a synthetic pathway completion%'")"
 
 printf '\n=========================================================\n'
 printf ' Course Quality demo is running (took %dm %02ds)\n' $((SECONDS / 60)) $((SECONDS % 60))
@@ -242,17 +278,28 @@ printf '  Learner, course list:  %s/opportunities\n' "$web"
 printf '  Reviewer queue:        %s/admin/course-quality\n' "$web"
 printf '  Partner fix notes:     %s/organisations/%s/course-quality\n' "$web" "$ORG_ID"
 printf '  Named learner cards:   %s/opportunities/c0a7e000-0000-4000-8000-000000000101  (101 to 108)\n' "$web"
+printf '\nZiqi iteration 4 (switches on in this demo only, off in production):\n'
+printf '  My Yoma (youth):        %s/my-yoma\n' "$web"
+printf '  YoID, My path card:     %s/yoid\n' "$web"
+printf '  Partner, new listing:   %s/organisations/%s/opportunities/create\n' "$web" "$ORG_ID"
+printf '  Journey map preview:    %s/my-yoma-preview?view=map\n' "$web"
+printf '  Ziqi draft preview:     %s/ziqi-draft-preview\n' "$web"
+printf '  Ziqi admin preview:     %s/ziqi-admin-preview\n' "$web"
 printf '\nLocal test sign-ins, the public seed defaults from src/api/docker-compose.yml:\n'
 printf '  Reviewer and partner: testadminuser@gmail.com  (one account for all three views)\n'
 printf '  Partner only:         testorgadminuser@gmail.com\n'
 printf '  Learner:              testuser@gmail.com\n'
 printf '  Password:             P@ssword12\n'
-printf '\n%s courses, %s assessed.\n' "$courses_total" "$assessed_total"
+printf '\nBy type: %s courses, %s impact actions, %s jobs. %s assessed in all.\n' "$courses_total" "$impact_total" "$jobs_total" "$assessed_total"
+read -r pathway_rows pathway_steps <<<"$pathway_demo"
+printf 'Synthetic pathway completions (demo data, labelled): %s on %s impact actions and courses.\n' "${pathway_rows:-0}" "${pathway_steps:-0}"
 [ -n "$live_summary" ] && printf 'Live courses:\n%s\n' "$live_summary"
+[ -n "$task_summary" ] && printf 'Live impact actions (listing checks, no grades):\n%s\n' "$task_summary"
 [ -n "$job_summary" ] && printf 'Live jobs:\n%s\n' "$job_summary"
 printf '\nNamed courses:\n%s\n' "$results_table"
 if [ "$all_as_expected" -ne 0 ]; then
   printf '\nSome named courses did not reach their demo state. Check them before presenting.\n'
 fi
 printf '\nWalkthrough: %s/README.md\n' "${DEMO_DIR#"$REPO_ROOT"/}"
+printf 'Ziqi iteration 4 walkthrough: docs/work/active/course-quality-judger/demo-walkthrough.md\n'
 printf 'When you finish: %s/stop.sh\n' "${DEMO_DIR#"$REPO_ROOT"/}"

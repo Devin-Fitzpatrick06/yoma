@@ -25,7 +25,8 @@ From the repo folder:
 scripts/course-quality-demo/start.sh
 ```
 
-When it finishes, it prints the three links, the test sign-ins, and a summary. Open the course list only after that:
+When it finishes, it prints the links (including the Ziqi iteration 4 pages, below), the test sign-ins, the counts by
+type (courses, impact actions, jobs) and a summary. Open the course list only after that:
 the website starts last, once every course is in, and `start.sh` loads the course list once so the page it keeps for
 5 minutes already shows the courses.
 
@@ -34,7 +35,7 @@ What a start does depends on whether a saved demo database is in `scripts/course
 | Start | What happens | Time on this Mac |
 | ----- | ------------ | ---------------- |
 | Saved database present | Loads it, sets the named courses 101 to 108 to today's dates, assesses those 8 again and regrades | about 2.5 minutes |
-| No saved database (the default) | Imports every live Yoma course and 2,000 live jobs, assesses and grades a sample of 40 courses, opens the website. Saves nothing | about 8 minutes |
+| No saved database (the default) | Imports every live Yoma course, impact action and job, assesses and grades a sample of 40 courses, opens the website. Saves nothing | about 8 minutes |
 | `--full`, or `--refresh` | Imports every live Yoma course, assesses all of them at the product's polite pace, grades them, and saves the database | about 45 minutes, projected: alison.com's 2,054 pages at 1.1 s each set the pace |
 | `--sample 40` | Imports every live course but assesses only 40 from mixed hosts, and saves nothing. For testing | about 3.5 minutes |
 
@@ -70,7 +71,7 @@ newest first. Selecting a card pops out the full learner card with fields and ex
 
 | Role | Email | Password |
 | ---- | ----- | -------- |
-| Reviewer, and partner admin of Demo Learning Partner | `testadminuser@gmail.com` | `give` |
+| Reviewer, and partner admin of Demo Learning Partner | `testadminuser@gmail.com` | `P@ssword12` |
 | Partner only | `testorgadminuser@gmail.com` | `P@ssword12` |
 | Learner, in the United States | `testuser@gmail.com` | `P@ssword12` |
 
@@ -100,7 +101,17 @@ choose Log out. Each `start.sh` also signs every browser out of the previous dem
   "Business, Finance & Marketing"), "Environment and Climate" joins "Agriculture, Food, Environment and Climate", and
   "AI, Data and Analytics" joins "Technology, AI & Data". No category is added.
 - **Organisation logos and contact details** are not imported. Logos stay off, and contact details are placeholders.
-- **Not imported**, because this database has no place for it: the live difficulty level.
+- **Not imported**, because this database has no place for it: the live difficulty level of courses.
+- **Every live Yoma impact action: 41 listings** (27 November 2026), fetched into `.cache/live-tasks.json` by
+  `seed/fetch-live-catalogue.mjs --tasks` and added by `seed/generate-tasks-sql.mjs`. Live Yoma's public type list calls
+  them "Task" (`f12a9d90-a8f6-4914-8ca5-6acf209f7312`). This branch's custom-field migration renames that row in place to
+  `ImpactAction` ("Impact Action") and keeps the id, so they are imported under the local name `ImpactAction`. Categories
+  (by live id, as for courses), countries, languages and skills come with them. The live difficulty goes into the
+  `ImpactActionDifficulty` custom field (Beginner and Any Level become Entry level, Intermediate becomes Experience needed,
+  Advanced becomes Skills required, as the migration maps them). The 3 tasks pulled from IXO get a partner sync record,
+  as feed jobs do. A task whose title is already taken is skipped. `start.sh` adds them once, before the jobs, only when
+  the database has no impact actions, so an older saved database gets them on its next start (and is saved again). Then
+  Ziqi's listing checks run on them (`seed/assess-live.mjs --tasks --no-grade`); impact actions get no grade.
 
 ### Scaled demo data: views, starts and completions
 
@@ -116,12 +127,55 @@ keeping the ratios between courses:
 
 This is demo data. The formula is in `seed/live.mjs`.
 
+### Synthetic pathway completions: "usually go on to"
+
+The live impact actions bring no participation. So that My Yoma's "young people who completed this usually go on to …"
+can show (it needs at least 20 youth per step), `seed/generate-tasks-sql.mjs` adds one small chain per demo goal
+(`Pathway:Goals` from the API's `appsettings.json`):
+
+- **A**, a course of the goal's stages (not the last) with the most demo completers more than 45 days ago, at least 21;
+- **B**, the impact action most plausibly next: it matches one of the goal's stage patterns, shares skills with A, or
+  shares its category. Each goal prefers one not used by another goal;
+- **C**, a course of the next stage after A, preferring one that shares skills or a category with A or B.
+
+24 of A's completers (picked by a hash of their email, so every run picks the same) complete B 6 to 12 days ago, and 16
+of those complete C 2 to 5 days after B. Recent dates keep other completions from crowding out C as B's "next". On the
+27 November catalogue all six goals get a chain: about 240 rows. Only completions are added, never a start without one,
+so no drop-off is implied. Each row's `CommentVerification` says "Demo data: a synthetic pathway completion by a demo
+learner", and My Yoma labels every figure from the demo learners (`Pathway__DemoDataNote` in `demo.env`). The generator
+adds the chains once: a database that has them already is left as it is. `.logs/seed-tasks.log` lists the chains.
+
 ### Synthetic learner feedback
 
 On a fresh import, when the API has the learner feedback table, the seed adds made-up "Did you take it?" answers from the demo learners:
 about 300 live courses, 1 to 25 answers each, about 1,500 in all. Ratings loosely follow each course's real completion
 ratio, tags use the keys in the API's `CourseQuality:LearnerFeedback` settings, and about 1 in 5 has a short generic comment such as "Easy to follow."
 No learner wrote any of it. It is demo data only, generated by `seed/generate-feedback-sql.mjs`.
+
+## Ziqi iteration 4: pages and switches
+
+These switches are on in `demo.env` only; they are off by default everywhere else, and in production.
+
+| Switch | What it turns on |
+| --- | --- |
+| `Pathway__Enabled`, `NEXT_PUBLIC_PATHWAY_ENABLED` | My Yoma: questions, the journey map, lock and swap, step events; the YoID "My path" card |
+| `CourseQuality__PrePublish__Enabled`, `NEXT_PUBLIC_PREPUBLISH_ENABLED` | Ziqi's check on the partner's create and edit form |
+| `CourseQuality__VerifyTypes__2=ImpactAction` | Listing checks on impact actions |
+| `Pathway__DemoDataNote` | The "Demo data" note on every figure from the synthetic learners |
+
+`start.sh` passes the two `NEXT_PUBLIC_` switches to the website build. The pages it lists at the end:
+
+| Page | Address |
+| --- | --- |
+| My Yoma (youth) | `http://localhost:3000/my-yoma` |
+| YoID, My path card | `http://localhost:3000/yoid` |
+| Partner, new listing with the Ziqi check | `http://localhost:3000/organisations/c0a7e000-0000-4000-8000-000000000001/opportunities/create` |
+| Journey map preview (fixtures, no sign-in) | `http://localhost:3000/my-yoma-preview?view=map` |
+| Ziqi draft preview | `http://localhost:3000/ziqi-draft-preview` |
+| Ziqi admin preview | `http://localhost:3000/ziqi-admin-preview` |
+
+The five-step script for these, with what to say and the caveats, is
+`docs/work/active/course-quality-judger/demo-walkthrough.md`.
 
 ## The named courses
 
