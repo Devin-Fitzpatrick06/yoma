@@ -47,11 +47,11 @@ namespace Yoma.Core.Api.Controllers
     }
 
     [SwaggerOperation(Summary = "List partner badges for up to 50 organisations in one call, for course cards (Anonymous)",
-      Description = "ids: comma-separated organisation ids. Badges come back in the order asked, each organisation once; organisations that do not exist or are not active are left out. 400 for no ids, a malformed id or more than 50.")]
+      Description = "ids: organisation ids, as repeated keys (?ids=a&ids=b), one comma-separated value (?ids=a,b) or both. Badges come back in the order asked, each organisation once; organisations that do not exist or are not active are left out. 400 for no ids, a malformed id or more than 50.")]
     [HttpGet("organizations")]
     [ProducesResponseType(typeof(List<PartnerBadge>), (int)HttpStatusCode.OK)]
     [AllowAnonymous]
-    public IActionResult ListPartnerBadges([FromQuery] string? ids)
+    public IActionResult ListPartnerBadges([FromQuery] string[]? ids)
     {
       if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Handling request {requestName}", nameof(ListPartnerBadges));
 

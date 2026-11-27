@@ -328,9 +328,33 @@ namespace Yoma.Core.Test.Pathway
     [Fact]
     public void Batch_ParsesIdsInOrder_EachOnce()
     {
-      var ids = PathwayBadgeService.ParseOrganizationIds($" {C}, {A},{C},,{B} ", 50);
+      var ids = PathwayBadgeService.ParseOrganizationIds([$" {C}, {A},{C},,{B} "], 50);
 
       Assert.Equal([C, A, B], ids);
+    }
+
+    [Fact]
+    public void Batch_AcceptsRepeatedKeys_AndCommaSeparatedValues_Mixed()
+    {
+      Assert.Equal([C, A, B], PathwayBadgeService.ParseOrganizationIds([C.ToString(), A.ToString(), B.ToString()], 50));
+      Assert.Equal([C, A, B], PathwayBadgeService.ParseOrganizationIds([$"{C},{A}", B.ToString(), A.ToString()], 50));
+      Assert.Equal([B], PathwayBadgeService.ParseOrganizationIds([null, "", B.ToString()], 50));
+    }
+
+    [Fact]
+    public void Batch_QueryValues_RepeatedKeysAndCommaValues_BothReachTheService()
+    {
+      var parameter = typeof(PathwayBadgeController).GetMethod(nameof(PathwayBadgeController.ListPartnerBadges))!.GetParameters().Single();
+      Assert.Equal(typeof(string[]), parameter.ParameterType);
+
+      var query = new Microsoft.AspNetCore.Http.QueryCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
+      {
+        ["ids"] = new([$"{C},{A}", B.ToString()])
+      });
+      var provider = new QueryStringValueProvider(BindingSource.Query, query, System.Globalization.CultureInfo.InvariantCulture);
+
+      Assert.Equal([$"{C},{A}", B.ToString()], provider.GetValue("ids").Values.ToArray());
+      Assert.Equal([C, A, B], PathwayBadgeService.ParseOrganizationIds(provider.GetValue("ids").Values, 50));
     }
 
     [Theory]
@@ -341,7 +365,9 @@ namespace Yoma.Core.Test.Pathway
     [InlineData("00000000-0000-0000-0000-000000000000")]
     public void Batch_RejectsMissingOrMalformedIds(string? ids)
     {
-      Assert.Throws<ValidationException>(() => PathwayBadgeService.ParseOrganizationIds(ids, 50));
+      Assert.Throws<ValidationException>(() => PathwayBadgeService.ParseOrganizationIds([ids], 50));
+      Assert.Throws<ValidationException>(() => PathwayBadgeService.ParseOrganizationIds(null, 50));
+      Assert.Throws<ValidationException>(() => PathwayBadgeService.ParseOrganizationIds([], 50));
     }
 
     [Fact]
@@ -349,11 +375,14 @@ namespace Yoma.Core.Test.Pathway
     {
       var fifty = Enumerable.Range(0, 50).Select(_ => Guid.NewGuid()).ToList();
 
-      Assert.Equal(50, PathwayBadgeService.ParseOrganizationIds(string.Join(",", fifty), Options.MaxOrganizationsPerRequest).Count);
-      Assert.Throws<ValidationException>(() => PathwayBadgeService.ParseOrganizationIds(string.Join(",", fifty.Append(Guid.NewGuid())), Options.MaxOrganizationsPerRequest));
+      var max = Options.MaxOrganizationsPerRequest;
+      Assert.Equal(50, PathwayBadgeService.ParseOrganizationIds([string.Join(",", fifty)], max).Count);
+      Assert.Equal(50, PathwayBadgeService.ParseOrganizationIds(fifty.Select(o => (string?)o.ToString()), max).Count);
+      Assert.Throws<ValidationException>(() => PathwayBadgeService.ParseOrganizationIds([string.Join(",", fifty.Append(Guid.NewGuid()))], max));
+      Assert.Throws<ValidationException>(() => PathwayBadgeService.ParseOrganizationIds(fifty.Append(Guid.NewGuid()).Select(o => (string?)o.ToString()), max));
 
       // duplicates do not count towards the limit
-      Assert.Equal(50, PathwayBadgeService.ParseOrganizationIds(string.Join(",", fifty.Concat(fifty)), Options.MaxOrganizationsPerRequest).Count);
+      Assert.Equal(50, PathwayBadgeService.ParseOrganizationIds([string.Join(",", fifty.Concat(fifty))], max).Count);
       Assert.Equal(50, Options.MaxOrganizationsPerRequest);
     }
 

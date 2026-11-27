@@ -120,19 +120,20 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
         ?? throw new EntityNotFoundException($"Organization with id '{organizationId}' does not exist");
     }
 
-    public List<PartnerBadge> ListPartnerBadges(string? organizationIds)
+    public List<PartnerBadge> ListPartnerBadges(IEnumerable<string?>? organizationIds)
     {
       return ListPartnerBadges(ParseOrganizationIds(organizationIds, _partnerOptions.MaxOrganizationsPerRequest));
     }
 
     /// <summary>
-    /// The comma-separated ids of a batched request, in order, each once. Throws ValidationException (400) for none, a malformed id
-    /// or more than <paramref name="max"/> distinct ids.
+    /// The ids of a batched request, in order, each once. Each value may hold one id (repeated keys, ?ids=a&amp;ids=b) or several
+    /// separated by commas (?ids=a,b); both forms may be mixed. Throws ValidationException (400) for none, a malformed id or more than
+    /// <paramref name="max"/> distinct ids.
     /// </summary>
-    public static List<Guid> ParseOrganizationIds(string? organizationIds, int max)
+    public static List<Guid> ParseOrganizationIds(IEnumerable<string?>? organizationIds, int max)
     {
-      var parts = (organizationIds ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-      if (parts.Length == 0) throw new ValidationException("At least one organization id is required");
+      var parts = (organizationIds ?? []).SelectMany(o => (o ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)).ToList();
+      if (parts.Count == 0) throw new ValidationException("At least one organization id is required");
 
       var result = new List<Guid>();
       foreach (var part in parts)
