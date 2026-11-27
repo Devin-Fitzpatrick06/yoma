@@ -20,6 +20,10 @@ const CRITERION_LABELS: Record<CourseQualityCriterion, string> = {
   DatesAccurate: "Course dates",
   DataComplete: "Course details",
   FormatIdentified: "Course format",
+  JobOpen: "Job listing status",
+  JobDetailsClear: "Job details",
+  JobFresh: "Job posting date",
+  NoScamSignals: "Scam warning signs",
 };
 
 const STATUS_LABELS: Record<CourseQualityStatus, string> = {

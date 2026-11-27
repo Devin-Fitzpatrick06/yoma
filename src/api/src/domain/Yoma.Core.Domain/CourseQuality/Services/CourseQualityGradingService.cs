@@ -108,7 +108,9 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     {
       var saved = GetLatestRubricOrNull();
 
-      var counts = _gradeRepository.Query().GroupBy(o => o.Grade).Select(o => new { Grade = o.Key, Count = o.Count() }).ToDictionary(o => o.Grade, o => o.Count);
+      // the rubric page is the course rubric, so its distribution counts courses only
+      var jobIds = QueryJobIds();
+      var counts = _gradeRepository.Query().Where(o => !jobIds.Contains(o.OpportunityId)).GroupBy(o => o.Grade).Select(o => new { Grade = o.Key, Count = o.Count() }).ToDictionary(o => o.Grade, o => o.Count);
 
       return new CourseGradeRubricState
       {
@@ -199,28 +201,37 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         var inputs = LoadInputs();
         var results = CourseQualityGradingEngine.Grade(inputs, GetRubric(), now);
 
-        var byId = inputs.ToDictionary(o => o.OpportunityId);
+        // status and scored answers per graded listing, which the stored row keeps beside the grade
+        var byId = inputs.ToDictionary(o => o.OpportunityId, o => (o.Status, Responses: CourseQualityGradingEngine.ScoredResponses(o.Feedback)));
+
+        // jobs are ranked only against jobs, with their own rubric, in the same run so neither catalogue deletes the other's rows
+        if (_options.Jobs.Enabled)
+        {
+          var jobInputs = LoadJobInputs();
+          results.AddRange(CourseQualityJobGradingEngine.Grade(jobInputs, CourseQualityJobGradingDefaults.Configured(_options), now));
+          foreach (var job in jobInputs) byId[job.OpportunityId] = (job.Status, CourseQualityGradingEngine.ScoredResponses(job.Feedback));
+        }
+
         var existing = _gradeRepository.Query().ToList().ToDictionary(o => o.OpportunityId);
 
         var creates = new List<CourseQualityGradeRecord>();
         var updates = new List<CourseQualityGradeRecord>();
         foreach (var result in results)
         {
-          var input = byId[result.OpportunityId];
+          var (status, responses) = byId[result.OpportunityId];
 
           if (!existing.TryGetValue(result.OpportunityId, out var record))
           {
-            creates.Add(new CourseQualityGradeRecord { Id = Guid.NewGuid() }.ApplyResult(result, input.Status, CourseQualityGradingEngine.ScoredResponses(input.Feedback)));
+            creates.Add(new CourseQualityGradeRecord { Id = Guid.NewGuid() }.ApplyResult(result, status, responses));
             continue;
           }
 
           // the date moves only with the grade, so an unchanged course costs no write
           result.DateGraded = record.DateGraded;
-          var responses = CourseQualityGradingEngine.ScoredResponses(input.Feedback);
-          if (record.Differs(result, input.Status, responses))
+          if (record.Differs(result, status, responses))
           {
             result.DateGraded = now;
-            updates.Add(record.ApplyResult(result, input.Status, responses));
+            updates.Add(record.ApplyResult(result, status, responses));
           }
         }
 
@@ -263,7 +274,9 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
     public List<CourseGradeFactorRow> ListFactors()
     {
-      return [.. _gradeRepository.Query().OrderByDescending(o => o.Score).ThenBy(o => o.OpportunityId).ToList().Select(o => o.ToFactorRow())];
+      // the rubric page regrades these rows in the browser with the course rubric, so jobs stay out
+      var jobIds = QueryJobIds();
+      return [.. _gradeRepository.Query().Where(o => !jobIds.Contains(o.OpportunityId)).OrderByDescending(o => o.Score).ThenBy(o => o.OpportunityId).ToList().Select(o => o.ToFactorRow())];
     }
 
     public CourseGradeResult GetGrade(Guid opportunityId)
@@ -288,6 +301,13 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     public Expression<Func<Opportunity.Models.Opportunity, object>> GradeRank()
     {
       var grades = _gradeRepository.Query();
+
+      // job grades rank job search only once jobs are shown in browse
+      if (!(_options.Jobs.Enabled && _options.Jobs.ShowInBrowse))
+      {
+        var jobIds = QueryJobIds();
+        grades = grades.Where(o => !jobIds.Contains(o.OpportunityId));
+      }
 
       // a correlated subquery, so search joins the grade table in SQL rather than sending every graded id as a parameter
       return opportunity => grades.Where(g => g.OpportunityId == opportunity.Id)
@@ -406,9 +426,45 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       }
     }
 
-    private static bool IsPubliclyVisible(Opportunity.Models.Opportunity opportunity)
+    /// <summary>
+    /// The latest assessment of every publicly visible job, with what its listing states. Listings load with their custom
+    /// fields, which carry the pay, schedule and experience a feed sent.
+    /// </summary>
+    private List<JobGradeInput> LoadJobInputs()
     {
-      return opportunity.Type == Opportunity.Type.Learning
+      var latest = _assessmentRepository.Query().Where(o => o.IsLatest && o.Format == CourseFormat.Job).ToList();
+      var assessedIds = latest.Select(o => o.OpportunityId).ToList();
+
+      var opportunities = _opportunityRepository.Query(true).Where(o => assessedIds.Contains(o.Id)).ToList()
+        .Where(o => IsPubliclyVisible(o, Opportunity.Type.Job)).ToDictionary(o => o.Id);
+
+      return [.. latest.Where(o => opportunities.ContainsKey(o.OpportunityId)).Select(record =>
+      {
+        var opportunity = opportunities[record.OpportunityId];
+
+        return new JobGradeInput
+        {
+          OpportunityId = opportunity.Id,
+          OpportunityTitle = opportunity.Title,
+          OrganizationId = opportunity.OrganizationId,
+          OrganizationName = opportunity.OrganizationName,
+          Status = record.Status,
+          Criteria = record.ToAssessment().Criteria,
+          Facts = CourseQualityJobRules.Facts(opportunity)
+        };
+      })];
+    }
+
+    private IQueryable<Guid> QueryJobIds()
+    {
+      return _assessmentRepository.Query().Where(o => o.IsLatest && o.Format == CourseFormat.Job).Select(o => o.OpportunityId);
+    }
+
+    private static bool IsPubliclyVisible(Opportunity.Models.Opportunity opportunity) => IsPubliclyVisible(opportunity, Opportunity.Type.Learning);
+
+    private static bool IsPubliclyVisible(Opportunity.Models.Opportunity opportunity, Opportunity.Type type)
+    {
+      return opportunity.Type == type
         && opportunity.Status == Status.Active
         && opportunity.OrganizationStatus == OrganizationStatus.Active
         && opportunity.Hidden != true;

@@ -2,7 +2,9 @@
 // Polite: one request at a time per course host (the API also spaces requests to a host by its configured interval),
 // different hosts in parallel. Resumable: each result is appended to .cache/assessment-progress.jsonl, and a course
 // already assessed there is skipped. start.sh removes that file whenever it imports a fresh catalogue.
-// Usage: assess-live.mjs [--sample N] [--concurrency K] [--no-grade]   Progress to stderr, a summary to stdout.
+// With --jobs it assesses the live jobs from .cache/live-jobs.json instead, with its own progress file. A feed job's
+// checks read only the listing (the feed itself says the job is open), so feed jobs need no per-host pacing.
+// Usage: assess-live.mjs [--jobs] [--sample N] [--concurrency K] [--no-grade]   Progress to stderr, a summary to stdout.
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { adminFetch, runGrading } from "./api.mjs";
 import { loadCatalogue, random } from "./live.mjs";
@@ -14,7 +16,9 @@ const arg = (name, fallback) => {
 const sampleSize = arg("--sample", 0);
 const concurrency = arg("--concurrency", 4);
 const grade = !process.argv.includes("--no-grade");
-const progressPath = new URL("../.cache/assessment-progress.jsonl", import.meta.url);
+const jobs = process.argv.includes("--jobs");
+const progressPath = new URL(jobs ? "../.cache/job-assessment-progress.jsonl" : "../.cache/assessment-progress.jsonl", import.meta.url);
+const jobsPath = new URL("../.cache/live-jobs.json", import.meta.url);
 
 const hostOf = (url) => {
   try {
@@ -32,7 +36,9 @@ if (existsSync(progressPath)) {
   }
 }
 
-let items = loadCatalogue().items.map((item) => ({ id: item.id, host: item.url ? hostOf(item.url) : "(no link)" }));
+const isFeed = (item) => item.syncedInfo?.syncType === "Pull";
+const source = jobs ? JSON.parse(readFileSync(jobsPath)).items : loadCatalogue().items;
+let items = source.map((item) => ({ id: item.id, host: jobs && isFeed(item) ? `feed:${item.id}` : item.url ? hostOf(item.url) : "(no link)" }));
 const byHost = Map.groupBy(items, (item) => item.host);
 for (const list of byHost.values()) list.sort((a, b) => random(a.id, "order") - random(b.id, "order"));
 
@@ -50,7 +56,7 @@ if (sampleSize) {
 
 const queues = Map.groupBy(items.filter((item) => !done.has(item.id)), (item) => item.host);
 const todo = [...queues.values()].reduce((sum, list) => sum + list.length, 0);
-console.error(`Assessing ${todo} live courses on ${queues.size} hosts (${items.length - todo} already done), ${concurrency} at a time, one per host.`);
+console.error(`Assessing ${todo} live ${jobs ? "jobs" : "courses"} on ${queues.size} hosts (${items.length - todo} already done), ${concurrency} at a time, one per host.`);
 
 const started = Date.now();
 const busy = new Set();

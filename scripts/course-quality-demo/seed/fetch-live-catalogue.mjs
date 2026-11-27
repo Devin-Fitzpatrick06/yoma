@@ -1,23 +1,22 @@
-// Downloads every live Learning opportunity from the public, signed-out Yoma search into .cache/live-catalogue.json.
+// Downloads every live Learning opportunity from the public, signed-out Yoma search into .cache/live-catalogue.json,
+// or with --jobs every live Job into .cache/live-jobs.json (jobs carry their feed partner in syncedInfo).
 // The body matches what a signed-out learner's opportunities page sends: Not started and Ongoing, not Expired.
 // Items already carry organisation, category, country, language and skill names, so no lookup lists are fetched.
-// Usage: node seed/fetch-live-catalogue.mjs   One request at a time, about a second apart, with retries on 429 and 5xx.
-//        node seed/fetch-live-catalogue.mjs --jobs [--max N]   live Job opportunities into .cache/live-jobs.json instead (default max 2000),
-//        for the My Yoma pathways' job step.
+// Usage: node seed/fetch-live-catalogue.mjs [--jobs]   One request at a time, about a second apart, with retries on 429 and 5xx.
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const endpoint = "https://api.yoma.world/api/v3/opportunity/search";
-const learningType = "25f5a835-c3f7-43ca-9840-d372a1d26694";
-const jobType = "9c2d1a8e-3a4b-4f7a-9e2d-7f1c6b8a2d55";
 const jobs = process.argv.includes("--jobs");
+const type = jobs ? "9c2d1a8e-3a4b-4f7a-9e2d-7f1c6b8a2d55" : "25f5a835-c3f7-43ca-9840-d372a1d26694"; // Job or Learning
+const fileName = jobs ? "live-jobs.json" : "live-catalogue.json";
+// --max N stops after N items, e.g. for a quick look at jobs; by default everything is fetched
 const maxIndex = process.argv.indexOf("--max");
-const max = jobs ? Number(maxIndex > 0 ? process.argv[maxIndex + 1] : 2000) : Infinity;
-const outFile = jobs ? "live-jobs.json" : "live-catalogue.json";
+const max = maxIndex > 0 ? Number(process.argv[maxIndex + 1]) : Infinity;
 const pageSize = 50;
 const cacheDir = new URL("../.cache/", import.meta.url);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const body = (pageNumber) => ({ pageNumber, pageSize, types: [jobs ? jobType : learningType], publishedStates: ["NotStarted", "Active"] });
+const body = (pageNumber) => ({ pageNumber, pageSize, types: [type], publishedStates: ["NotStarted", "Active"] });
 
 async function page(pageNumber) {
   for (let attempt = 1; ; attempt++) {
@@ -61,11 +60,11 @@ for (let pageNumber = 1; ; pageNumber++) {
 mkdirSync(cacheDir, { recursive: true });
 const items = [...byId.values()];
 writeFileSync(
-  new URL(outFile, cacheDir),
+  new URL(fileName, cacheDir),
   JSON.stringify({ fetchedAt, endpoint, request: body("N"), totalCount, rawCount, uniqueCount: items.length, items }, null, 2),
 );
-console.error(`Saved ${items.length} unique items (${rawCount} fetched, totalCount ${totalCount}) to .cache/${outFile}`);
-if (!jobs && items.length !== totalCount) {
+console.error(`Saved ${items.length} unique items (${rawCount} fetched, totalCount ${totalCount}) to .cache/${fileName}`);
+if (items.length !== totalCount && max === Infinity) {
   console.error("Warning: the unique count does not match totalCount.");
   process.exitCode = 1;
 }

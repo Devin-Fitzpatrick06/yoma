@@ -94,7 +94,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
       // with its child items, because the fingerprint covers them
       var opportunity = _opportunityService.GetByIdOrNull(opportunityId, true, false, false) ?? throw notFound;
-      if (!IsPubliclyVisible(opportunity)) throw notFound;
+      if (!IsPubliclyVisible(opportunity) || (opportunity.Type == Opportunity.Type.Job && !JobsInBrowse)) throw notFound;
       if (!IsCurrent(latest, opportunity, now)) throw notFound;
 
       var card = latest.ToAssessment().LearnerCard;
@@ -107,8 +107,10 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       if (!_options.ShowInBrowse) return null;
 
       var cutoff = DateTimeOffset.UtcNow.AddDays(-_options.CardMaxAgeInDays);
+      var jobs = JobsInBrowse;
       return [.. _assessmentRepository.Query()
-        .Where(o => o.IsLatest && o.Status == CourseQualityStatus.Verified && o.DateAssessed >= cutoff)
+        // jobs only once they are shown in browse
+        .Where(o => o.IsLatest && o.Status == CourseQualityStatus.Verified && o.DateAssessed >= cutoff && (jobs || o.Format != CourseFormat.Job))
         .Select(o => o.OpportunityId)];
     }
 
@@ -135,7 +137,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     {
       if (!_options.ShowInBrowse || opportunities == null || results == null) return;
 
-      var courses = opportunities.Where(o => o.Type == Opportunity.Type.Learning).ToDictionary(o => o.Id);
+      var courses = opportunities.Where(o => o.Type == Opportunity.Type.Learning || (JobsInBrowse && o.Type == Opportunity.Type.Job)).ToDictionary(o => o.Id);
       if (courses.Count == 0) return;
 
       var ids = courses.Keys.ToList();
@@ -185,6 +187,12 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
       if (filter.ReviewStatus.HasValue) query = query.Where(o => o.ReviewStatus == filter.ReviewStatus.Value);
       if (filter.OrganizationId.HasValue) query = query.Where(o => o.OrganizationId == filter.OrganizationId.Value);
+
+      // a job's format is set from its type, so it tells the two apart without a join
+      if (filter.OpportunityType == Opportunity.Type.Job) query = query.Where(o => o.Format == CourseFormat.Job);
+      else if (filter.OpportunityType == Opportunity.Type.Learning) query = query.Where(o => o.Format != CourseFormat.Job);
+      else if (filter.OpportunityType.HasValue)
+        throw new ValidationException($"Only '{Opportunity.Type.Learning}' and '{Opportunity.Type.Job}' listings are assessed");
 
       if (filter.Grade == CourseGrade.Ungraded)
       {
@@ -250,6 +258,10 @@ namespace Yoma.Core.Domain.CourseQuality.Services
           && (decision.Format ?? assessment.LearnerCard.Format) == CourseFormat.Unknown)
           throw new ValidationException("Set the format to verify this listing");
 
+        var isJob = assessment.LearnerCard.Format == CourseFormat.Job;
+        if (decision.Format.HasValue && (decision.Format == CourseFormat.Job) != isJob)
+          throw new ValidationException(isJob ? "A job's format cannot be changed" : $"Only a job listing has the format '{CourseFormat.Job}'");
+
         CourseQualityReviewPolicy.ApplyDecision(assessment, decision, reviewerEmail, DateTimeOffset.UtcNow, _options);
 
         await _assessmentRepository.Update(record.ApplyAssessment(assessment));
@@ -306,12 +318,16 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     {
       var cutoff = now.AddDays(-_options.ReassessIntervalInDays);
       var rubricVersion = _options.RubricVersion;
+      var jobRubricVersion = _options.Jobs.RubricVersion;
 
       var latest = _assessmentRepository.Query().Where(o => o.IsLatest);
-      var current = latest.Where(o => o.DateAssessed >= cutoff && o.RubricVersion == rubricVersion);
+
+      // each catalogue against its own rubric version, told apart by the job format
+      var current = latest.Where(o => o.DateAssessed >= cutoff
+        && (o.Format == CourseFormat.Job ? o.RubricVersion == jobRubricVersion : o.RubricVersion == rubricVersion));
 
       // never assessed first, then the oldest check, so the whole catalogue keeps moving
-      return QueryPublished(_options.VerifiedTypes())
+      return QueryPublished(DueTypes())
         .Where(o => !current.Any(a => a.OpportunityId == o.Id && a.OpportunityDateModified == o.DateModified))
         .OrderBy(o => latest.Any(a => a.OpportunityId == o.Id) ? 1 : 0)
         .ThenBy(o => latest.Where(a => a.OpportunityId == o.Id).Select(a => a.DateAssessed).FirstOrDefault())
@@ -329,6 +345,10 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         throw new ValidationException("Course quality assessment is turned off");
 
       var opportunity = _opportunityService.GetById(opportunityId, true, false, false);
+
+      if (opportunity.Type == Opportunity.Type.Job && _options.Jobs.Enabled)
+        return await AssessJobAndPersist(opportunityId, cancellationToken);
+
       var types = _options.VerifiedTypes();
       if (!types.Contains(opportunity.Type))
         throw new ValidationException(types.Count == 1
@@ -348,6 +368,25 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
       // grading reads courses only
       return (assessment, changed && opportunity.Type == Opportunity.Type.Learning);
+    }
+
+    /// <summary>
+    /// A job from a partner feed is open while the feed lists it, so only a job a partner posted on Yoma has its link checked.
+    /// No page reader runs: job pages are app shells or full of text that is not about the job.
+    /// </summary>
+    private async Task<(CourseQualityAssessment Assessment, bool Changed)> AssessJobAndPersist(Guid opportunityId, CancellationToken cancellationToken)
+    {
+      // with the computed fields, which carry the feed it came from
+      var opportunity = _opportunityService.GetById(opportunityId, true, true, false);
+
+      var link = CourseQualityJobRules.FeedPartner(opportunity).HasValue ? null : await _linkChecker.Check(opportunity.URL, cancellationToken);
+
+      var assessment = CourseQualityEngine.AssessJob(opportunity, link, _options, DateTimeOffset.UtcNow, out var fresh);
+      var evidence = CourseQualityPageEvidenceExtractor.Extract(null, null, false, opportunity.Description, opportunity.Title);
+
+      var changed = await Persist(assessment, opportunity.DateModified, CourseQualityFingerprint.Compute(opportunity), fresh, evidence);
+
+      return (assessment, changed);
     }
 
     /// <summary>
@@ -385,9 +424,11 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       return latest.Format != CourseFormat.Webinar || opportunity.DateEnd.HasValue || opportunity.DateStart >= now;
     }
 
+    private bool JobsInBrowse => _options.Jobs.Enabled && _options.Jobs.ShowInBrowse;
+
     private static bool IsPubliclyVisible(Opportunity.Models.Opportunity opportunity)
     {
-      return opportunity.Type == Opportunity.Type.Learning
+      return opportunity.Type is Opportunity.Type.Learning or Opportunity.Type.Job
         && opportunity.Status == Status.Active
         && opportunity.OrganizationStatus == OrganizationStatus.Active
         && opportunity.Hidden != true;
@@ -396,6 +437,16 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     private IQueryable<Opportunity.Models.Opportunity> QueryPublishedCourses()
     {
       return QueryPublished([Opportunity.Type.Learning]);
+    }
+
+    /// <summary>
+    /// The types due for assessment: the listing-rule types, plus Job when the job checks are on.
+    /// </summary>
+    private List<Opportunity.Type> DueTypes()
+    {
+      var types = _options.VerifiedTypes();
+      if (_options.Jobs.Enabled && !types.Contains(Opportunity.Type.Job)) types.Add(Opportunity.Type.Job);
+      return types;
     }
 
     private IQueryable<Opportunity.Models.Opportunity> QueryPublished(List<Opportunity.Type> types)

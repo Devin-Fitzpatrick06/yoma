@@ -344,7 +344,7 @@ namespace Yoma.Core.Test.CourseQuality
     }
 
     [Fact]
-    public void VerifyTypes_FromConfiguration_AddsEventAndJob_AndIgnoresTheRest()
+    public void VerifyTypes_FromConfiguration_AddsEvent_AndIgnoresTheRest_JobsHaveTheirOwnChecks()
     {
       var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
       {
@@ -357,7 +357,8 @@ namespace Yoma.Core.Test.CourseQuality
       var options = new CourseQualityOptions();
       configuration.GetSection(CourseQualityOptions.Section).Bind(options);
 
-      Assert.Equal([OpportunityType.Learning, OpportunityType.Event, OpportunityType.Job], options.VerifiedTypes());
+      // jobs are checked and graded by their own pipeline (CourseQuality:Jobs:Enabled), not by the listing rules
+      Assert.Equal([OpportunityType.Learning, OpportunityType.Event], options.VerifiedTypes());
     }
     #endregion
 

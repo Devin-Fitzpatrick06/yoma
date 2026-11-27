@@ -70,7 +70,7 @@ newest first. Selecting a card pops out the full learner card with fields and ex
 
 | Role | Email | Password |
 | ---- | ----- | -------- |
-| Reviewer, and partner admin of Demo Learning Partner | `testadminuser@gmail.com` | `P@ssword12` |
+| Reviewer, and partner admin of Demo Learning Partner | `testadminuser@gmail.com` | `give` |
 | Partner only | `testorgadminuser@gmail.com` | `P@ssword12` |
 | Learner, in the United States | `testuser@gmail.com` | `P@ssword12` |
 

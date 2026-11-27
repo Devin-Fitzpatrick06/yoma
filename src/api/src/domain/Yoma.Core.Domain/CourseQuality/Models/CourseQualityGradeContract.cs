@@ -37,7 +37,27 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     /// What completers did next on Yoma: another course towards the same goal, or a Job opportunity. Weight 0 until there is enough
     /// data; neutral with no data or fewer completers than the minimum group size. Describes what followed, not what the course caused.
     /// </summary>
-    Outcomes
+    Outcomes,
+
+    // jobs: graded with their own rubric and ranked only against other jobs; the course rubric never includes these
+
+    /// <summary>A stated pay amount; a pay period or "market related" alone scores low.</summary>
+    PayTransparency,
+
+    /// <summary>Schedule or contract type, location, requirements and how to apply.</summary>
+    JobClarity,
+
+    /// <summary>Open to young people: no or entry-level experience scores high, years of experience lower.</summary>
+    YouthFit,
+
+    /// <summary>The job's checks: its status and whether it shows any scam warning sign.</summary>
+    ListingSafety,
+
+    /// <summary>How many of the partner's jobs pass the checks, smoothed for few listings.</summary>
+    PartnerReliability,
+
+    /// <summary>Applicant survey answers. Neutral until applicants are asked.</summary>
+    ApplicantFeedback
   }
 
   /// <summary>

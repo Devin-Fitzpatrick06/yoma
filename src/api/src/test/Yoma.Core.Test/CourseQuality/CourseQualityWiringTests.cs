@@ -62,7 +62,9 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.Equal(0.7m, options.ReviewConfidenceThreshold);
       Assert.Equal(49, options.HardGateScoreCap);
       Assert.Equal(0.69m, options.RuleOnlyConfidenceCap);
-      Assert.Equal(5, options.Criteria.Count);
+      Assert.Equal(9, options.Criteria.Count); // five course criteria and four job ones
+      Assert.False(options.Jobs.Enabled);
+      Assert.True(options.Criteria[CourseQualityCriterion.NoScamSignals].HardGate);
       Assert.Equal(30, options.Criteria[CourseQualityCriterion.DatesAccurate].Weight);
       Assert.Equal(15, options.Criteria[CourseQualityCriterion.FormatIdentified].Weight);
       Assert.False(options.Criteria[CourseQualityCriterion.DataComplete].HardGate);
@@ -267,7 +269,7 @@ namespace Yoma.Core.Test.CourseQuality
       var grading = new CourseQualityGradingService(NullLogger<CourseQualityGradingService>.Instance, Mock.Of<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
         Options.Create(new CourseQualityOptions()), Mock.Of<Domain.Core.Interfaces.IRepositoryBatchedValueContainsWithNavigationAndCustomFieldFilter<Domain.Opportunity.Models.Opportunity>>(),
         Mock.Of<IRepository<Domain.Opportunity.Models.OpportunitySkill>>(), Mock.Of<IRepository<Domain.Opportunity.Models.OpportunityLanguage>>(), Mock.Of<Domain.Lookups.Interfaces.ILanguageService>(),
-        Mock.Of<Domain.MyOpportunity.Interfaces.IMyOpportunityService>(), Mock.Of<IRepository<CourseQualityAssessmentRecord>>(), grades, Mock.Of<IRepository<CourseQualityGradeRubricRecord>>(),
+        Mock.Of<Domain.MyOpportunity.Interfaces.IMyOpportunityService>(), new CourseQualityAssessmentRepository(context), grades, Mock.Of<IRepository<CourseQualityGradeRubricRecord>>(),
         Mock.Of<IRepository<CourseQualityLearnerFeedbackRecord>>(), Mock.Of<IDistributedLockService>(), Mock.Of<IExecutionStrategyService>(), Mock.Of<Hangfire.IBackgroundJobClient>(),
         Mock.Of<Domain.Pathway.Interfaces.IPathwayOutcomeService>());
 
@@ -276,6 +278,10 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.Contains("\"CourseQuality\".\"Grade\"", sql);
       Assert.Contains("CASE", sql);
       Assert.DoesNotContain("= ANY", sql);
+
+      // jobs are kept out of the ranking while they are not shown in browse, also in SQL
+      Assert.Contains("\"CourseQuality\".\"Assessment\"", sql);
+      Assert.Contains("'Job'", sql);
     }
 
     [Fact]

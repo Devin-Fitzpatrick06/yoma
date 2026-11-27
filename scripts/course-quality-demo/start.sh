@@ -148,17 +148,6 @@ else
 
 fi
 
-# Live jobs, listed only, for the My Yoma pathways' job step. Nothing is invented about them. Also after loading a saved
-# database from before jobs were added; skipped when it already has them.
-if [ "$(sql -At -c "SELECT count(*) FROM \"Opportunity\".\"Opportunity\" o JOIN \"Opportunity\".\"OpportunityType\" t ON t.\"Id\" = o.\"TypeId\" AND t.\"Name\" = 'Job'")" = "0" ]; then
-  if [ ! -f "$CACHE_DIR/live-jobs.json" ]; then
-    step "Downloading up to 2,000 live Yoma jobs (about a minute)"
-    in_runner node /demo/seed/fetch-live-catalogue.mjs --jobs 2>>"$LOG_DIR/fetch.log" || echo "The live jobs did not download, so pathways show no jobs."
-  fi
-  step "Adding the live jobs"
-  in_runner node /demo/seed/generate-jobs-sql.mjs 2>>"$LOG_DIR/seed.log" | sql >>"$LOG_DIR/seed.log" 2>&1
-fi
-
 # ---- Assess ----
 current_step="running the quality assessment"
 step "Running the quality assessment on the named courses"
@@ -205,6 +194,31 @@ else
   fi
 fi
 
+# ---- Jobs ----
+# Live jobs are added once: a saved database that already has them keeps them. Feed jobs need no link check, so this
+# takes minutes. The run grades jobs too, then saves the database again so the next start includes them.
+job_summary=""
+if grep -q '^CourseQuality__Jobs__Enabled=true' "$DEMO_DIR/demo.env" && [ "$(sql -At -c "SELECT count(*) FROM \"Opportunity\".\"Opportunity\" o JOIN \"Opportunity\".\"OpportunityType\" t ON t.\"Id\" = o.\"TypeId\" WHERE t.\"Name\" = 'Job'")" = "0" ]; then
+  if [ ! -f "$CACHE_DIR/live-jobs.json" ]; then
+    current_step="downloading the live job list"
+    step "Downloading the public list of live Yoma jobs (a few minutes)"
+    in_runner node /demo/seed/fetch-live-catalogue.mjs --jobs 2>"$LOG_DIR/fetch-jobs.log"
+  fi
+  current_step="adding the jobs"
+  step "Adding every live Yoma job, with its partner feed"
+  in_runner node /demo/seed/generate-jobs-sql.mjs 2>>"$LOG_DIR/seed.log" | sql >>"$LOG_DIR/seed.log" 2>&1
+  rm -f "$CACHE_DIR/job-assessment-progress.jsonl"
+  current_step="checking the jobs"
+  step "Checking and grading every job (progress is in .logs/assess-jobs.log)"
+  jobs_ok=0
+  job_summary="$(in_runner node /demo/seed/assess-live.mjs --jobs --concurrency 8 2>"$LOG_DIR/assess-jobs.log")" || jobs_ok=$?
+  if [ "$jobs_ok" -eq 0 ] && [ -z "$SAMPLE" ] && { [ "$FROM_SNAPSHOT" = true ] || [ "$live_ok" -eq 0 ]; }; then
+    current_step="saving the demo database"
+    step "Saving the demo database with the jobs"
+    save_snapshot
+  fi
+fi
+
 # ---- Website ----
 # Started only now, so no one can open the course list, and cache it, before the courses are in.
 current_step="starting the website"
@@ -233,6 +247,7 @@ printf '  Learner:              testuser@gmail.com\n'
 printf '  Password:             P@ssword12\n'
 printf '\n%s courses, %s assessed.\n' "$courses_total" "$assessed_total"
 [ -n "$live_summary" ] && printf 'Live courses:\n%s\n' "$live_summary"
+[ -n "$job_summary" ] && printf 'Live jobs:\n%s\n' "$job_summary"
 printf '\nNamed courses:\n%s\n' "$results_table"
 if [ "$all_as_expected" -ne 0 ]; then
   printf '\nSome named courses did not reach their demo state. Check them before presenting.\n'

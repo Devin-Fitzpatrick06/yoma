@@ -151,7 +151,7 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.Equal(course.Id, grade.OpportunityId);
       Assert.Equal(CourseQualityStatus.Verified, grade.Status);
       Assert.Equal(CourseQualityGradingDefaults.Version, grade.RubricVersion);
-      Assert.Equal(Enum.GetValues<CourseGradeFactor>().Length, grade.ToResult().Factors.Count);
+      Assert.Equal(CourseQualityGradingDefaults.Factors.Count, grade.ToResult().Factors.Count);
     }
 
     [Fact]
@@ -231,7 +231,7 @@ namespace Yoma.Core.Test.CourseQuality
 
       var rows = Service().ListFactors();
       Assert.Equal(10, rows.Count);
-      Assert.All(rows, o => Assert.Equal(Enum.GetValues<CourseGradeFactor>().Length, o.Factors.Count));
+      Assert.All(rows, o => Assert.Equal(CourseQualityGradingDefaults.Factors.Count, o.Factors.Count));
       Assert.Equal(courses[0].Title, rows[0].OpportunityTitle);
 
       var grades = Service().ListGrades([courses[0].Id, courses[1].Id]);

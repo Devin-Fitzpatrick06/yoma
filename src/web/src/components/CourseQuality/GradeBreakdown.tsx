@@ -1,8 +1,5 @@
 import type { CourseGradeResult } from "~/api/models/courseQuality";
-import {
-  GRADE_FACTOR_LABELS,
-  isWaitingForReviewCap,
-} from "~/lib/courseGrading";
+import { gradeFactorLabel, isWaitingForReviewCap } from "~/lib/courseGrading";
 import GradeChip from "./GradeChip";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,7 +63,7 @@ const GradeBreakdown: React.FC<{
           <li key={factor.factor} className="flex flex-col gap-1">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
               <span className="font-semibold">
-                {GRADE_FACTOR_LABELS[factor.factor] ?? factor.factor}
+                {gradeFactorLabel(factor.factor)}
               </span>
               <span className="text-gray-dark text-xs">
                 <span className="font-semibold text-black">{factor.score}</span>{" "}
@@ -76,7 +73,7 @@ const GradeBreakdown: React.FC<{
             </div>
             <div
               role="meter"
-              aria-label={`${GRADE_FACTOR_LABELS[factor.factor] ?? factor.factor} score`}
+              aria-label={`${gradeFactorLabel(factor.factor)} score`}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={factor.score}
