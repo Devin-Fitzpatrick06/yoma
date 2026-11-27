@@ -237,7 +237,8 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         Completion(input, catalogue, rubric),
         Integrity(input, rubric, now),
         Accessibility(input, evidence, rubric),
-        Outcomes(input, rubric)
+        Outcomes(input, rubric),
+        DropOff()
       };
 
       var totalWeight = rubric.Factors.Values.Sum(o => Math.Max(o.Weight, 0));
@@ -600,6 +601,13 @@ namespace Yoma.Core.Domain.CourseQuality.Services
 
       return (factor, Weighted([.. parts]), $"Of {input.OutcomeCompleters} completers, {string.Join(" and ", text)}.");
     }
+
+    /// <summary>
+    /// Pathway drop-off (W5) has no data yet, so the factor is always neutral. When drop-off becomes available it reads the course's
+    /// rate here, below MinGroupSize still neutral.
+    /// </summary>
+    private static (CourseGradeFactor, decimal?, string) DropOff() =>
+      (CourseGradeFactor.DropOff, null, "Drop-off: collecting from the pilot.");
 
     /// <summary>
     /// 0 to 1 parts weighted by relative shares, as 0 to 100.

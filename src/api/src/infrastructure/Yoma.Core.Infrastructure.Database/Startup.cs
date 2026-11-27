@@ -104,6 +104,9 @@ namespace Yoma.Core.Infrastructure.Database
 
       #region Pathway
       services.AddScoped<IRepository<Domain.Pathway.Models.PathwayProfileRecord>, Pathway.Repositories.PathwayProfileRepository>();
+      services.AddScoped<IRepository<Domain.Pathway.Models.PathwayStepLockRecord>, Pathway.Repositories.PathwayStepLockRepository>();
+      services.AddScoped<IRepository<Domain.Pathway.Models.PathwayStepSwapRecord>, Pathway.Repositories.PathwayStepSwapRepository>();
+      services.AddScoped<IRepository<Domain.Pathway.Models.PathwayStepEventRecord>, Pathway.Repositories.PathwayStepEventRepository>();
       #endregion Pathway
 
       #region Entity

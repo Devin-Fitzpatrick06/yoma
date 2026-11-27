@@ -132,6 +132,10 @@ namespace Yoma.Core.Domain
       services.AddScoped<IPathwayOutcomeService, PathwayOutcomeService>();
       // the step service registers the stored implementation with AddScoped, which replaces this default
       services.TryAddScoped<IPathwayStepStore, NoOpPathwayStepStore>();
+      services.AddScoped<IPathwayStepStore, PathwayStepStore>();
+      services.AddScoped<IPathwayStepService, PathwayStepService>();
+      // until IPathwayService.ListAlternatives lands (A3); the lead reconciles
+      services.AddScoped<IPathwayStepAlternatives, PathwayStepAlternatives>();
 
       #endregion Pathway
 

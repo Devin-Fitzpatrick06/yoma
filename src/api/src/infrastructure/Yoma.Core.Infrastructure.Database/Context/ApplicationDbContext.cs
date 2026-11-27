@@ -61,6 +61,12 @@ namespace Yoma.Core.Infrastructure.Database.Context
 
     #region Pathway
     public DbSet<Pathway.Entities.PathwayProfile> PathwayProfile { get; set; }
+
+    public DbSet<Pathway.Entities.PathwayStepLock> PathwayStepLock { get; set; }
+
+    public DbSet<Pathway.Entities.PathwayStepSwap> PathwayStepSwap { get; set; }
+
+    public DbSet<Pathway.Entities.PathwayStepEvent> PathwayStepEvent { get; set; }
     #endregion Pathway
 
     #region Entity
@@ -540,6 +546,27 @@ namespace Yoma.Core.Infrastructure.Database.Context
 
         entity.HasOne(o => o.User).WithMany().HasForeignKey(o => o.UserId).OnDelete(DeleteBehavior.NoAction);
         entity.HasOne(o => o.Country).WithMany().HasForeignKey(o => o.CountryId).OnDelete(DeleteBehavior.NoAction);
+      });
+
+      builder.Entity<Pathway.Entities.PathwayStepLock>(entity =>
+      {
+        entity.HasOne(o => o.User).WithMany().HasForeignKey(o => o.UserId).OnDelete(DeleteBehavior.NoAction);
+        entity.HasOne(o => o.Opportunity).WithMany().HasForeignKey(o => o.OpportunityId).OnDelete(DeleteBehavior.NoAction);
+      });
+
+      builder.Entity<Pathway.Entities.PathwayStepSwap>(entity =>
+      {
+        entity.HasOne(o => o.User).WithMany().HasForeignKey(o => o.UserId).OnDelete(DeleteBehavior.NoAction);
+        entity.HasOne(o => o.ReplacedOpportunity).WithMany().HasForeignKey(o => o.ReplacedOpportunityId).OnDelete(DeleteBehavior.NoAction);
+        entity.HasOne(o => o.ReplacementOpportunity).WithMany().HasForeignKey(o => o.ReplacementOpportunityId).OnDelete(DeleteBehavior.NoAction);
+      });
+
+      builder.Entity<Pathway.Entities.PathwayStepEvent>(entity =>
+      {
+        entity.Property(o => o.Event).HasConversion<string>().HasColumnType("varchar(20)");
+
+        entity.HasOne(o => o.User).WithMany().HasForeignKey(o => o.UserId).OnDelete(DeleteBehavior.NoAction);
+        entity.HasOne(o => o.Opportunity).WithMany().HasForeignKey(o => o.OpportunityId).OnDelete(DeleteBehavior.NoAction);
       });
       #endregion Pathway
 

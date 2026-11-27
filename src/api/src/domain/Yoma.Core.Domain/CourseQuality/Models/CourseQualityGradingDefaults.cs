@@ -117,7 +117,9 @@ namespace Yoma.Core.Domain.CourseQuality.Models
         // weight 0 until outcome data is sufficient (iteration 3, F3); the slot exists so the rubric page can show it
         [CourseGradeFactor.Outcomes] = (0, 50, Parameters(
           (CourseGradeParameter.MinGroupSize, 20), (CourseGradeParameter.ProgressionShare, 60), (CourseGradeParameter.EmploymentShare, 40),
-          (CourseGradeParameter.ProgressionTarget, 0.5m), (CourseGradeParameter.EmploymentTarget, 0.2m)))
+          (CourseGradeParameter.ProgressionTarget, 0.5m), (CourseGradeParameter.EmploymentTarget, 0.2m))),
+        // weight 0 and neutral until drop-off leaves "collecting from the pilot" (iteration 4, W5), like Outcomes
+        [CourseGradeFactor.DropOff] = (0, 50, Parameters((CourseGradeParameter.MinGroupSize, 20)))
       };
 
     public static List<CourseGradeBand> Bands() =>
