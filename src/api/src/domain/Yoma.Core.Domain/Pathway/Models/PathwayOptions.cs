@@ -9,6 +9,12 @@ namespace Yoma.Core.Domain.Pathway.Models
   {
     public const string Section = "Pathway";
 
+    /// <summary>
+    /// Production switch for every /pathway/* endpoint (My Yoma, badges, steps). Off by default: the endpoints answer 404 until it is
+    /// turned on (the demo turns it on). Applied with the API's [PathwayEnabled] attribute.
+    /// </summary>
+    public bool Enabled { get; set; }
+
     public List<PathwayGoalOptions> Goals { get; set; } = [];
 
     public List<PathwayKnownSkillOptions> KnownSkills { get; set; } = [];

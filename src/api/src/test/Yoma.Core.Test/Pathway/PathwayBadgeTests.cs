@@ -52,7 +52,7 @@ namespace Yoma.Core.Test.Pathway
     private static LearnerBadge Badge(List<LearnerBadge> badges, LearnerBadgeKey key) => badges.Single(o => o.Key == key);
 
     private static PartnerBadge Partner(int top, int graded, int heldBack = 0, int waiting = 0, PartnerBadgeOptions? options = null) =>
-      PartnerBadgeCalculator.Calculate(Guid.NewGuid(), "Northwind Learning", new PartnerBadgeCounts(top, graded, heldBack, waiting), options ?? PartnerOptions);
+      PartnerBadgeCalculator.Calculate(Guid.NewGuid(), "Northwind Learning", new PartnerBadgeCounts(top, graded, heldBack, waiting), options ?? PartnerOptions, Day0);
     #endregion
 
     #region Learner badges
@@ -232,14 +232,14 @@ namespace Yoma.Core.Test.Pathway
     }
 
     [Fact]
-    public void Partner_Gold_HasNoNextLevel()
+    public void Partner_Gold_BelowThePlatinumMinimum_HintAsksForMoreGradedCourses()
     {
-      var badge = Partner(top: 14, graded: 20);
+      var badge = Partner(top: 16, graded: 20);
 
       Assert.Equal(PartnerBadgeLevel.Gold, badge.Level);
-      Assert.Equal(0.7m, badge.ShareTopGrades);
+      Assert.Equal(0.8m, badge.ShareTopGrades);
       Assert.Equal(0m, badge.ShareHeldBack);
-      Assert.Null(badge.NextLevelHint);
+      Assert.Equal("For Platinum: 5 more graded courses (20 now, 25 needed). The fix notes say what each held-back course needs.", badge.NextLevelHint);
     }
 
     [Fact]
@@ -288,7 +288,7 @@ namespace Yoma.Core.Test.Pathway
       Assert.Equal(5, options.MinimumGradedCourses);
       Assert.Equal(0.5m, options.Levels[PartnerBadgeLevel.Gold].MinShareTopGrades);
       Assert.Equal(0.05m, options.Levels[PartnerBadgeLevel.Gold].MaxShareHeldBack);
-      Assert.Equal(3, options.Levels.Count);
+      Assert.Equal(4, options.Levels.Count);
 
       Assert.Equal(PartnerBadgeLevel.Gold, Partner(top: 3, graded: 6, options: options).Level);
     }
@@ -312,14 +312,16 @@ namespace Yoma.Core.Test.Pathway
       Assert.Equal("Pathfinder", learner["key"]!.Value<string>());
 
       var partner = JObject.Parse(JsonConvert.SerializeObject(Partner(top: 2, graded: 3), ApiSettings));
-      Assert.Equal(["gradedCourses", "level", "minimumGradedCourses", "nextLevelHint", "organizationId", "organizationName", "shareHeldBack", "shareTopGrades", "waitingForReview"],
+      Assert.Equal(["gradedCourses", "level", "minimumGradedCourses", "nextLevelHint", "organizationId", "organizationName", "reviewDue", "shareHeldBack", "shareTopGrades", "waitingForReview"],
         partner.Properties().Select(o => o.Name).Order());
       Assert.Equal("NotEnoughGraded", partner["level"]!.Value<string>());
+      Assert.Equal("2026-10-01", partner["reviewDue"]!.Value<string>());
     }
 
     [Theory]
     [InlineData(nameof(PathwayBadgeController.ListMine), "me", "User")]
     [InlineData(nameof(PathwayBadgeController.GetPartnerBadge), "organization/{organizationId}", null)]
+    [InlineData(nameof(PathwayBadgeController.ListPartnerBadges), "organizations", null)]
     public void Routes_MatchTheContract(string action, string template, string? roles)
     {
       var method = typeof(PathwayBadgeController).GetMethod(action)!;
@@ -358,15 +360,17 @@ namespace Yoma.Core.Test.Pathway
     public void PartnerQueries_TranslateToSql_WithTheCoursesAsASubquery()
     {
       using var context = Context();
-      var courseIds = PathwayBadgeService.QueryPartnerCourseIds(new OpportunityRepository(context).Query(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+      var courses = PathwayBadgeService.QueryPartnerCourses(new OpportunityRepository(context).Query(), [Guid.NewGuid(), Guid.NewGuid()], Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
 
-      var grades = new CourseQualityGradeRepository(context).Query().Where(o => courseIds.Contains(o.OpportunityId)).Select(o => new { o.OpportunityId, o.Grade }).ToQueryString();
-      var latest = new CourseQualityAssessmentRepository(context).Query().Where(o => o.IsLatest && courseIds.Contains(o.OpportunityId))
-        .Select(o => new { o.OpportunityId, o.Status }).ToQueryString();
+      var grades = PathwayBadgeService.QueryPartnerGrades(new CourseQualityGradeRepository(context).Query(), courses).ToQueryString();
+      var latest = PathwayBadgeService.QueryPartnerLatestAssessments(new CourseQualityAssessmentRepository(context).Query(), courses).ToQueryString();
 
+      // one statement per query for every organisation asked for, never one per organisation
       Assert.Contains("\"Opportunity\"", grades);
+      Assert.Contains("JOIN", grades);
+      Assert.Contains("\"OrganizationId\"", grades);
       Assert.Contains("\"Hidden\"", latest);
-      Assert.DoesNotContain("= ANY", grades);
+      Assert.Contains("\"IsLatest\"", latest);
     }
     #endregion
   }

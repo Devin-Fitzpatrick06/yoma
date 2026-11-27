@@ -14,11 +14,12 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
   {
     #region Class Variables
     private const int ShareDecimals = 3;
-    private static readonly PartnerBadgeLevel[] Ladder = [PartnerBadgeLevel.Bronze, PartnerBadgeLevel.Silver, PartnerBadgeLevel.Gold];
+    private static readonly PartnerBadgeLevel[] Ladder = [PartnerBadgeLevel.Bronze, PartnerBadgeLevel.Silver, PartnerBadgeLevel.Gold, PartnerBadgeLevel.Platinum];
     #endregion
 
     #region Public Members
-    public static PartnerBadge Calculate(Guid organizationId, string organizationName, PartnerBadgeCounts counts, PartnerBadgeOptions options)
+    /// <param name="now">When the badge is computed; sets <see cref="PartnerBadge.ReviewDue"/>.</param>
+    public static PartnerBadge Calculate(Guid organizationId, string organizationName, PartnerBadgeCounts counts, PartnerBadgeOptions options, DateTimeOffset now)
     {
       ArgumentException.ThrowIfNullOrWhiteSpace(organizationName, nameof(organizationName));
       ArgumentNullException.ThrowIfNull(counts, nameof(counts));
@@ -31,7 +32,8 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
         OrganizationName = organizationName,
         GradedCourses = counts.Graded,
         WaitingForReview = counts.WaitingForReview,
-        MinimumGradedCourses = minimum
+        MinimumGradedCourses = minimum,
+        ReviewDue = ReviewDue(now)
       };
 
       if (counts.Graded < minimum)
@@ -51,20 +53,33 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
       badge.ShareHeldBack = Math.Round(shareHeld, ShareDecimals, MidpointRounding.AwayFromZero);
 
       var levels = Ladder.Where(options.Levels.ContainsKey).ToList();
-      var level = levels.LastOrDefault(o => Meets(options.Levels[o], shareTop, shareHeld));
+      var level = levels.LastOrDefault(o => Meets(options.Levels[o], counts.Graded, minimum, shareTop, shareHeld));
       badge.Level = level == default ? PartnerBadgeLevel.None : level;
 
-      var next = levels.FirstOrDefault(o => Rank(o) > Rank(badge.Level));
-      badge.NextLevelHint = Join(next == default ? null : Hint(next, options.Levels[next], counts, shareTop, shareHeld), Waiting(counts.WaitingForReview));
+      var next = levels.Where(o => Rank(o) > Rank(badge.Level)).Select(o => (PartnerBadgeLevel?)o).FirstOrDefault();
+      badge.NextLevelHint = Join(next == null ? null : Hint(next.Value, options.Levels[next.Value], counts, minimum, shareTop, shareHeld), Waiting(counts.WaitingForReview));
 
       return badge;
+    }
+
+    /// <summary>
+    /// Badges are reviewed each quarter: the first day of the calendar quarter after <paramref name="now"/>, in UTC. On the first day
+    /// of a quarter the review is the start of the following one.
+    /// </summary>
+    public static DateOnly ReviewDue(DateTimeOffset now)
+    {
+      var utc = now.UtcDateTime;
+      var quarterStart = new DateOnly(utc.Year, (utc.Month - 1) / 3 * 3 + 1, 1);
+      return quarterStart.AddMonths(3);
     }
     #endregion
 
     #region Private Members
-    private static bool Meets(PartnerBadgeThreshold threshold, decimal shareTop, decimal shareHeld)
+    private static int MinimumFor(PartnerBadgeThreshold threshold, int minimum) => Math.Max(threshold.MinimumGradedCourses ?? 0, minimum);
+
+    private static bool Meets(PartnerBadgeThreshold threshold, int graded, int minimum, decimal shareTop, decimal shareHeld)
     {
-      return shareTop >= threshold.MinShareTopGrades && shareHeld <= threshold.MaxShareHeldBack;
+      return graded >= MinimumFor(threshold, minimum) && shareTop >= threshold.MinShareTopGrades && shareHeld <= threshold.MaxShareHeldBack;
     }
 
     private static int Rank(PartnerBadgeLevel level) => Array.IndexOf(Ladder, level);
@@ -73,9 +88,16 @@ namespace Yoma.Core.Domain.Pathway.Badges.Services
     /// In courses rather than percentages where it can: how many more at A or B, and how many held-back courses to fix. Approximate,
     /// because grades are relative and a fixed course joins the graded ones.
     /// </summary>
-    private static string Hint(PartnerBadgeLevel next, PartnerBadgeThreshold threshold, PartnerBadgeCounts counts, decimal shareTop, decimal shareHeld)
+    private static string Hint(PartnerBadgeLevel next, PartnerBadgeThreshold threshold, PartnerBadgeCounts counts, int minimum, decimal shareTop, decimal shareHeld)
     {
       var steps = new List<string>();
+
+      var levelMinimum = MinimumFor(threshold, minimum);
+      if (counts.Graded < levelMinimum)
+      {
+        var more = levelMinimum - counts.Graded;
+        steps.Add($"{more} more graded {Courses(more)} ({counts.Graded} now, {levelMinimum} needed)");
+      }
 
       if (shareTop < threshold.MinShareTopGrades)
       {
