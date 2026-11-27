@@ -45,6 +45,9 @@ export const preferencesSummary = (keys: string[]): string | null => {
  * reads them from preferences), "anywhere" for the country, the middle option for the time.
  * `null` when there is no neutral answer (goal, starting point): such a question is always asked.
  */
+/** The API's key for "anywhere" (PathwayDefaults.AnywhereKey). */
+const ANYWHERE_KEY = "anywhere";
+
 const fallbackAnswer = (question: PathwayQuestion): string[] | null => {
   if (question.multiSelect) return [];
   if (question.id === "country") {
@@ -112,6 +115,13 @@ export const withPreferenceFallbacks = (
     const fallback = fallbackAnswer(question);
     if (fallback) filled[question.id] = fallback;
   }
+  // The API leaves answered questions out of the list altogether (contract), so a hidden question
+  // may have no options here. Fill a placeholder the request needs; the API ignores it for keys in
+  // answeredFromPreferences and uses the stored preference instead.
+  if (fromPreferences.has("country") && filled.country.length === 0)
+    filled.country = [ANYWHERE_KEY];
+  if (fromPreferences.has("hoursPerWeek") && filled.hoursPerWeek.length === 0)
+    filled.hoursPerWeek = ["5"];
   return filled;
 };
 

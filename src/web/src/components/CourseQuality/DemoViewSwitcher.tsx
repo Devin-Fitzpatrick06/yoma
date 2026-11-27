@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useState } from "react";
 import { useEffect, useRef, type ReactNode } from "react";
 import { env } from "~/env.mjs";
 import {
@@ -66,11 +67,27 @@ export const DemoPageFade: React.FC<{ children: ReactNode }> = ({
 
 const DemoViewSwitcher: React.FC = () => {
   const router = useRouter();
+  const [collapsed, setCollapsed] = useState(() =>
+    router.pathname.startsWith("/my-yoma"),
+  );
   if (!COURSE_QUALITY_DEMO) return null;
 
   const current = demoSideOf(router.pathname);
   const index = SIDES.findIndex((side) => side.side === current);
   const active = index >= 0 ? SIDES[index]! : null;
+
+  // the journey map fills the screen, so there the bar starts as a small pill the presenter can open
+  if (collapsed)
+    return (
+      <button
+        type="button"
+        onClick={() => setCollapsed(false)}
+        className="fixed bottom-3 left-4 z-40 rounded-full bg-white px-3 py-1.5 text-xs font-semibold shadow-lg"
+        aria-label="Open the demo view switcher"
+      >
+        Demo views
+      </button>
+    );
 
   return (
     <>
@@ -92,7 +109,7 @@ const DemoViewSwitcher: React.FC = () => {
               {active.caption}
             </>
           ) : (
-            "Demo: switch between the three sides of Course Quality"
+            "Demo: switch between the three sides of Ziqi"
           )}
         </p>
         <div className="relative grid grid-cols-3">

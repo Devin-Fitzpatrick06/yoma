@@ -111,6 +111,24 @@ describe("hiddenQuestionIds", () => {
 });
 
 describe("withPreferenceFallbacks", () => {
+  test("questions the API left out of the list still get the placeholders the request needs", () => {
+    const answers = {
+      ...emptyAnswers(),
+      goal: ["web"],
+      background: ["Degree"],
+    };
+    const listed = QUESTIONS.filter(
+      (q) => q.id !== "country" && q.id !== "hoursPerWeek",
+    );
+    const filled = withPreferenceFallbacks(answers, listed, [
+      "country",
+      "hoursPerWeek",
+    ]);
+    assert.deepEqual(filled.country, ["anywhere"]);
+    assert.deepEqual(filled.hoursPerWeek, ["5"]);
+    assert.notEqual(toProfileRequest(filled), null);
+  });
+
   test("completes the request for hidden questions and keeps the youth's own answers", () => {
     const answers = {
       ...emptyAnswers(),

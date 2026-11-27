@@ -1,6 +1,5 @@
 import type { JourneyMapProps } from "~/components/MyYoma/JourneyMap/types";
 import JourneyMap from "~/components/MyYoma/JourneyMap/JourneyMap";
-import { BTN_SECONDARY } from "~/components/Common/buttonStyles";
 import LearnerBadges from "./LearnerBadges";
 import YoIdSummaryCard from "./YoIdSummaryCard";
 
@@ -10,7 +9,7 @@ import YoIdSummaryCard from "./YoIdSummaryCard";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MyYomaMapView: React.FC<JourneyMapProps> = (props) => {
-  const { myYoma, onChangeAnswers } = props;
+  const { myYoma } = props;
   const goal = myYoma.goalLabel || myYoma.profile.goalLabel;
 
   return (
@@ -20,13 +19,7 @@ const MyYomaMapView: React.FC<JourneyMapProps> = (props) => {
           A path from where you are now to {goal.toLowerCase()}, built from
           courses, practice and jobs on Yoma.
         </p>
-        <button
-          type="button"
-          className={BTN_SECONDARY}
-          onClick={onChangeAnswers}
-        >
-          Change my answers
-        </button>
+        {/* "Change my answers" lives in the journey map's own header */}
       </div>
 
       <YoIdSummaryCard yoId={myYoma.yoId} profile={myYoma.profile} />

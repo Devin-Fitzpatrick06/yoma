@@ -111,12 +111,12 @@ const CourseQualityFixNotes: NextPageWithLayout<{
   return (
     <>
       <Head>
-        <title>Yoma | Course Quality</title>
+        <title>Yoma | Ziqi</title>
       </Head>
 
       <ListPageShell>
         <ListPageHeader
-          title="Course Quality"
+          title="Ziqi"
           description={
             organisation?.name
               ? `Ways to help ${organisation.name}'s courses reach more learners.`
