@@ -546,7 +546,7 @@ const CourseGradeRubricPage: NextPageWithLayout<{ error?: number }> = ({
   return (
     <>
       <Head>
-        <title>Yoma | Grading rubric</title>
+        <title>Yoma | Ziqi grading rubric</title>
       </Head>
 
       <ListPageShell>
@@ -561,7 +561,7 @@ const CourseGradeRubricPage: NextPageWithLayout<{ error?: number }> = ({
             className="text-gray-dark inline-flex items-center gap-1 self-start text-sm font-semibold hover:underline"
           >
             <IoArrowBack aria-hidden="true" className="h-4 w-4" />
-            Course Quality
+            Ziqi reviewer queue
           </Link>
 
           {isRubricError || isFactorsError ? (

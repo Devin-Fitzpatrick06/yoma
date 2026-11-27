@@ -21,6 +21,7 @@ import type {
   CourseQualityReviewSearchFilter,
   CourseQualityReviewStatus,
 } from "~/api/models/courseQuality";
+import { getPathwayHealth } from "~/api/services/pathway";
 import {
   getCourseQualityCoverage,
   searchCourseQualityReviews,
@@ -43,6 +44,7 @@ import {
 import ListPageTabs from "~/components/Common/ListPage/ListPageTabs";
 import { WAITING_FOR_REVIEW_TEXT } from "~/components/CourseQuality/GradeBreakdown";
 import GradeChip from "~/components/CourseQuality/GradeChip";
+import PathwayHealthPanel from "~/components/CourseQuality/PathwayHealthPanel";
 import ReviewDecisionDialog, {
   type PendingDecision,
   type ReviewDecisionInput,
@@ -61,6 +63,7 @@ import { ApiErrors } from "~/components/Status/ApiErrors";
 import { InternalServerError } from "~/components/Status/InternalServerError";
 import { Unauthenticated } from "~/components/Status/Unauthenticated";
 import { Unauthorized } from "~/components/Status/Unauthorized";
+import { env } from "~/env.mjs";
 import { useAdminOpportunityOrganisationsQuery } from "~/hooks/useOpportunityMutations";
 import {
   DATE_FORMAT_HUMAN,
@@ -77,6 +80,7 @@ const COURSE_QUALITY_QUERY_KEY = ["courseQuality"];
 const REVIEW_QUERY_KEY = [...COURSE_QUALITY_QUERY_KEY, "review"];
 const COVERAGE_QUERY_KEY = [...COURSE_QUALITY_QUERY_KEY, "coverage"];
 const PENDING_COUNT_QUERY_KEY = [...REVIEW_QUERY_KEY, "pendingCount"];
+const PATHWAY_HEALTH_QUERY_KEY = ["pathway", "health"];
 const ALL_GRADES = "";
 
 type ReviewTab = CourseQualityReviewStatus | typeof ALL_STATUSES;
@@ -169,6 +173,24 @@ const CoverageSummary: React.FC<{ enabled: boolean }> = ({ enabled }) => {
         </>
       )}
     </section>
+  );
+};
+
+// W5: steps tracked, events and drop-off ("Collecting from the pilot" until the API has enough)
+const PathwayHealthSummary: React.FC<{ enabled: boolean }> = ({ enabled }) => {
+  const { data, isError, isLoading, refetch } = useQuery({
+    queryKey: PATHWAY_HEALTH_QUERY_KEY,
+    queryFn: getPathwayHealth,
+    enabled,
+  });
+
+  return (
+    <PathwayHealthPanel
+      health={data}
+      isError={isError}
+      isLoading={isLoading}
+      onRetry={() => void refetch()}
+    />
   );
 };
 
@@ -367,13 +389,15 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   return {
     props: {
       error: null,
+      pathwayEnabled: env.NEXT_PUBLIC_PATHWAY_ENABLED === true,
     },
   };
 }
 
 const CourseQualityReview: NextPageWithLayout<{
   error?: number;
-}> = ({ error }) => {
+  pathwayEnabled?: boolean;
+}> = ({ error, pathwayEnabled = false }) => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [decision, setDecision] = useState<PendingDecision | null>(null);
@@ -538,7 +562,7 @@ const CourseQualityReview: NextPageWithLayout<{
   return (
     <>
       <Head>
-        <title>Yoma | Course Quality</title>
+        <title>Yoma | Ziqi reviewer queue</title>
       </Head>
 
       {/* DECISION POPUP */}
@@ -551,7 +575,7 @@ const CourseQualityReview: NextPageWithLayout<{
 
       <ListPageShell>
         <ListPageHeader
-          title="Course Quality"
+          title="Ziqi reviewer queue"
           description="Review course assessments the checks were not confident about, then confirm or override the result."
         >
           <ListPageTabs
@@ -611,6 +635,9 @@ const CourseQualityReview: NextPageWithLayout<{
 
           {/* COVERAGE */}
           <CoverageSummary enabled={!error} />
+
+          {/* PATHWAY HEALTH (Ziqi pathways switch only) */}
+          {pathwayEnabled && <PathwayHealthSummary enabled={!error} />}
 
           {/* FILTERS */}
           <div className="flex flex-col gap-3 md:flex-row">

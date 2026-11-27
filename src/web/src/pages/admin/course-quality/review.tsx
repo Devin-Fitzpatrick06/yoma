@@ -40,6 +40,8 @@ import {
 import CourseFeedbackLazySummary from "~/components/CourseQuality/CourseFeedbackLazySummary";
 import CourseFeedbackSummaryPanel from "~/components/CourseQuality/CourseFeedbackSummaryPanel";
 import { STICKY_ACTION_BAR } from "~/components/CourseQuality/DemoViewSwitcher";
+import DropOffSlot from "~/components/CourseQuality/DropOffSlot";
+import { collectingDropOff } from "~/components/CourseQuality/DropOffSlot.model";
 import GradeBreakdown, {
   GradeCaps,
   WAITING_FOR_REVIEW_TEXT,
@@ -63,6 +65,7 @@ import { ApiErrors } from "~/components/Status/ApiErrors";
 import { InternalServerError } from "~/components/Status/InternalServerError";
 import { Unauthenticated } from "~/components/Status/Unauthenticated";
 import { Unauthorized } from "~/components/Status/Unauthorized";
+import { env } from "~/env.mjs";
 import { DATE_FORMAT_HUMAN, ROLE_ADMIN, THEME_BLUE } from "~/lib/constants";
 import { fetchReviewBatch } from "~/lib/courseQualityReviewBatch";
 import { type NextPageWithLayout } from "~/pages/_app";
@@ -167,10 +170,15 @@ const ConfidenceMeter: React.FC<{ confidence: number }> = ({ confidence }) => {
   );
 };
 
+// W5: the reviewer search does not send drop-off yet, so the slot shows the Collecting state
+// built here. Once the API adds it to the assessment, pass that instead.
+const REVIEW_CARD_DROP_OFF = collectingDropOff();
+
 const ReviewCard: React.FC<{
   item: CourseQualityAssessment;
   headingRef: React.Ref<HTMLHeadingElement>;
-}> = ({ item, headingRef }) => {
+  showDropOff: boolean;
+}> = ({ item, headingRef, showDropOff }) => {
   // the search carries the grade; null means the course has none yet
   const grade = item.grade ?? null;
   const reasons = item.reviewReasons ?? [];
@@ -353,6 +361,11 @@ const ReviewCard: React.FC<{
               showCaps={false}
             />
           </Section>
+
+          {/* DROP-OFF (W5): reserved for courses on a pathway; collecting until the pilot */}
+          {showDropOff && item.learnerCard?.format !== "Job" && (
+            <DropOffSlot dropOff={REVIEW_CARD_DROP_OFF} showDetail={true} />
+          )}
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
@@ -555,12 +568,18 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   if (!session) return { props: { error: 401 } };
   if (!session.user?.roles?.includes(ROLE_ADMIN))
     return { props: { error: 403 } };
-  return { props: { error: null } };
+  return {
+    props: {
+      error: null,
+      pathwayEnabled: env.NEXT_PUBLIC_PATHWAY_ENABLED === true,
+    },
+  };
 }
 
-const CourseQualityReviewMode: NextPageWithLayout<{ error?: number }> = ({
-  error,
-}) => {
+const CourseQualityReviewMode: NextPageWithLayout<{
+  error?: number;
+  pathwayEnabled?: boolean;
+}> = ({ error, pathwayEnabled = false }) => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const organizationId = router.query.organisation?.toString() || null;
@@ -775,7 +794,7 @@ const CourseQualityReviewMode: NextPageWithLayout<{ error?: number }> = ({
   return (
     <>
       <Head>
-        <title>Yoma | Review courses</title>
+        <title>Yoma | Ziqi · Review courses</title>
       </Head>
 
       <ReviewDecisionDialog
@@ -872,7 +891,11 @@ const CourseQualityReviewMode: NextPageWithLayout<{ error?: number }> = ({
                   : "motion-safe:animate-slide-in-left"
               }`}
             >
-              <ReviewCard item={current} headingRef={headingRef} />
+              <ReviewCard
+                item={current}
+                headingRef={headingRef}
+                showDropOff={pathwayEnabled}
+              />
             </div>
           </div>
         ) : (

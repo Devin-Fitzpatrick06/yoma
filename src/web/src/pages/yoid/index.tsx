@@ -6,6 +6,7 @@ import { env } from "process";
 import { useState, type ReactElement } from "react";
 import { searchCredentials } from "~/api/services/credentials";
 import { searchMyOpportunitiesSummary } from "~/api/services/myOpportunities";
+import { getMyPathSummary } from "~/api/services/pathway";
 import { UserSkillType } from "~/api/models/user";
 import { getUserSkills } from "~/api/services/user";
 import { Header } from "~/components/Common/Header";
@@ -17,11 +18,13 @@ import { LoadingInline } from "~/components/Status/LoadingInline";
 import { Unauthenticated } from "~/components/Status/Unauthenticated";
 import { Unauthorized } from "~/components/Status/Unauthorized";
 import { LineChart } from "~/components/YoID/LineChart";
+import { MyPathCard } from "~/components/YoID/MyPathCard";
 import { OpportunitiesSummary } from "~/components/YoID/OpportunitiesSummary";
 import { PassportCard } from "~/components/YoID/PassportCard";
 import { SkillsCard } from "~/components/YoID/SkillsCard";
 import { WalletCard } from "~/components/YoID/WalletCard";
 import { ZltoModal } from "~/components/YoID/ZltoModal";
+import { env as clientEnv } from "~/env.mjs";
 import { MAXINT32 } from "~/lib/constants";
 import { userProfileAtom } from "~/lib/store";
 import type { NextPageWithLayout } from "~/pages/_app";
@@ -55,9 +58,13 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   const passport_enabled =
     env.NEXT_PUBLIC_PASSPORT_ENABLED?.toLowerCase() == "true" ? true : false;
 
+  // Ziqi "My path" card (W3): only with the pathway switch on
+  const pathway_enabled = clientEnv.NEXT_PUBLIC_PATHWAY_ENABLED === true;
+
   return {
     props: {
       passport_enabled,
+      pathway_enabled,
     },
   };
 }
@@ -66,7 +73,8 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 const YoIDDashboard: NextPageWithLayout<{
   error?: number;
   passport_enabled: boolean;
-}> = ({ error, passport_enabled }) => {
+  pathway_enabled?: boolean;
+}> = ({ error, passport_enabled, pathway_enabled = false }) => {
   const [zltoModalVisible, setZltoModalVisible] = useState(false);
   const [userProfile] = useAtom(userProfileAtom);
   const [graphView, setGraphView] = useState(false);
@@ -123,6 +131,17 @@ const YoIDDashboard: NextPageWithLayout<{
     enabled: !error,
   });
 
+  // null when the youth has no path yet: the card then offers "Start your path"
+  const {
+    data: myPath,
+    error: myPathError,
+    isLoading: myPathIsLoading,
+  } = useQuery({
+    queryKey: ["Pathway", "YoID", "Me"],
+    queryFn: getMyPathSummary,
+    enabled: !error && pathway_enabled,
+  });
+
   if (error) {
     if (error === 401) return <Unauthenticated />;
     else if (error === 403) return <Unauthorized />;
@@ -157,6 +176,28 @@ const YoIDDashboard: NextPageWithLayout<{
             </Suspense>
           </div>
         </div>
+
+        {/* MY PATH (Ziqi) */}
+        {pathway_enabled && (
+          <div className="flex w-full flex-col gap-2 sm:w-[300px] md:w-[350px] lg:w-[400px]">
+            <Header title="🧭 My path" url="/my-yoma" />
+            <div className="flex min-h-[185px] w-full flex-col gap-4 rounded-lg bg-white p-4 shadow">
+              <Suspense
+                className="flex grow flex-col"
+                isLoading={myPathIsLoading}
+                error={myPathError}
+                loader={
+                  <LoadingInline
+                    className="h-[185px] flex-col p-0"
+                    classNameSpinner="h-12 w-12"
+                  />
+                }
+              >
+                <MyPathCard summary={myPath ?? null} />
+              </Suspense>
+            </div>
+          </div>
+        )}
 
         {/* PASSPORT */}
         <div className="flex w-full flex-col gap-2 sm:w-[300px] md:w-[350px] lg:w-[400px]">
