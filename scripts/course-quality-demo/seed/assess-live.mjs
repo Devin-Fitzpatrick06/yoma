@@ -4,7 +4,9 @@
 // already assessed there is skipped. start.sh removes that file whenever it imports a fresh catalogue.
 // With --jobs it assesses the live jobs from .cache/live-jobs.json instead, with its own progress file. A feed job's
 // checks read only the listing (the feed itself says the job is open), so feed jobs need no per-host pacing.
-// Usage: assess-live.mjs [--jobs] [--sample N] [--concurrency K] [--no-grade]   Progress to stderr, a summary to stdout.
+// With --tasks it runs the listing checks on the impact actions from .cache/live-tasks.json (CourseQuality:VerifyTypes
+// has ImpactAction in the demo), with its own progress file. Impact actions get no grade until "good" is defined for them.
+// Usage: assess-live.mjs [--jobs | --tasks] [--sample N] [--concurrency K] [--no-grade]   Progress to stderr, a summary to stdout.
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { adminFetch, runGrading } from "./api.mjs";
 import { loadCatalogue, random } from "./live.mjs";
@@ -17,8 +19,11 @@ const sampleSize = arg("--sample", 0);
 const concurrency = arg("--concurrency", 4);
 const grade = !process.argv.includes("--no-grade");
 const jobs = process.argv.includes("--jobs");
-const progressPath = new URL(jobs ? "../.cache/job-assessment-progress.jsonl" : "../.cache/assessment-progress.jsonl", import.meta.url);
+const tasks = process.argv.includes("--tasks");
+const progressPath = new URL(jobs ? "../.cache/job-assessment-progress.jsonl" : tasks ? "../.cache/task-assessment-progress.jsonl" : "../.cache/assessment-progress.jsonl", import.meta.url);
 const jobsPath = new URL("../.cache/live-jobs.json", import.meta.url);
+const tasksPath = new URL("../.cache/live-tasks.json", import.meta.url);
+const noun = jobs ? "jobs" : tasks ? "impact actions" : "courses";
 
 const hostOf = (url) => {
   try {
@@ -37,7 +42,7 @@ if (existsSync(progressPath)) {
 }
 
 const isFeed = (item) => item.syncedInfo?.syncType === "Pull";
-const source = jobs ? JSON.parse(readFileSync(jobsPath)).items : loadCatalogue().items;
+const source = jobs ? JSON.parse(readFileSync(jobsPath)).items : tasks ? JSON.parse(readFileSync(tasksPath)).items : loadCatalogue().items;
 let items = source.map((item) => ({ id: item.id, host: jobs && isFeed(item) ? `feed:${item.id}` : item.url ? hostOf(item.url) : "(no link)" }));
 const byHost = Map.groupBy(items, (item) => item.host);
 for (const list of byHost.values()) list.sort((a, b) => random(a.id, "order") - random(b.id, "order"));
@@ -56,7 +61,7 @@ if (sampleSize) {
 
 const queues = Map.groupBy(items.filter((item) => !done.has(item.id)), (item) => item.host);
 const todo = [...queues.values()].reduce((sum, list) => sum + list.length, 0);
-console.error(`Assessing ${todo} live ${jobs ? "jobs" : "courses"} on ${queues.size} hosts (${items.length - todo} already done), ${concurrency} at a time, one per host.`);
+console.error(`Assessing ${todo} live ${noun} on ${queues.size} hosts (${items.length - todo} already done), ${concurrency} at a time, one per host.`);
 
 const started = Date.now();
 const busy = new Set();

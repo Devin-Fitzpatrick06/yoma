@@ -1,14 +1,19 @@
 // Downloads every live Learning opportunity from the public, signed-out Yoma search into .cache/live-catalogue.json,
-// or with --jobs every live Job into .cache/live-jobs.json (jobs carry their feed partner in syncedInfo).
+// with --jobs every live Job into .cache/live-jobs.json (jobs carry their feed partner in syncedInfo), or with --tasks
+// every live Task into .cache/live-tasks.json. Live Yoma's "Task" (f12a9d90-…) is the type this branch renames in place
+// to ImpactAction ("Impact Action"), keeping the id, so the demo imports tasks as impact actions.
 // The body matches what a signed-out learner's opportunities page sends: Not started and Ongoing, not Expired.
 // Items already carry organisation, category, country, language and skill names, so no lookup lists are fetched.
-// Usage: node seed/fetch-live-catalogue.mjs [--jobs]   One request at a time, about a second apart, with retries on 429 and 5xx.
+// Usage: node seed/fetch-live-catalogue.mjs [--jobs | --tasks] [--max N]   One request at a time, about a second apart, with retries on 429 and 5xx.
 import { mkdirSync, writeFileSync } from "node:fs";
 
 const endpoint = "https://api.yoma.world/api/v3/opportunity/search";
 const jobs = process.argv.includes("--jobs");
-const type = jobs ? "9c2d1a8e-3a4b-4f7a-9e2d-7f1c6b8a2d55" : "25f5a835-c3f7-43ca-9840-d372a1d26694"; // Job or Learning
-const fileName = jobs ? "live-jobs.json" : "live-catalogue.json";
+const tasks = process.argv.includes("--tasks");
+if (jobs && tasks) throw new Error("Choose one of --jobs and --tasks.");
+// The live public type ids (GET /api/v3/opportunity/type): Job, Task (ImpactAction here) or Learning
+const type = jobs ? "9c2d1a8e-3a4b-4f7a-9e2d-7f1c6b8a2d55" : tasks ? "f12a9d90-a8f6-4914-8ca5-6acf209f7312" : "25f5a835-c3f7-43ca-9840-d372a1d26694";
+const fileName = jobs ? "live-jobs.json" : tasks ? "live-tasks.json" : "live-catalogue.json";
 // --max N stops after N items, e.g. for a quick look at jobs; by default everything is fetched
 const maxIndex = process.argv.indexOf("--max");
 const max = maxIndex > 0 ? Number(process.argv[maxIndex + 1]) : Infinity;
