@@ -13,12 +13,13 @@ namespace Yoma.Core.Test.Pathway
       PathwayEngine.Build(new PathwayCatalogue { Courses = courses, Jobs = jobs ?? [] }, request, Options, outcomes);
 
     [Fact]
-    public void Build_GivesFourStagesInOrder_WithEightToTwelveCourses()
+    public void Build_GivesFiveStagesInOrder_WithEightToTwelveSteps()
     {
       var result = Build(MarketingCatalogue(), Request());
 
-      Assert.Equal(["Get confident online", "Learn how marketing works", "Master the digital channels", "Measure and sell"], result.Stages.Select(o => o.Name));
-      Assert.Equal([1, 2, 3, 4], result.Stages.Select(o => o.Order));
+      Assert.Equal(["Get confident online", "Learn how marketing works", "Master the digital channels", "Practise on a real campaign", "Measure and sell"],
+        result.Stages.Select(o => o.Name));
+      Assert.Equal([1, 2, 3, 4, 5], result.Stages.Select(o => o.Order));
       Assert.InRange(result.TotalCourses, Options.MinCourses, Options.MaxCourses);
       Assert.Equal(2, result.Stages[0].Courses.Count);
       Assert.Equal("Learn how marketing works", result.Stages[0].LeadsTo);
@@ -64,11 +65,13 @@ namespace Yoma.Core.Test.Pathway
     [Fact]
     public void Build_TopsUpTheMiddleStages_WhenShortenedStagesLeaveThePathShort()
     {
-      var result = Build(MarketingCatalogue(), Request(known: ["digital-literacy", "marketing-basics"]));
+      var options = PathwayDefaults.Configured(new PathwayOptions { MinCourses = 11 });
+      var result = PathwayEngine.Build(new PathwayCatalogue { Courses = MarketingCatalogue() }, Request(known: ["digital-literacy", "marketing-basics"]), options);
 
-      // 1 + 1 + 3 + 3 before the top-up
-      Assert.Equal(Options.MinCourses, result.TotalCourses);
-      Assert.All(result.Stages, o => Assert.InRange(o.Courses.Count, 1, Options.MaxStageCourses));
+      // 1 + 1 + 3 + 2 + 3 before the top-up; the middle stage gets the extra step
+      Assert.Equal(11, result.TotalCourses);
+      Assert.Equal(4, result.Stages[2].Courses.Count);
+      Assert.All(result.Stages, o => Assert.InRange(o.Courses.Count, 1, options.MaxStageCourses));
     }
 
     [Fact]
@@ -112,13 +115,13 @@ namespace Yoma.Core.Test.Pathway
       var plain = Course("Search Ads Fundamentals", ["Advertising"], difficulty: "Intermediate", completed: 10);
       var graded = Course("Paid Media Fundamentals", ["Advertising"], difficulty: "Intermediate", completed: 10, grade: "A");
 
-      var stage = Goal("marketing").Stages[3];
+      var stage = Goal("marketing").Stages[4];
       var request = Request();
 
-      Assert.True(PathwayEngine.ScoreCourse(graded, stage, 3, request, Options) > PathwayEngine.ScoreCourse(plain, stage, 3, request, Options));
+      Assert.True(PathwayEngine.ScoreCourse(graded, stage, 4, request, Options) > PathwayEngine.ScoreCourse(plain, stage, 4, request, Options));
 
       var result = Build([plain, graded], request);
-      var picked = result.Stages[3].Courses;
+      var picked = result.Stages[4].Courses;
       Assert.Equal(graded.OpportunityId, picked[0].OpportunityId);
       Assert.Equal("A", picked[0].Grade);
       Assert.Equal("Top pick", picked[0].GradeLabel);
@@ -164,7 +167,8 @@ namespace Yoma.Core.Test.Pathway
     {
       var line = PathwayEngine.ThroughLine(Goal("web"));
 
-      Assert.Contains("computer foundations, then build your first web pages, then learn to program, then ship real projects", line);
+      Assert.Contains("computer foundations, then build your first web pages, then learn to program, then build something real, then ship real projects", line);
+      Assert.StartsWith("Each step adds", line);
       Assert.EndsWith("web developer jobs on Yoma.", line);
     }
 
@@ -232,7 +236,10 @@ namespace Yoma.Core.Test.Pathway
     public void Configured_FillsEveryListFromTheDefaults_AndKeepsAConfiguredListWhole()
     {
       Assert.Equal(6, Options.Goals.Count);
-      Assert.All(Options.Goals, o => Assert.Equal(4, o.Stages.Count));
+      Assert.All(Options.Goals, o => Assert.Equal(5, o.Stages.Count));
+      // learn, practise, prove: one practice stage of impact actions, just before the last stage
+      Assert.All(Options.Goals, o => Assert.Equal(3, o.Stages.FindIndex(s => s.Types.Contains(PathwayStepType.ImpactAction))));
+      Assert.All(Options.Goals, o => Assert.Single(o.Stages, s => s.Types.Contains(PathwayStepType.ImpactAction)));
       Assert.All(Options.Goals.SelectMany(o => o.Stages), o => PathwayMatching.Pattern(o.Pattern));
 
       var custom = PathwayDefaults.Configured(new PathwayOptions { Goals = [new() { Key = "one", Label = "One", Blurb = "b", JobsPattern = "x", Stages = [] }] });

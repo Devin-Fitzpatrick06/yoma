@@ -1,11 +1,15 @@
 namespace Yoma.Core.Domain.Pathway.Models
 {
   /// <summary>
-  /// A published, active Learning opportunity as the pathway engine sees it.
+  /// A published, active Learning, Impact Action or Task opportunity as the pathway engine sees it.
   /// </summary>
   public sealed class PathwayCatalogueCourse
   {
     public Guid OpportunityId { get; set; }
+
+    public PathwayStepType Type { get; set; } = PathwayStepType.Learning;
+
+    public Guid OrganizationId { get; set; }
 
     public string Title { get; set; } = null!;
 
@@ -28,6 +32,11 @@ namespace Yoma.Core.Domain.Pathway.Models
     public List<string> Skills { get; set; } = [];
 
     public List<string> Languages { get; set; } = [];
+
+    /// <summary>
+    /// Opportunity category names, in name order.
+    /// </summary>
+    public List<string> Categories { get; set; } = [];
 
     public int CompletedCount { get; set; }
 
@@ -70,6 +79,11 @@ namespace Yoma.Core.Domain.Pathway.Models
     public List<PathwayCatalogueCourse> Courses { get; set; } = [];
 
     public List<PathwayCatalogueJob> Jobs { get; set; } = [];
+
+    /// <summary>
+    /// Each provider's public partner badge, for every organisation with a step in the catalogue.
+    /// </summary>
+    public Dictionary<Guid, Badges.Models.PartnerBadgeLevel> PartnerBadges { get; set; } = [];
   }
 
   /// <summary>
@@ -96,6 +110,21 @@ namespace Yoma.Core.Domain.Pathway.Models
     /// The youth's own courses: completed or started. Anything missing is NotStarted.
     /// </summary>
     public Dictionary<Guid, PathwayStepStatus> Statuses { get; set; } = [];
+
+    /// <summary>
+    /// Steps the youth pinned: placed first and kept on every rebuild.
+    /// </summary>
+    public List<Guid> Locked { get; set; } = [];
+
+    /// <summary>
+    /// Swaps in the order made: the step replaced and the opportunity chosen instead.
+    /// </summary>
+    public List<(Guid Replaced, Guid Replacement)> Swaps { get; set; } = [];
+
+    /// <summary>
+    /// Per opportunity, where its completers went next; already limited and hidden below the minimum group size.
+    /// </summary>
+    public Dictionary<Guid, List<PathwayNextStep>> UsuallyNext { get; set; } = [];
   }
 
   public sealed class PathwayEngineResult

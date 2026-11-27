@@ -5,7 +5,7 @@ using Yoma.Core.Domain.Pathway.Models;
 namespace Yoma.Core.Domain.Pathway.Helpers
 {
   /// <summary>
-  /// The five onboarding questions from configuration, and the rules an answer must meet.
+  /// The five onboarding questions from configuration, less those Yoma's preferences answer,, and the rules an answer must meet.
   /// </summary>
   public static class PathwayQuestionBuilder
   {
@@ -14,12 +14,17 @@ namespace Yoma.Core.Domain.Pathway.Helpers
     /// Option keys: the goal key, the background name, the known skill key, the hours as a number ("2") and the country id, with
     /// <see cref="PathwayDefaults.AnywhereKey"/> for anywhere (sent as a null countryId).
     /// </summary>
-    public static PathwayQuestions Build(PathwayOptions options, List<Country> countries)
+    /// <param name="preferences">What Yoma's own preferences already answer, for a signed-in youth without a path: those questions are
+    /// left out and listed in AnsweredFromPreferences, and a suggested career goal is listed first and named in the hint.</param>
+    public static PathwayQuestions Build(PathwayOptions options, List<Country> countries, PathwayPreferenceAnswers? preferences = null)
     {
       ArgumentNullException.ThrowIfNull(options, nameof(options));
       ArgumentNullException.ThrowIfNull(countries, nameof(countries));
 
-      return new PathwayQuestions
+      var suggested = preferences?.SuggestedGoalKey == null ? null : options.Goals.FirstOrDefault(o => o.Key.Equals(preferences.SuggestedGoalKey, StringComparison.OrdinalIgnoreCase));
+      var goals = suggested == null ? options.Goals : [suggested, .. options.Goals.Where(o => o != suggested)];
+
+      var questions = new PathwayQuestions
       {
         Questions =
         [
@@ -27,8 +32,10 @@ namespace Yoma.Core.Domain.Pathway.Helpers
           {
             Id = PathwayQuestionId.Goal,
             Title = "Where do you want to be?",
-            Hint = "Pick the work you would most like to be doing. You can change it later.",
-            Options = [.. options.Goals.Select(o => new PathwayOption { Key = o.Key, Label = o.Label, Description = o.Blurb })]
+            Hint = suggested == null
+              ? "Pick the work you would most like to be doing. You can change it later."
+              : $"From your Yoma preferences, {PathwayMatching.Lower(suggested.Label)} looks like a fit. Pick it or any other. You can change it later.",
+            Options = [.. goals.Select(o => new PathwayOption { Key = o.Key, Label = o.Label, Description = o.Blurb })]
           },
           new()
           {
@@ -65,6 +72,12 @@ namespace Yoma.Core.Domain.Pathway.Helpers
           }
         ]
       };
+
+      if (preferences == null || preferences.Answered.Count == 0) return questions;
+
+      questions.AnsweredFromPreferences = [.. questions.Questions.Select(o => o.Id).Where(preferences.Answered.Contains)];
+      questions.Questions.RemoveAll(o => preferences.Answered.Contains(o.Id));
+      return questions;
     }
 
     /// <summary>
