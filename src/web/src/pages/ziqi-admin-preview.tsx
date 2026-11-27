@@ -5,10 +5,7 @@ import { Header } from "~/components/Common/Header";
 import DropOffSlot from "~/components/CourseQuality/DropOffSlot";
 import { collectingDropOff } from "~/components/CourseQuality/DropOffSlot.model";
 import PathwayHealthPanel from "~/components/CourseQuality/PathwayHealthPanel";
-import {
-  PATHWAY_HEALTH_AVAILABLE_FIXTURE,
-  PATHWAY_HEALTH_COLLECTING_FIXTURE,
-} from "~/components/CourseQuality/PathwayHealthPanel.fixtures";
+import { PATHWAY_HEALTH_COLLECTING_FIXTURE } from "~/components/CourseQuality/PathwayHealthPanel.fixtures";
 import MainLayout from "~/components/Layout/Main";
 import { MyPathCard } from "~/components/YoID/MyPathCard";
 import {
@@ -93,15 +90,10 @@ const ZiqiAdminPreview: NextPageWithLayout = () => (
 
       <PreviewSection
         title="Admin: Pathway health"
-        description="On the Ziqi reviewer queue. Today it collects; the second panel shows how a rate will look once the API reports one (example only)."
+        description="On the Ziqi reviewer queue. Drop-off is collected from the pilot; no figure is shown until there is real data."
       >
         <PathwayHealthPanel
           health={PATHWAY_HEALTH_COLLECTING_FIXTURE}
-          isLoading={false}
-          isError={false}
-        />
-        <PathwayHealthPanel
-          health={PATHWAY_HEALTH_AVAILABLE_FIXTURE}
           isLoading={false}
           isError={false}
         />

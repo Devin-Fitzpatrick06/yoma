@@ -194,7 +194,7 @@ const StepCard: React.FC<{
               <li key={n.opportunityId} className="text-gray-dark">
                 <b className="text-black">{n.title}</b>{" "}
                 <span className="whitespace-nowrap">
-                  ({percent(n.share)}% of {n.count.toLocaleString("en")})
+                  ({n.count.toLocaleString("en")} youth, {percent(n.share)}%)
                 </span>
               </li>
             ))}

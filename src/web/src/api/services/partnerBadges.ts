@@ -15,7 +15,7 @@ export {
 } from "./partnerBadges.helpers";
 
 /** At most this many organisations in one request, so the query string stays short. */
-export const PARTNER_BADGES_MAX_IDS = 100;
+export const PARTNER_BADGES_MAX_IDS = 50; // the API's limit per request
 
 export const getPartnerBadges = async (
   organizationIds: (string | null | undefined)[],

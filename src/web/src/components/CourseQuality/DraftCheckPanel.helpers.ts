@@ -158,7 +158,10 @@ export const draftFieldTarget = (
 ): DraftFieldTarget | null =>
   (field && DRAFT_FIELD_TARGETS[field as DraftCheckField]) || null;
 
-/** "Go to Link" or, on another step, "Go to Link (General)". */
+/**
+ * "Go to Link" for a field on the step on screen. A field on another step gets no button: moving
+ * steps opens the editor's unsaved-changes dialog, which would throw the partner's typing away.
+ */
 export const goToFieldLabel = (
   field: DraftCheckField | string,
   currentStep?: number,
@@ -167,7 +170,18 @@ export const goToFieldLabel = (
   if (!target) return null;
   return currentStep === undefined || currentStep === target.step
     ? `Go to ${target.label}`
-    : `Go to ${target.label} (${target.stepLabel})`;
+    : null;
+};
+
+/** For a field on another step: where to find it, e.g. "Start date is on the Details step". */
+export const otherStepHint = (
+  field: DraftCheckField | string,
+  currentStep?: number,
+): string | null => {
+  const target = draftFieldTarget(field);
+  if (!target || currentStep === undefined || currentStep === target.step)
+    return null;
+  return `${target.label} is on the ${target.stepLabel} step`;
 };
 
 // ── "Draft this for me": which suggestions the form can take as they come ──────
@@ -328,6 +342,27 @@ export const createDebouncedCheck = <I, R>(options: {
       return timer !== null || controller !== null;
     },
   };
+};
+
+/**
+ * The API's reason when it cannot check this draft (400), e.g. "Choose the opportunity type to check
+ * this listing", or a type Ziqi does not check. `null` for any other failure.
+ */
+export const notCheckableReason = (error: unknown): string | null => {
+  const response = (error as { response?: { status?: number; data?: unknown } })
+    ?.response;
+  if (response?.status !== 400) return null;
+  const data = response.data as
+    | { message?: string }[]
+    | { message?: string }
+    | string
+    | undefined;
+  const message = Array.isArray(data)
+    ? data[0]?.message
+    : typeof data === "string"
+      ? data
+      : data?.message;
+  return message?.trim() || "Ziqi does not check this kind of listing yet.";
 };
 
 /** The check is off on the API (CourseQuality:PrePublish:Enabled false): the panel hides. */

@@ -12,6 +12,8 @@ import {
   draftFieldTarget,
   draftKey,
   goToFieldLabel,
+  notCheckableReason,
+  otherStepHint,
   isDraftEmpty,
   isSwitchedOff,
   pickDraftFields,
@@ -69,11 +71,33 @@ describe("field mapping", () => {
     assert.equal(draftFieldTarget("other"), null);
     assert.equal(draftFieldTarget("unknownField"), null);
   });
-  test("go-to label names the step only when it is another one", () => {
+  test("go-to only for fields on the step on screen; other steps get a hint, never a jump", () => {
     assert.equal(goToFieldLabel("url", 1), "Go to Link");
-    assert.equal(goToFieldLabel("skills", 1), "Go to Skills (Skills)");
+    // jumping steps would open the unsaved-changes dialog and lose the partner's typing
+    assert.equal(goToFieldLabel("skills", 1), null);
+    assert.equal(otherStepHint("skills", 1), "Skills is on the Skills step");
+    assert.equal(otherStepHint("url", 1), null);
     assert.equal(goToFieldLabel("dateEnd"), "Go to End date");
     assert.equal(goToFieldLabel("other", 1), null);
+  });
+  test("a draft Ziqi cannot check shows the API's reason; other errors do not", () => {
+    const badRequest = (data: unknown) => ({ response: { status: 400, data } });
+    assert.equal(
+      notCheckableReason(
+        badRequest([
+          {
+            type: "ValidationException",
+            message: "Choose the opportunity type to check this listing",
+          },
+        ]),
+      ),
+      "Choose the opportunity type to check this listing",
+    );
+    assert.equal(
+      notCheckableReason(badRequest(undefined)),
+      "Ziqi does not check this kind of listing yet.",
+    );
+    assert.equal(notCheckableReason({ response: { status: 500 } }), null);
   });
   test("only plain text suggestions can be applied", () => {
     assert.equal(applicableFormField("url"), "uRL");

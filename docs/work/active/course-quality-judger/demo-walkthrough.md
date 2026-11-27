@@ -71,8 +71,11 @@ If a live screen is not ready, each step has a preview page that runs on fixture
    - Course link: `http://demo-fixtures.localtest.me/courses/community-health-gone`, a demo page that returns
      "page not found" on purpose.
    - Leave the **time commitment** empty.
-4. The **Ziqi** panel predicts **"Not verified yet"** and lists two fixes, in the partner's words: the link does not
-   open, and the time commitment is missing. Each fix points at its form field.
+4. The **Ziqi** panel predicts **"Not verified yet"** and lists the fixes, in the partner's words, for example: the link
+   does not open, the time commitment is missing, the dates look like placeholders, and the format (course or
+   webinar) is unclear. Expect three or four; the number depends on what you filled in. A fix for a field on the
+   step on screen has a **Go to** button; a fix on another step says which step it is on (no jump, so nothing the
+   partner typed is lost). Choose the **type first**: until then the panel asks for it.
    - Say: "This is the same rule engine that checks published listings, run on the draft. Nothing is stored."
    - If the panel lists other fixes, follow what it says; the point is that each fix names a field.
 5. Fix both: set the link to `http://demo-fixtures.localtest.me/courses/digital-marketing-cohort` (a working demo page)

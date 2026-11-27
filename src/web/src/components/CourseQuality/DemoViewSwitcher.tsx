@@ -67,9 +67,9 @@ export const DemoPageFade: React.FC<{ children: ReactNode }> = ({
 
 const DemoViewSwitcher: React.FC = () => {
   const router = useRouter();
-  const [collapsed, setCollapsed] = useState(() =>
-    router.pathname.startsWith("/my-yoma"),
-  );
+  // on My Yoma the bar starts as a small pill (also after a client-side redirect there)
+  const [openOnMyYoma, setOpenOnMyYoma] = useState(false);
+  const collapsed = router.pathname.startsWith("/my-yoma") && !openOnMyYoma;
   if (!COURSE_QUALITY_DEMO) return null;
 
   const current = demoSideOf(router.pathname);
@@ -81,7 +81,7 @@ const DemoViewSwitcher: React.FC = () => {
     return (
       <button
         type="button"
-        onClick={() => setCollapsed(false)}
+        onClick={() => setOpenOnMyYoma(true)}
         className="fixed bottom-3 left-4 z-40 rounded-full bg-white px-3 py-1.5 text-xs font-semibold shadow-lg"
         aria-label="Open the demo view switcher"
       >

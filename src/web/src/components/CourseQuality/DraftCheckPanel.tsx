@@ -17,6 +17,8 @@ import {
   draftKey,
   fixCountSummary,
   goToFieldLabel,
+  notCheckableReason,
+  otherStepHint,
   isDraftEmpty,
   isSwitchedOff,
   scoreRingDash,
@@ -38,7 +40,11 @@ export type DraftCheckState =
   | { status: "empty" }
   | { status: "checking"; result: DraftCheckResult | null }
   | { status: "ready"; result: DraftCheckResult }
-  | { status: "error"; result: DraftCheckResult | null };
+  | {
+      status: "error";
+      result: DraftCheckResult | null;
+      reason?: string | null;
+    };
 
 /** Scroll to a form field and focus it, once its step is on screen. False when it is not found. */
 export const focusDraftField = (field: DraftCheckField): boolean => {
@@ -137,7 +143,7 @@ export const DraftCheckPanelView: React.FC<DraftCheckPanelViewProps> = ({
 
   const status =
     state.status === "empty"
-      ? "Add a title and a link to start"
+      ? "Choose the type, then add a title and a link"
       : state.status === "checking" && !result
         ? "Checking…"
         : result
@@ -147,7 +153,7 @@ export const DraftCheckPanelView: React.FC<DraftCheckPanelViewProps> = ({
   return (
     <aside
       aria-labelledby={headingId}
-      className={`fixed inset-x-0 bottom-0 z-40 flex max-h-[75dvh] flex-col rounded-t-2xl bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.12)] xl:sticky xl:inset-x-auto xl:top-24 xl:bottom-auto xl:z-auto xl:max-h-[calc(100dvh-7rem)] xl:rounded-lg xl:shadow-sm ${className}`}
+      className={`fixed inset-x-0 bottom-0 z-50 flex max-h-[75dvh] flex-col rounded-t-2xl bg-white shadow-[0_-4px_16px_rgba(0,0,0,0.12)] xl:sticky xl:inset-x-auto xl:top-24 xl:bottom-auto xl:z-auto xl:max-h-[calc(100dvh-7rem)] xl:rounded-lg xl:shadow-sm ${className}`}
     >
       {/* HEADER: the drawer's handle below xl */}
       <div className="flex items-center gap-2 px-4 pt-3 pb-2 xl:pt-4">
@@ -196,13 +202,14 @@ export const DraftCheckPanelView: React.FC<DraftCheckPanelViewProps> = ({
         <div aria-live="polite" aria-atomic="true" className="flex flex-col">
           {state.status === "empty" ? (
             <p className="bg-gray-light rounded-lg p-3 text-sm text-black">
-              Add a title and a link, and Ziqi will check the listing as you
-              type.
+              Choose the listing&apos;s type, then add a title and a link, and
+              Ziqi will check it as you type.
             </p>
           ) : !result ? (
             <p className="bg-gray-light rounded-lg p-3 text-sm text-black">
               {state.status === "error"
-                ? "Ziqi could not check the listing right now. It will try again when you make a change."
+                ? (state.reason ??
+                  "Ziqi could not check the listing right now. It will try again when you make a change.")
                 : "Ziqi is checking the listing…"}
             </p>
           ) : (
@@ -283,10 +290,19 @@ export const DraftCheckPanelView: React.FC<DraftCheckPanelViewProps> = ({
                       <button
                         type="button"
                         className="text-purple mt-1 w-fit rounded text-sm font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
-                        onClick={() => onGoToField(fix.field)}
+                        onClick={() => {
+                          // below xl the drawer would cover the field it jumps to
+                          setExpanded(false);
+                          onGoToField(fix.field);
+                        }}
                       >
                         {goTo}
                       </button>
+                    )}
+                    {!goTo && otherStepHint(fix.field, currentStep) && (
+                      <p className="text-gray-dark mt-1 text-xs">
+                        {otherStepHint(fix.field, currentStep)}
+                      </p>
                     )}
                   </li>
                 );
@@ -417,11 +433,11 @@ const DraftCheckPanel: React.FC<DraftCheckPanelProps> = ({
             setSwitchedOff(true);
             return;
           }
-          lastKey.current = null; // try again on the next change
-          setState((prev) => ({
-            status: "error",
-            result: prev.status === "empty" ? null : prev.result,
-          }));
+          // a draft Ziqi cannot check (no type yet, or a type it does not check) waits for a change
+          // to the listing; anything else tries again on the next change
+          const reason = notCheckableReason(error);
+          if (!reason) lastKey.current = null;
+          setState({ status: "error", result: null, reason });
         },
       }),
     [organizationId],
