@@ -7,12 +7,19 @@ namespace Yoma.Core.Test.Pathway
   {
     public static readonly PathwayOptions Options = PathwayDefaults.Configured(new PathwayOptions());
 
+    public static readonly Guid OpenLearningOrgId = Guid.Parse("0b9f4c1e-0000-4000-8000-000000000001");
+
+    public static PathwayCatalogueCourse Impact(string title, string[] skills, int completed = 0, Guid? id = null, PathwayStepType type = PathwayStepType.ImpactAction) =>
+      Course(title, skills, difficulty: "Beginner", hours: 2, completed: completed, id: id, type: type);
+
     public static PathwayGoalOptions Goal(string key) => Options.Goals.Single(o => o.Key == key);
 
     public static PathwayCatalogueCourse Course(string title, string[] skills, string? difficulty = "Beginner", decimal? hours = 4, int completed = 0,
-      string? grade = null, string[]? languages = null, Guid? id = null) => new()
+      string? grade = null, string[]? languages = null, Guid? id = null, PathwayStepType type = PathwayStepType.Learning, Guid? organizationId = null) => new()
       {
         OpportunityId = id ?? Guid.NewGuid(),
+        Type = type,
+        OrganizationId = organizationId ?? OpenLearningOrgId,
         Title = title,
         OrganizationName = "Open Learning Org",
         Difficulty = difficulty,
@@ -48,7 +55,8 @@ namespace Yoma.Core.Test.Pathway
       };
 
     /// <summary>
-    /// Five distinct courses for every stage of the marketing goal, more than any path needs.
+    /// Five distinct courses for every course stage of the marketing goal, more than any path needs, and three impact actions for its
+    /// practice stage.
     /// </summary>
     public static List<PathwayCatalogueCourse> MarketingCatalogue() =>
     [
@@ -75,6 +83,10 @@ namespace Yoma.Core.Test.Pathway
       Course("Online Advertising Essentials", ["Advertising"], difficulty: "Advanced", completed: 70),
       Course("Running an E-commerce Store", ["E-Commerce"], difficulty: "Intermediate", completed: 35),
       Course("Measuring Campaign Analytics", ["Analytics"], difficulty: "Advanced", completed: 15),
+
+      Impact("Run a Social Media Campaign for a Local NGO", ["Social Media Campaigns"], completed: 60),
+      Impact("Write a Community Storytelling Blog Post", ["Storytelling"], completed: 30),
+      Impact("Volunteer at a Youth Market Day", ["Community Engagement"], completed: 10),
 
       Course("Plumbing Basics", ["Plumbing"], completed: 5000)
     ];

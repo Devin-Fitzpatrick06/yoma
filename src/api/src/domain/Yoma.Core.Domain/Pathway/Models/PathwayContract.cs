@@ -1,6 +1,6 @@
 namespace Yoma.Core.Domain.Pathway.Models
 {
-  // Iteration 3 contract: "My Yoma" pathways. Mirrors src/web/src/api/models/pathway.ts field for field (camelCase JSON, enums
+  // Iteration 3 and 4 contract: "My Yoma" pathways. Mirrors src/web/src/api/models/pathway.ts field for field (camelCase JSON, enums
   // as PascalCase strings). The web file is the source of truth; change both only through the lead.
   // PartnerBadge and PartnerBadgeLevel belong to the badges work (Pathway/Badges) and are not declared here.
 
@@ -26,6 +26,57 @@ namespace Yoma.Core.Domain.Pathway.Models
     public const string KnownSkills = "knownSkills";
     public const string HoursPerWeek = "hoursPerWeek";
     public const string Country = "country";
+  }
+
+  /// <summary>
+  /// A step's kind. Learning is a course; ImpactAction and Task are practice. Jobs appear only in MyYoma.Jobs. Task is the older name
+  /// of the Impact Action opportunity type, kept for databases and partner feeds that still use it.
+  /// </summary>
+  public enum PathwayStepType
+  {
+    Learning,
+    ImpactAction,
+    Task
+  }
+
+  public enum StepDropOffStatus
+  {
+    Collecting,
+    Available
+  }
+
+  /// <summary>
+  /// "Young people who completed this usually go on to ...": share and count, hidden below the minimum group size.
+  /// </summary>
+  public class PathwayNextStep
+  {
+    public Guid OpportunityId { get; set; }
+
+    public string Title { get; set; } = null!;
+
+    /// <summary>
+    /// 0 to 1 of the step's completers.
+    /// </summary>
+    public decimal Share { get; set; }
+
+    public int Count { get; set; }
+  }
+
+  /// <summary>
+  /// Drop-off is reserved for the pilot: no data yet, so the status is Collecting and the rate null until then.
+  /// </summary>
+  public class StepDropOff
+  {
+    public StepDropOffStatus Status { get; set; }
+
+    /// <summary>
+    /// Share who started this step and did not continue, once Available.
+    /// </summary>
+    public decimal? Rate { get; set; }
+
+    public string Note { get; set; } = null!;
+
+    public static StepDropOff Collecting() => new() { Status = StepDropOffStatus.Collecting, Rate = null, Note = "Collecting from the pilot" };
   }
 
   public class PathwayOption
@@ -56,6 +107,12 @@ namespace Yoma.Core.Domain.Pathway.Models
   public class PathwayQuestions
   {
     public List<PathwayQuestion> Questions { get; set; } = [];
+
+    /// <summary>
+    /// Keys of the questions answered from Yoma's own preferences and profile (one of <see cref="PathwayQuestionId"/>), left out of
+    /// <see cref="Questions"/>. Empty when signed out or once the youth has a path (they are editing their answers then).
+    /// </summary>
+    public List<string> AnsweredFromPreferences { get; set; } = [];
   }
 
   public class PathwayProfileRequest
@@ -172,6 +229,26 @@ namespace Yoma.Core.Domain.Pathway.Models
     /// Continuation into this course is well below its siblings'. A signal for review, never a grade penalty.
     /// </summary>
     public bool DropOffFlag { get; set; }
+
+    // iteration 4
+    public PathwayStepType Type { get; set; }
+
+    /// <summary>
+    /// The provider's public partner badge; null when the provider is unknown.
+    /// </summary>
+    public Badges.Models.PartnerBadgeLevel? PartnerBadge { get; set; }
+
+    /// <summary>
+    /// Up to two opportunities the step's completers went on to next. Empty below the minimum group size.
+    /// </summary>
+    public List<PathwayNextStep> UsuallyNext { get; set; } = [];
+
+    public StepDropOff DropOff { get; set; } = StepDropOff.Collecting();
+
+    /// <summary>
+    /// Pinned by the youth; kept when the path is rebuilt.
+    /// </summary>
+    public bool Locked { get; set; }
   }
 
   public class PathwayStage
@@ -239,5 +316,16 @@ namespace Yoma.Core.Domain.Pathway.Models
     public List<PathwayJob> Jobs { get; set; } = [];
 
     public List<Badges.Models.LearnerBadge> Badges { get; set; } = [];
+
+    // iteration 4
+    /// <summary>
+    /// The map's start in plain words, for example "Finished school · Nigeria".
+    /// </summary>
+    public string StartLabel { get; set; } = null!;
+
+    /// <summary>
+    /// The map's end in plain words, for example "Your first digital marketing job".
+    /// </summary>
+    public string DestinationLabel { get; set; } = null!;
   }
 }

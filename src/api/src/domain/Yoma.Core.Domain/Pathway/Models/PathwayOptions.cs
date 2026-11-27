@@ -79,6 +79,16 @@ namespace Yoma.Core.Domain.Pathway.Models
     /// Added to a course's score by its Zeki grade, so a better graded course wins a close call.
     /// </summary>
     public Dictionary<string, decimal> GradeBonus { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Alternatives offered when a youth swaps a step.
+    /// </summary>
+    public int MaxAlternatives { get; set; } = 3;
+
+    /// <summary>
+    /// "Usually go on to" opportunities shown per step.
+    /// </summary>
+    public int MaxUsuallyNext { get; set; } = 2;
   }
 
   public class PathwayGoalOptions
@@ -93,6 +103,22 @@ namespace Yoma.Core.Domain.Pathway.Models
     /// Case-insensitive regular expression over Job opportunity titles.
     /// </summary>
     public string JobsPattern { get; set; } = null!;
+
+    /// <summary>
+    /// Yoma's own user goals (UserGoal names, for example "Start a business") that point to this career. The first one is written to
+    /// the youth's Yoma preferences when they have no goal there yet.
+    /// </summary>
+    public List<string> UserGoals { get; set; } = [];
+
+    /// <summary>
+    /// Case-insensitive regular expression over Yoma's opportunity category names that point to this career. Null: none do.
+    /// </summary>
+    public string? CategoriesPattern { get; set; }
+
+    /// <summary>
+    /// The map's end in plain words, for example "Your first digital marketing job". Null: "Your first {label} job".
+    /// </summary>
+    public string? Destination { get; set; }
 
     public List<PathwayStageOptions> Stages { get; set; } = [];
   }
@@ -112,6 +138,17 @@ namespace Yoma.Core.Domain.Pathway.Models
     /// Preferred difficulties, best first, for example ["Beginner", "Any level"].
     /// </summary>
     public List<string> Difficulties { get; set; } = [];
+
+    /// <summary>
+    /// The kinds of step this stage holds. Empty means Learning. A stage of practice steps (ImpactAction, Task) with no matching
+    /// listing falls back to courses and says so in its why.
+    /// </summary>
+    public List<PathwayStepType> Types { get; set; } = [];
+
+    /// <summary>
+    /// Steps in this stage before any top-up, instead of FirstStageCourses or StageCourses. Null: those apply.
+    /// </summary>
+    public int? Steps { get; set; }
   }
 
   public class PathwayKnownSkillOptions
