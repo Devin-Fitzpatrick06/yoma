@@ -2867,6 +2867,98 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.ToTable("Profile", "Pathway");
         });
 
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Pathway.Entities.PathwayStepEvent", b =>
+        {
+          b.Property<Guid>("Id")
+            .ValueGeneratedOnAdd()
+            .HasColumnType("uuid");
+
+          b.Property<DateTimeOffset>("DateCreated")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<string>("Event")
+            .IsRequired()
+            .HasColumnType("varchar(20)");
+
+          b.Property<string>("GoalKey")
+            .HasColumnType("varchar(50)");
+
+          b.Property<Guid>("OpportunityId")
+            .HasColumnType("uuid");
+
+          b.Property<int?>("StageOrder")
+            .HasColumnType("integer");
+
+          b.Property<Guid>("UserId")
+            .HasColumnType("uuid");
+
+          b.HasKey("Id");
+
+          b.HasIndex("Event", "DateCreated");
+
+          b.HasIndex("OpportunityId", "Event");
+
+          b.HasIndex("GoalKey", "StageOrder", "Event");
+
+          b.HasIndex("UserId", "OpportunityId", "Event", "DateCreated");
+
+          b.ToTable("StepEvent", "Pathway");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Pathway.Entities.PathwayStepLock", b =>
+        {
+          b.Property<Guid>("Id")
+            .ValueGeneratedOnAdd()
+            .HasColumnType("uuid");
+
+          b.Property<DateTimeOffset>("DateCreated")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<Guid>("OpportunityId")
+            .HasColumnType("uuid");
+
+          b.Property<Guid>("UserId")
+            .HasColumnType("uuid");
+
+          b.HasKey("Id");
+
+          b.HasIndex("OpportunityId");
+
+          b.HasIndex("UserId", "OpportunityId")
+            .IsUnique();
+
+          b.ToTable("StepLock", "Pathway");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Pathway.Entities.PathwayStepSwap", b =>
+        {
+          b.Property<Guid>("Id")
+            .ValueGeneratedOnAdd()
+            .HasColumnType("uuid");
+
+          b.Property<DateTimeOffset>("DateCreated")
+            .HasColumnType("timestamp with time zone");
+
+          b.Property<Guid>("ReplacedOpportunityId")
+            .HasColumnType("uuid");
+
+          b.Property<Guid>("ReplacementOpportunityId")
+            .HasColumnType("uuid");
+
+          b.Property<Guid>("UserId")
+            .HasColumnType("uuid");
+
+          b.HasKey("Id");
+
+          b.HasIndex("ReplacedOpportunityId");
+
+          b.HasIndex("ReplacementOpportunityId");
+
+          b.HasIndex("UserId", "DateCreated");
+
+          b.ToTable("StepSwap", "Pathway");
+        });
+
       modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Payout.Entities.Lookups.PayoutTransactionStatus", b =>
         {
           b.Property<Guid>("Id")
@@ -4890,6 +4982,71 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
             .IsRequired();
 
           b.Navigation("Country");
+
+          b.Navigation("User");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Pathway.Entities.PathwayStepEvent", b =>
+        {
+          b.HasOne("Yoma.Core.Infrastructure.Database.Opportunity.Entities.Opportunity", "Opportunity")
+            .WithMany()
+            .HasForeignKey("OpportunityId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.HasOne("Yoma.Core.Infrastructure.Database.Entity.Entities.User", "User")
+            .WithMany()
+            .HasForeignKey("UserId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.Navigation("Opportunity");
+
+          b.Navigation("User");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Pathway.Entities.PathwayStepLock", b =>
+        {
+          b.HasOne("Yoma.Core.Infrastructure.Database.Opportunity.Entities.Opportunity", "Opportunity")
+            .WithMany()
+            .HasForeignKey("OpportunityId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.HasOne("Yoma.Core.Infrastructure.Database.Entity.Entities.User", "User")
+            .WithMany()
+            .HasForeignKey("UserId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.Navigation("Opportunity");
+
+          b.Navigation("User");
+        });
+
+      modelBuilder.Entity("Yoma.Core.Infrastructure.Database.Pathway.Entities.PathwayStepSwap", b =>
+        {
+          b.HasOne("Yoma.Core.Infrastructure.Database.Opportunity.Entities.Opportunity", "ReplacedOpportunity")
+            .WithMany()
+            .HasForeignKey("ReplacedOpportunityId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.HasOne("Yoma.Core.Infrastructure.Database.Opportunity.Entities.Opportunity", "ReplacementOpportunity")
+            .WithMany()
+            .HasForeignKey("ReplacementOpportunityId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.HasOne("Yoma.Core.Infrastructure.Database.Entity.Entities.User", "User")
+            .WithMany()
+            .HasForeignKey("UserId")
+            .OnDelete(DeleteBehavior.NoAction)
+            .IsRequired();
+
+          b.Navigation("ReplacedOpportunity");
+
+          b.Navigation("ReplacementOpportunity");
 
           b.Navigation("User");
         });

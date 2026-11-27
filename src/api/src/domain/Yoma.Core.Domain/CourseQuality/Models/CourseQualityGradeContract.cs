@@ -57,7 +57,15 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     PartnerReliability,
 
     /// <summary>Applicant survey answers. Neutral until applicants are asked.</summary>
-    ApplicantFeedback
+    ApplicantFeedback,
+
+    // a course factor again, added last so stored values of the factors above do not move
+
+    /// <summary>
+    /// Feedback from pathways (iteration 4, W5): youth who started this course on a path and did not complete it. Weight 0 and neutral
+    /// while drop-off is collecting from the pilot; never in the job rubric.
+    /// </summary>
+    DropOff
   }
 
   /// <summary>
