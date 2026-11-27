@@ -154,6 +154,27 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     }
 
     public CourseQualityJobOptions Jobs { get; set; } = new();
+
+    /// <summary>
+    /// The partner's check of a draft listing before it is published (section CourseQuality:PrePublish).
+    /// </summary>
+    public CourseQualityPrePublishOptions PrePublish { get; set; } = new();
+  }
+
+  /// <summary>
+  /// The pre-publish ("Ziqi check") of a draft listing in the partner portal. Nothing is stored.
+  /// </summary>
+  public class CourseQualityPrePublishOptions
+  {
+    /// <summary>
+    /// Production switch, off by default: the draft check endpoint answers 404 until it is turned on (the demo turns it on).
+    /// </summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>
+    /// The draft's link check gives up after this long and reports "could not confirm", never a failure, while the partner is typing.
+    /// </summary>
+    public int LinkTimeoutMilliseconds { get; set; } = 3000;
   }
 
   /// <summary>

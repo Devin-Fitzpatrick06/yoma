@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Net;
+using Yoma.Core.Api.Attributes;
 using Yoma.Core.Domain.Core;
 using Yoma.Core.Domain.Pathway.Interfaces;
 using Yoma.Core.Domain.Pathway.Models;
@@ -14,6 +15,7 @@ namespace Yoma.Core.Api.Controllers
   /// </summary>
   [Route($"api/{Common.Constants.Api_Version}/pathway")]
   [ApiController]
+  [PathwayEnabled]
   [Authorize(Policy = Common.Constants.Authorization_Policy)]
   [SwaggerTag("(by default, User role required)")]
   public class PathwayController : ControllerBase
