@@ -34,7 +34,8 @@ What a start does depends on whether a saved demo database is in `scripts/course
 | Start | What happens | Time on this Mac |
 | ----- | ------------ | ---------------- |
 | Saved database present | Loads it, sets the named courses 101 to 108 to today's dates, assesses those 8 again and regrades | about 2.5 minutes |
-| No saved database, or `--refresh` | Imports every live Yoma course, assesses all of them at the product's polite pace, grades them, and saves the database | about 45 minutes, projected: alison.com's 2,054 pages at 1.1 s each set the pace |
+| No saved database (the default) | Imports every live Yoma course and 2,000 live jobs, assesses and grades a sample of 40 courses, opens the website. Saves nothing | about 8 minutes |
+| `--full`, or `--refresh` | Imports every live Yoma course, assesses all of them at the product's polite pace, grades them, and saves the database | about 45 minutes, projected: alison.com's 2,054 pages at 1.1 s each set the pace |
 | `--sample 40` | Imports every live course but assesses only 40 from mixed hosts, and saves nothing. For testing | about 3.5 minutes |
 
 Building the API and website adds about 13 minutes the first time, and a few minutes after code changes.

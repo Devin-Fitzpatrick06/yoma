@@ -1,7 +1,9 @@
 #!/bin/bash
 # Starts the whole Course Quality demo with one command. See README.md.
-#   ./start.sh              load the saved demo database if there is one, otherwise import every live course,
-#                           assess and grade them all (a few hours, politely paced), and save the database
+#   ./start.sh              load the saved demo database if there is one (about 3 minutes); otherwise import every live
+#                           course, assess a sample of 40 and open the website (about 8 minutes). Nothing is saved.
+#   ./start.sh --full       with no saved database: assess and grade every live course (about 45 minutes), then save
+#                           the database so later starts take minutes
 #   ./start.sh --refresh    import, assess and grade everything again, even if a saved database exists
 #   ./start.sh --sample N   import everything but assess only N live courses from mixed hosts; nothing is saved
 #   ./start.sh --fixtures   use only the demo pages for the named courses 101 to 108
@@ -10,23 +12,31 @@ set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 USE_FIXTURES=false
 REFRESH=false
+FULL=false
 SAMPLE=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --fixtures) USE_FIXTURES=true ;;
     --refresh) REFRESH=true ;;
+    --full) FULL=true ;;
     --sample)
       SAMPLE="${2:-}"
       [[ "$SAMPLE" =~ ^[1-9][0-9]*$ ]] || { echo "--sample needs a number of courses, for example --sample 40."; exit 2; }
       shift ;;
-    *) echo "Unknown option: $1. The options are --refresh, --sample N and --fixtures."; exit 2 ;;
+    *) echo "Unknown option: $1. The options are --full, --refresh, --sample N and --fixtures."; exit 2 ;;
   esac
   shift
 done
 
 FROM_SNAPSHOT=false
 [ -f "$SNAPSHOT" ] && [ "$REFRESH" = false ] && [ -z "$SAMPLE" ] && FROM_SNAPSHOT=true
+# The full check takes about 45 minutes, so without a saved database the default is a quick sample: --full opts in.
+if [ "$FROM_SNAPSHOT" = false ] && [ -z "$SAMPLE" ] && [ "$FULL" = false ] && [ "$REFRESH" = false ]; then
+  SAMPLE=40
+  echo "No saved demo database here, so this is the quick start: 40 courses are checked and graded (about 8 minutes)."
+  echo "For every course graded and a saved database, run ./start.sh --full once (about 45 minutes)."
+fi
 
 export DEMO_BASE_DATE
 DEMO_BASE_DATE="$(date -u +%Y-%m-%d)"
@@ -136,7 +146,11 @@ else
     echo "This API has no learner feedback table yet, so no synthetic feedback was added."
   fi
 
-  # Live jobs, listed only, for the My Yoma pathways' job step. Nothing is invented about them.
+fi
+
+# Live jobs, listed only, for the My Yoma pathways' job step. Nothing is invented about them. Also after loading a saved
+# database from before jobs were added; skipped when it already has them.
+if [ "$(sql -At -c "SELECT count(*) FROM \"Opportunity\".\"Opportunity\" o JOIN \"Opportunity\".\"OpportunityType\" t ON t.\"Id\" = o.\"TypeId\" AND t.\"Name\" = 'Job'")" = "0" ]; then
   if [ ! -f "$CACHE_DIR/live-jobs.json" ]; then
     step "Downloading up to 2,000 live Yoma jobs (about a minute)"
     in_runner node /demo/seed/fetch-live-catalogue.mjs --jobs 2>>"$LOG_DIR/fetch.log" || echo "The live jobs did not download, so pathways show no jobs."
