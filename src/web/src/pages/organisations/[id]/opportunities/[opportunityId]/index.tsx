@@ -62,6 +62,17 @@ import {
   updateOpportunity,
 } from "~/api/services/opportunities";
 import { AvatarImage } from "~/components/AvatarImage";
+import DraftCheckPanel, {
+  focusDraftField,
+} from "~/components/CourseQuality/DraftCheckPanel";
+import {
+  draftFieldTarget,
+  pickDraftFields,
+  type ApplicableDraftField,
+  type DraftValues,
+} from "~/components/CourseQuality/DraftCheckPanel.helpers";
+import type { DraftCheckField } from "~/api/models/courseQuality";
+import { env } from "~/env.mjs";
 import { ProviderLogo } from "~/components/Opportunity/ProviderLogo";
 import { absoluteWebURL } from "~/components/Opportunity/providerFacts";
 import CustomModal from "~/components/Common/CustomModal";
@@ -611,6 +622,7 @@ const OpportunityAdminDetails: NextPageWithLayout<{
     formState: formStateStep1,
     control: controlStep1,
     watch: watchStep1,
+    setValue: setValueStep1,
     reset: resetStep1,
     trigger: triggerStep1,
   } = useForm({
@@ -1334,6 +1346,7 @@ const OpportunityAdminDetails: NextPageWithLayout<{
     formState: formStateStep4,
     reset: resetStep4,
     control: controlStep4,
+    watch: watchStep4,
     trigger: triggerStep4,
   } = useForm({
     resolver: zodResolver(schemaStep4),
@@ -1800,6 +1813,58 @@ const OpportunityAdminDetails: NextPageWithLayout<{
       setSaveChangesDialogVisible,
       setLastStepBeforeSaveChangesDialog,
     ],
+  );
+
+  // 👇 Ziqi pre-publish check (iteration 4, W1), behind NEXT_PUBLIC_PREPUBLISH_ENABLED. It reads
+  // the draft live from the steps that carry its checked fields, and never blocks saving.
+  const prePublishEnabled = env.NEXT_PUBLIC_PREPUBLISH_ENABLED;
+  const subscribeDraftCheck = useCallback(
+    (listener: (patch: DraftValues) => void) => {
+      // the callback form of watch() does not re-render this page
+      const subscriptions = [
+        watchStep1((values) => listener(pickDraftFields(1, values))),
+        watchStep2((values) => listener(pickDraftFields(2, values))),
+        watchStep4((values) => listener(pickDraftFields(4, values))),
+      ];
+      return () => subscriptions.forEach((s) => s.unsubscribe());
+    },
+    [watchStep1, watchStep2, watchStep4],
+  );
+  // "Go to field": switch step when needed (the unsaved-changes dialog still applies), then focus
+  const [draftFieldToFocus, setDraftFieldToFocus] =
+    useState<DraftCheckField | null>(null);
+  const onGoToDraftField = useCallback(
+    (field: DraftCheckField) => {
+      const target = draftFieldTarget(field);
+      if (!target) return;
+      if (target.step !== step) onStep(target.step);
+      setDraftFieldToFocus(field);
+    },
+    [step, onStep],
+  );
+  useEffect(() => {
+    if (
+      !draftFieldToFocus ||
+      draftFieldTarget(draftFieldToFocus)?.step !== step
+    )
+      return;
+    // after the step's own scroll-to-top
+    const timer = setTimeout(() => {
+      focusDraftField(draftFieldToFocus);
+      setDraftFieldToFocus(null);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [draftFieldToFocus, step]);
+  const onApplyDraftSuggestion = useCallback(
+    (field: ApplicableDraftField, value: string) => {
+      setValueStep1(field, value, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      onGoToDraftField(field === "uRL" ? "url" : field);
+    },
+    [setValueStep1, onGoToDraftField],
   );
 
   const onClickContinueWithoutSaving = useCallback(() => {
@@ -2338,7 +2403,12 @@ const OpportunityAdminDetails: NextPageWithLayout<{
       </CustomModal>
 
       {/* PAGE */}
-      <div className="z-10 container mt-20 max-w-7xl overflow-hidden px-2 py-4">
+      {/* clip, not hidden, with the Ziqi check: a scroll container would stop its panel sticking */}
+      <div
+        className={`z-10 container mt-20 max-w-7xl px-2 py-4 ${
+          prePublishEnabled ? "overflow-clip pb-20 xl:pb-4" : "overflow-hidden"
+        }`}
+      >
         {/* BREADCRUMB */}
         <div className="flex flex-row items-center text-xs text-white">
           <Link
@@ -4765,6 +4835,20 @@ const OpportunityAdminDetails: NextPageWithLayout<{
               )}
             </div>
           </div>
+
+          {/* ZIQI CHECK: a sticky column from xl, a bottom drawer below */}
+          {prePublishEnabled && (
+            <div className="contents xl:block xl:w-80 xl:flex-none">
+              <DraftCheckPanel
+                organizationId={id}
+                initialDraft={formData}
+                subscribe={subscribeDraftCheck}
+                currentStep={step}
+                onGoToField={onGoToDraftField}
+                onApplySuggestion={onApplyDraftSuggestion}
+              />
+            </div>
+          )}
         </div>
       </div>
     </>

@@ -42,6 +42,7 @@ import { updateSettings } from "~/api/services/user";
 import { AvatarImage } from "~/components/AvatarImage";
 import ZltoRewardBadge from "~/components/Opportunity/Badges/ZltoRewardBadge";
 import LearnerCard from "~/components/Opportunity/LearnerCard";
+import { PartnerBadgesScope } from "~/components/Opportunity/PartnerBadgeChip";
 import {
   getCommitmentDisplay,
   getTypeConfig,
@@ -1209,33 +1210,41 @@ const OpportunityPublicDetails: React.FC<{
       {opportunityInfo && (
         <div className="flex flex-col gap-4">
           {layout === "tabbed" ? (
-            <DetailHeaderCard ref={headerCardRef} opportunity={opportunityInfo}>
-              {learnerCardPanel}
+            // the provider's partner badge (W2): one request, nothing while it loads
+            <PartnerBadgesScope
+              organizationIds={[opportunityInfo.organizationId]}
+            >
+              <DetailHeaderCard
+                ref={headerCardRef}
+                opportunity={opportunityInfo}
+              >
+                {learnerCardPanel}
 
-              {/* BUTTONS — the same elements (see goToButton above). Round 10: the call to
+                {/* BUTTONS — the same elements (see goToButton above). Round 10: the call to
                   action, Save and Share together, Upload right-aligned (on its own line when
                   the row is too narrow, e.g. 768); on mobile Save and Share are circles beside
                   the call to action, and Upload sits below */}
-              <div className="mt-5 flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-center">
-                <div className="flex items-center gap-2.5">
-                  {goToButton && (
-                    <div className="min-w-0 grow md:grow-0">{goToButton}</div>
-                  )}
-                  <div className="flex shrink-0 gap-2.5 max-md:ml-auto">
-                    {saveButton}
-                    {shareButton}
+                <div className="mt-5 flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-center">
+                  <div className="flex items-center gap-2.5">
+                    {goToButton && (
+                      <div className="min-w-0 grow md:grow-0">{goToButton}</div>
+                    )}
+                    <div className="flex shrink-0 gap-2.5 max-md:ml-auto">
+                      {saveButton}
+                      {shareButton}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 empty:hidden md:ml-auto md:flex-row md:items-center">
+                    {completionButtons}
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 empty:hidden md:ml-auto md:flex-row md:items-center">
-                  {completionButtons}
-                </div>
-              </div>
-              {preview && (
-                <p className="text-purple mt-2 text-xs font-semibold">
-                  Buttons are inactive in preview.
-                </p>
-              )}
-            </DetailHeaderCard>
+                {preview && (
+                  <p className="text-purple mt-2 text-xs font-semibold">
+                    Buttons are inactive in preview.
+                  </p>
+                )}
+              </DetailHeaderCard>
+            </PartnerBadgesScope>
           ) : (
             <div
               ref={headerCardRef}
@@ -1248,7 +1257,11 @@ const OpportunityPublicDetails: React.FC<{
                   </h4>
 
                   <div className="mt-1">
-                    <OpportunityOrgCountriesRow data={opportunityInfo} />
+                    <PartnerBadgesScope
+                      organizationIds={[opportunityInfo.organizationId]}
+                    >
+                      <OpportunityOrgCountriesRow data={opportunityInfo} />
+                    </PartnerBadgesScope>
                   </div>
                 </div>
 

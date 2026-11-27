@@ -1,6 +1,7 @@
 import type { OpportunitySearchResultsInfo } from "~/api/models/opportunity";
 import Link from "next/link";
 import { DefaultCard, JobCard } from "./OpportunityPublicSmall";
+import { PartnerBadgesScope } from "./PartnerBadgeChip";
 
 interface InputProps {
   [id: string]: any;
@@ -35,17 +36,22 @@ export const OpportunitiesGrid: React.FC<InputProps> = ({
             )}
           </div>
 
-          <div className="flex w-full flex-row flex-wrap justify-center gap-4">
-            {data.items.map((item: any) => (
-              <>
-                {item.type == "Job" ? (
-                  <JobCard key={`${id}_${item.id}`} data={item} />
-                ) : (
-                  <DefaultCard key={`${id}_${item.id}`} data={item} />
-                )}
-              </>
-            ))}
-          </div>
+          {/* one partner-badge request for the whole grid (or none, under a page-wide provider) */}
+          <PartnerBadgesScope
+            organizationIds={data.items.map((item) => item.organizationId)}
+          >
+            <div className="flex w-full flex-row flex-wrap justify-center gap-4">
+              {data.items.map((item: any) => (
+                <>
+                  {item.type == "Job" ? (
+                    <JobCard key={`${id}_${item.id}`} data={item} />
+                  ) : (
+                    <DefaultCard key={`${id}_${item.id}`} data={item} />
+                  )}
+                </>
+              ))}
+            </div>
+          </PartnerBadgesScope>
         </div>
       )}
     </div>
