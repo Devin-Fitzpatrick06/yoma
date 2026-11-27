@@ -33,6 +33,7 @@ import PartnerLogos, {
   PartnerLogoOptions,
 } from "~/components/Home/PartnerLogos";
 import MainLayout from "~/components/Layout/Main";
+import { useFirstVisitRedirect } from "~/components/MyYoma/useFirstVisitRedirect";
 import { NewsArticleCard } from "~/components/News/NewsArticleCard";
 import { PAGE_SIZE_MINIMUM, THEME_WHITE } from "~/lib/constants";
 import type { NextPageWithLayout } from "./_app";
@@ -95,6 +96,9 @@ const Home: NextPageWithLayout<{
   platformMetrics: PlatformMetrics | null;
 }> = ({ lookups_NewsArticles, lookup_NewsFeed, platformMetrics }) => {
   const router = useRouter();
+
+  // My Yoma's first visit: a signed-in youth without a path goes there once (switch on only)
+  useFirstVisitRedirect();
 
   // Fallback client-side data fetching for news articles
   const { data: clientNewsArticles } = useQuery({

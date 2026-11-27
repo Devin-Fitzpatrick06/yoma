@@ -198,6 +198,14 @@ const withOutcome = (
   outcome: outcome(c.opportunityId, c.completedCount, progression, employment),
 });
 
+// Iteration 4 (W2): a youth who filled in Yoma's preferences. The API leaves time and skills to
+// those preferences (and read languages), so the first visit asks the goal, the starting point and
+// the country only. Labelled example data, like the rest of this file.
+export const QUESTIONS_FROM_PREFERENCES_FIXTURE: PathwayQuestions = {
+  answeredFromPreferences: ["hoursPerWeek", "languages", "knownSkills"],
+  questions: QUESTIONS_FIXTURE.questions,
+};
+
 export const MY_YOMA_FIXTURE: MyYoma = {
   startLabel: "Some study or training · Nigeria",
   destinationLabel: "Your first digital marketing job",

@@ -10,6 +10,7 @@ import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 import { IoMdClose, IoMdMenu, IoMdSettings } from "react-icons/io";
 import type { TabItem } from "~/api/models/common";
 import type { OrganizationInfo } from "~/api/models/user";
+import { env } from "~/env.mjs";
 import { useDisableBodyScroll } from "~/hooks/useDisableBodyScroll";
 import { OPPORTUNITIES_SEARCH_URL, ROLE_ADMIN } from "~/lib/constants";
 import {
@@ -56,14 +57,6 @@ const getNavBarLinksUser = (
       selected: false,
     },
     {
-      title: "My Yoma",
-      description: "My Yoma: your path to the work you want",
-      url: "/my-yoma",
-      badgeCount: null,
-      selected: false,
-      tag: "New",
-    },
-    {
       title: "Marketplace",
       description: "Marketplace",
       url: "/marketplace",
@@ -71,6 +64,18 @@ const getNavBarLinksUser = (
       selected: false,
     },
   ];
+
+  // My Yoma (pathways) is behind its production switch, off by default (iteration 4, W0).
+  if (env.NEXT_PUBLIC_PATHWAY_ENABLED) {
+    links.splice(3, 0, {
+      title: "My Yoma",
+      description: "My Yoma: your path to the work you want",
+      url: "/my-yoma",
+      badgeCount: null,
+      selected: false,
+      tag: "New",
+    });
+  }
 
   // Feature flag: keep referral pages deployed, but hide user entry points when disabled.
   if (referralsEnabled) {
@@ -130,8 +135,8 @@ const navBarLinksAdmin: TabItem[] = [
     selected: false,
   },
   {
-    title: "Course Quality",
-    description: "Course Quality",
+    title: "Ziqi",
+    description: "Ziqi: course quality",
     url: "/admin/course-quality",
     badgeCount: null,
     selected: false,
@@ -261,8 +266,8 @@ export const Navbar: React.FC<{ theme: string }> = (theme) => {
           selected: false,
         },
         {
-          title: "Course Quality",
-          description: "Course Quality",
+          title: "Ziqi",
+          description: "Ziqi: course quality",
           url: `/organisations/${currentOrganisationId}/course-quality`,
           badgeCount: null,
           selected: false,

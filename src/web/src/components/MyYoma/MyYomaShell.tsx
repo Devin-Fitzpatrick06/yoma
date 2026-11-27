@@ -9,12 +9,15 @@ import { SignInButton } from "~/components/SignInButton";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The frame shared by the My Yoma page and its preview: the purple banner with the title, then
-// the content column. Plus the signed-out explanation.
+// the content column (or, for the first visit, a full-screen frame). Plus the signed-out explanation.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type MyYomaStage = "signedOut" | "onboarding" | "path";
+export type MyYomaStage = "signedOut" | "onboarding" | "path" | "firstVisit";
 
-const TITLES: Record<MyYomaStage, { title: string; description: string }> = {
+const TITLES: Record<
+  Exclude<MyYomaStage, "firstVisit">,
+  { title: string; description: string }
+> = {
   signedOut: {
     title: "My Yoma",
     description: "Your own path from where you are now to the work you want.",
@@ -22,7 +25,7 @@ const TITLES: Record<MyYomaStage, { title: string; description: string }> = {
   onboarding: {
     title: "Build your path",
     description:
-      "Five quick questions. We use your answers to choose courses on Yoma for you.",
+      "A few quick questions. We use your answers to choose courses on Yoma for you.",
   },
   path: {
     title: "Your world, your Yoma",
@@ -33,20 +36,29 @@ const TITLES: Record<MyYomaStage, { title: string; description: string }> = {
 export const MyYomaShell: React.FC<{
   stage: MyYomaStage;
   children: ReactNode;
-}> = ({ stage, children }) => (
-  <>
-    <Head>
-      <title>Yoma | My Yoma</title>
-    </Head>
-    <ListPageShell>
-      <ListPageHeader
-        title={TITLES[stage].title}
-        description={TITLES[stage].description}
-      />
-      <ListPageBody>{children}</ListPageBody>
-    </ListPageShell>
-  </>
-);
+}> = ({ stage, children }) =>
+  stage === "firstVisit" ? (
+    // the first visit is full screen: no banner, the flow draws its own background
+    <>
+      <Head>
+        <title>Yoma | My Yoma</title>
+      </Head>
+      <div className="flex w-full flex-col">{children}</div>
+    </>
+  ) : (
+    <>
+      <Head>
+        <title>Yoma | My Yoma</title>
+      </Head>
+      <ListPageShell>
+        <ListPageHeader
+          title={TITLES[stage].title}
+          description={TITLES[stage].description}
+        />
+        <ListPageBody>{children}</ListPageBody>
+      </ListPageShell>
+    </>
+  );
 
 export const MyYomaSignedOut: React.FC = () => (
   <section
