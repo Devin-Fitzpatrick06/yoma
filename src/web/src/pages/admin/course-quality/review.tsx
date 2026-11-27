@@ -364,7 +364,10 @@ const ReviewCard: React.FC<{
 
           {/* DROP-OFF (W5): reserved for courses on a pathway; collecting until the pilot */}
           {showDropOff && item.learnerCard?.format !== "Job" && (
-            <DropOffSlot dropOff={REVIEW_CARD_DROP_OFF} showDetail={true} />
+            <DropOffSlot
+              dropOff={item.dropOff ?? REVIEW_CARD_DROP_OFF}
+              showDetail={true}
+            />
           )}
         </div>
 

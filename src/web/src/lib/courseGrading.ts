@@ -45,6 +45,8 @@ export const GRADE_FACTOR_LABELS: Record<CourseGradeFactor, string> = {
   Completion: "Completion",
   ListingIntegrity: "Listing integrity",
   Accessibility: "Accessibility",
+  Outcomes: "Outcomes (what completers did next)",
+  DropOff: "Drop-off (collecting from the pilot)",
 };
 
 export const JOB_GRADE_FACTOR_LABELS: Record<JobGradeFactor, string> = {

@@ -1,3 +1,4 @@
+import type { StepDropOff } from "./pathway";
 export type CourseQualityStatus = "Verified" | "NeedsReview" | "NotVerified";
 
 export type CourseQualityCriterion =
@@ -66,6 +67,8 @@ export interface PartnerFixNote {
 }
 
 export interface CourseQualityAssessment {
+  // drop-off reserved for the pilot: always Collecting for now (iteration 4, W5)
+  dropOff?: StepDropOff;
   id: string;
   opportunityId: string;
   opportunityTitle: string;
@@ -133,7 +136,10 @@ export type CourseGradeFactor =
   | "CourseLength"
   | "Completion"
   | "ListingIntegrity"
-  | "Accessibility";
+  | "Accessibility"
+  // weight 0 until there is data: what completers did next, and drop-off from the pilot
+  | "Outcomes"
+  | "DropOff";
 
 /** Job grade factors: graded with the job rubric and ranked only against other jobs. Never part of the course rubric. */
 export type JobGradeFactor =

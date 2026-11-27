@@ -29,6 +29,8 @@ const WEIGHTS: Record<CourseGradeFactor, number> = {
   Completion: 10,
   ListingIntegrity: 8,
   Accessibility: 7,
+  Outcomes: 0,
+  DropOff: 0,
 };
 
 const rubric = (
