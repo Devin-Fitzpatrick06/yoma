@@ -1,0 +1,381 @@
+/*
+ * The journey map's motion. Layout and colour stay in Tailwind; this file holds only the
+ * keyframes the map needs (Tailwind's theme has none of these). Transform and opacity only, so
+ * nothing shifts layout. Everything is switched off under prefers-reduced-motion at the end.
+ */
+
+/* ── Entrance: the trail draws itself, cards fly in and lock onto it ───────── */
+
+.trailDraw {
+  stroke-dasharray: 1;
+  animation: trail-draw var(--draw-ms, 2400ms) cubic-bezier(0.45, 0, 0.2, 1)
+    var(--draw-delay, 150ms) backwards;
+}
+
+.trailDone {
+  stroke-dasharray: 1;
+  transition: stroke-dashoffset 900ms cubic-bezier(0.45, 0, 0.2, 1);
+  animation: trail-done 900ms cubic-bezier(0.45, 0, 0.2, 1)
+    var(--done-delay, 0ms) backwards;
+}
+
+@keyframes trail-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes trail-done {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+.flyIn {
+  --fly-x: 56px;
+  --fly-y: 28px;
+  --fly-r: 4deg;
+  animation: fly-in 620ms cubic-bezier(0.2, 0.9, 0.25, 1.12) var(--delay, 0ms)
+    backwards;
+}
+
+@media (min-width: 1024px) {
+  .flyIn {
+    --fly-x: 0px;
+    --fly-y: 96px;
+    --fly-r: -3deg;
+  }
+}
+
+@keyframes fly-in {
+  0% {
+    opacity: 0;
+    transform: translate(var(--fly-x), var(--fly-y)) rotate(var(--fly-r))
+      scale(0.92);
+  }
+  60% {
+    opacity: 1;
+  }
+  82% {
+    transform: translate(0, -4px) rotate(0) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The dot snaps when its card lands: a pop and a ring. */
+.dotSnap {
+  animation: dot-snap 420ms cubic-bezier(0.2, 0.9, 0.3, 1.4)
+    calc(var(--delay, 0ms) + 420ms) backwards;
+}
+
+@keyframes dot-snap {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.snapRing {
+  animation: snap-ring 700ms ease-out calc(var(--delay, 0ms) + 520ms) both;
+}
+
+@keyframes snap-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+/* A small padlock clicks shut on the dot, then (for steps not pinned) fades away. */
+.lockFlash {
+  animation: lock-flash 1300ms ease-out calc(var(--delay, 0ms) + 480ms) both;
+}
+
+.lockStay {
+  animation: lock-stay 520ms ease-out calc(var(--delay, 0ms) + 480ms) backwards;
+}
+
+.shackle {
+  animation: shackle-shut 360ms cubic-bezier(0.3, 1.6, 0.5, 1)
+    calc(var(--delay, 0ms) + 620ms) backwards;
+}
+
+@keyframes lock-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  20%,
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+}
+
+@keyframes lock-stay {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shackle-shut {
+  from {
+    transform: translateY(-3px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Toggling a lock after the entrance. */
+.lockToggle {
+  animation: lock-toggle 380ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes lock-toggle {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.25) rotate(-8deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ── You are here ─────────────────────────────────────────────────────────── */
+
+.marker {
+  transition: transform 900ms cubic-bezier(0.45, 0, 0.2, 1);
+}
+
+.markerPulse {
+  animation: marker-pulse 1800ms ease-out infinite;
+}
+
+@keyframes marker-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+/* ── Swap: alternatives slide in, the pick animates into place ────────────── */
+
+.sheetUp {
+  animation: sheet-up 340ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+@media (min-width: 640px) {
+  .sheetUp {
+    animation-name: sheet-pop;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes sheet-pop {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.backdrop {
+  animation: backdrop-in 240ms ease-out both;
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.slideIn {
+  animation: slide-in 460ms cubic-bezier(0.2, 0.9, 0.25, 1.08) var(--delay, 0ms)
+    backwards;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(48px);
+  }
+}
+
+.picked {
+  animation: picked 420ms cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+
+@keyframes picked {
+  50% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(0.98);
+    opacity: 0.6;
+  }
+}
+
+.swapIn {
+  animation: swap-in 720ms cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+
+@keyframes swap-in {
+  0% {
+    opacity: 0;
+    transform: perspective(800px) rotateY(-70deg) scale(0.9);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.skeleton {
+  animation: skeleton 1.2s ease-in-out infinite;
+}
+
+@keyframes skeleton {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* ── Celebration ──────────────────────────────────────────────────────────── */
+
+.confettiPiece {
+  animation: confetti 1300ms cubic-bezier(0.15, 0.7, 0.35, 1) var(--d, 0ms) both;
+}
+
+@keyframes confetti {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(0) scale(0.6);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty)))
+      rotate(var(--rot)) scale(1);
+  }
+}
+
+.cheer {
+  animation: cheer 700ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes cheer {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Platinum partners get a slow sheen. */
+.platinum {
+  background-image: linear-gradient(
+    110deg,
+    var(--color-purple-tint) 0%,
+    var(--color-purple-tint) 40%,
+    #ffffff 50%,
+    var(--color-purple-tint) 60%,
+    var(--color-purple-tint) 100%
+  );
+  background-size: 250% 100%;
+  animation: sheen 3.2s ease-in-out infinite;
+}
+
+@keyframes sheen {
+  0% {
+    background-position: 100% 0;
+  }
+  60%,
+  100% {
+    background-position: -50% 0;
+  }
+}
+
+/* ── Reduced motion: everything appears in place ──────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .trailDraw,
+  .trailDone,
+  .flyIn,
+  .dotSnap,
+  .snapRing,
+  .lockStay,
+  .shackle,
+  .lockToggle,
+  .markerPulse,
+  .sheetUp,
+  .backdrop,
+  .slideIn,
+  .picked,
+  .swapIn,
+  .skeleton,
+  .confettiPiece,
+  .cheer,
+  .platinum {
+    animation: none !important;
+  }
+  .lockFlash {
+    animation: none !important;
+    opacity: 0;
+  }
+  .marker,
+  .trailDone {
+    transition: none !important;
+  }
+}
