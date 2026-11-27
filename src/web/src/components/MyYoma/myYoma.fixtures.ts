@@ -12,6 +12,7 @@ import type {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const QUESTIONS_FIXTURE: PathwayQuestions = {
+  answeredFromPreferences: [],
   questions: [
     {
       id: "goal",
@@ -157,6 +158,15 @@ const course = (over: Partial<PathwayCourse>): PathwayCourse => {
     completedCount: 0,
     outcome: null,
     dropOffFlag: false,
+    type: "Learning",
+    partnerBadge: null,
+    usuallyNext: [],
+    dropOff: {
+      status: "Collecting",
+      rate: null,
+      note: "Collecting from the pilot",
+    },
+    locked: false,
     ...over,
   };
 };
@@ -189,6 +199,8 @@ const withOutcome = (
 });
 
 export const MY_YOMA_FIXTURE: MyYoma = {
+  startLabel: "Some study or training · Nigeria",
+  destinationLabel: "Your first digital marketing job",
   profile: {
     goalKey: "marketing",
     background: "SomeStudy",
@@ -463,6 +475,7 @@ export const PARTNER_BADGE_FIXTURES: PartnerBadge[] = [
     shareTopGrades: 0.64,
     shareHeldBack: 0.07,
     minimumGradedCourses: 5,
+    reviewDue: "2027-01-01",
     nextLevelHint:
       "Gold needs three in four graded courses at A or B. Fixing the two courses with notes below would get you there.",
   },
@@ -475,6 +488,7 @@ export const PARTNER_BADGE_FIXTURES: PartnerBadge[] = [
     shareTopGrades: null,
     shareHeldBack: null,
     minimumGradedCourses: 5,
+    reviewDue: "2027-01-01",
     nextLevelHint:
       "A badge is given once 5 of your courses are graded, so small partners are not judged on one or two courses.",
   },

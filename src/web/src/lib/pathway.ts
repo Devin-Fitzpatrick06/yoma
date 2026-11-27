@@ -200,6 +200,7 @@ export const sortBadges = (badges: LearnerBadge[]): LearnerBadge[] =>
   );
 
 export const PARTNER_BADGE_LABELS: Record<PartnerBadgeLevel, string> = {
+  Platinum: "Platinum partner",
   Gold: "Gold partner",
   Silver: "Silver partner",
   Bronze: "Bronze partner",

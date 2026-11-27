@@ -85,7 +85,9 @@ step "Building the API and website (about 10 minutes the first time, a few minut
 # The website's Dockerfile with the demo's build-time switches added before its build step.
 awk '{ print } /^ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=/ {
   print "ARG NEXT_PUBLIC_COURSE_QUALITY_DEMO"; print "ENV NEXT_PUBLIC_COURSE_QUALITY_DEMO=${NEXT_PUBLIC_COURSE_QUALITY_DEMO}"
-  print "ARG NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID"; print "ENV NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID=${NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID}" }' \
+  print "ARG NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID"; print "ENV NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID=${NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID}"
+  print "ARG NEXT_PUBLIC_PATHWAY_ENABLED"; print "ENV NEXT_PUBLIC_PATHWAY_ENABLED=${NEXT_PUBLIC_PATHWAY_ENABLED}"
+  print "ARG NEXT_PUBLIC_PREPUBLISH_ENABLED"; print "ENV NEXT_PUBLIC_PREPUBLISH_ENABLED=${NEXT_PUBLIC_PREPUBLISH_ENABLED}" }' \
   "$REPO_ROOT/src/web/Dockerfile" >"$CACHE_DIR/web.Dockerfile"
 grep -q NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID "$CACHE_DIR/web.Dockerfile" \
   || stop_with "src/web/Dockerfile changed shape, so the demo could not add its build settings. See README.md, Troubleshooting."

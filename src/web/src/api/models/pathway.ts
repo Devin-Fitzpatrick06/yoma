@@ -8,6 +8,15 @@
 //   GET  /pathway/badges/me          User        -> LearnerBadge[]
 //   GET  /pathway/badges/organization/{organizationId}  anonymous -> PartnerBadge
 //   GET  /pathway/outcomes/opportunity/{opportunityId}  anonymous -> CourseOutcome
+// Iteration 4 (all 404 unless the API switch Pathway:Enabled is on):
+//   GET  /pathway/questions          (signed in) also returns answeredFromPreferences; questions already answered by
+//                                    Yoma's own preferences (GET user/preferences) are left out
+//   PUT  /pathway/me/steps/{opportunityId}/lock          User  body { locked: boolean } -> MyYoma
+//   GET  /pathway/me/steps/{opportunityId}/alternatives  User  -> PathwayCourse[] (up to 3, same stage and type)
+//   POST /pathway/me/steps/{opportunityId}/swap          User  body { replacementOpportunityId } -> MyYoma
+//   POST /pathway/me/events          User  body PathwayStepEventRequest -> 204 (drop-off collection, W5)
+//   GET  /pathway/health             Admin -> PathwayHealth
+//   GET  /pathway/yoid/me            User  -> MyPathSummary (the YoID page's "My path" card)
 
 export type PathwayBackground =
   | "InSchool"
@@ -31,6 +40,8 @@ export interface PathwayQuestion {
 
 export interface PathwayQuestions {
   questions: PathwayQuestion[];
+  // keys of questions answered from Yoma's own preferences (goal, time, languages, skills, categories); empty when signed out
+  answeredFromPreferences: string[];
 }
 
 export interface PathwayProfileRequest {
@@ -63,6 +74,24 @@ export interface CourseOutcome {
   note: string; // plain-language explanation, e.g. "Not enough learners yet to show outcomes"
 }
 
+// A step's kind. Learning = a course; ImpactAction and Task = practise; Job appears only in MyYoma.jobs.
+export type PathwayStepType = "Learning" | "ImpactAction" | "Task";
+
+// "Young people who completed this usually go on to …": share and n, hidden below the minimum group size.
+export interface PathwayNextStep {
+  opportunityId: string;
+  title: string;
+  share: number; // 0–1 of completers
+  count: number;
+}
+
+// Drop-off is reserved for the pilot: no data yet, so status is always "Collecting" and rate null until then.
+export interface StepDropOff {
+  status: "Collecting" | "Available";
+  rate: number | null; // share who started this step and did not continue, once Available
+  note: string; // e.g. "Collecting from the pilot"
+}
+
 export interface PathwayCourse {
   opportunityId: string;
   title: string;
@@ -79,6 +108,39 @@ export interface PathwayCourse {
   completedCount: number; // completions on Yoma
   outcome: CourseOutcome | null;
   dropOffFlag: boolean; // continuation into this course is well below its siblings'
+  // iteration 4
+  type: PathwayStepType;
+  partnerBadge: PartnerBadgeLevel | null; // the provider's public badge
+  usuallyNext: PathwayNextStep[]; // empty below the minimum group size
+  dropOff: StepDropOff;
+  locked: boolean; // pinned by the youth; kept when the path is rebuilt
+}
+
+export type PathwayStepEventType =
+  | "Shown"
+  | "Started"
+  | "Completed"
+  | "Swapped"
+  | "Dismissed";
+
+export interface PathwayStepEventRequest {
+  opportunityId: string;
+  event: PathwayStepEventType;
+}
+
+export interface PathwayHealth {
+  stepsTracked: number; // distinct path steps with at least one event
+  events: number;
+  dropOff: StepDropOff; // aggregate; "Collecting" until the pilot
+  note: string;
+}
+
+export interface MyPathSummary {
+  goalLabel: string;
+  totalSteps: number;
+  completedSteps: number;
+  nextStep: { opportunityId: string; title: string } | null;
+  stages: { name: string; completed: number; total: number }[];
 }
 
 export interface PathwayStage {
@@ -128,6 +190,7 @@ export type PartnerBadgeLevel =
   | "Bronze"
   | "Silver"
   | "Gold"
+  | "Platinum"
   | "NotEnoughGraded";
 
 export interface PartnerBadge {
@@ -140,6 +203,7 @@ export interface PartnerBadge {
   shareHeldBack: number | null; // share Not verified
   minimumGradedCourses: number;
   nextLevelHint: string | null; // what the partner would need to reach the next level
+  reviewDue: string; // ISO date: badges are recomputed each quarter; the start of the next quarter
 }
 
 export interface MyYoma {
@@ -154,4 +218,7 @@ export interface MyYoma {
   stages: PathwayStage[];
   jobs: PathwayJob[];
   badges: LearnerBadge[];
+  // iteration 4
+  startLabel: string; // the map's start, e.g. "Finished school · Nigeria"
+  destinationLabel: string; // the map's end, e.g. "Your first digital marketing job"
 }

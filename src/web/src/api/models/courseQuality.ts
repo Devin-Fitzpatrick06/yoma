@@ -276,3 +276,45 @@ export interface CourseFeedbackSummary {
   /** Admin only: empty for anyone else. */
   recentComments: string[];
 }
+
+// ── Iteration 4: pre-publish check (W1) ──────────────────────────────────────
+// POST /courseQuality/organization/{organizationId}/draft/check   OrganisationAdmin of that organisation, Admin
+//   body: the listing as the partner form would send it (OpportunityRequestBase) -> DraftCheckResult
+//   404 unless the API switch CourseQuality:PrePublish:Enabled is on. Nothing is stored.
+
+export type DraftCheckVerdict = "Verified" | "NeedsReview" | "NotVerified";
+
+// Where a fix belongs on the partner form, so the panel can jump to the field.
+export type DraftCheckField =
+  | "title"
+  | "summary"
+  | "description"
+  | "url"
+  | "dateStart"
+  | "dateEnd"
+  | "commitment"
+  | "skills"
+  | "languages"
+  | "countries"
+  | "difficulty"
+  | "other";
+
+export interface DraftCheckFix {
+  criterion: string; // the check's name, e.g. "LinkWorks", "DatesAccurate", "JobDetailsClear"
+  field: DraftCheckField;
+  hardGate: boolean; // true when this alone keeps the listing from being verified
+  reason: string; // partner wording
+  recommendation: string | null;
+}
+
+export interface DraftCheckResult {
+  opportunityType: string; // Learning, Event, Job, ImpactAction
+  predictedStatus: DraftCheckVerdict;
+  score: number; // 0–100
+  checks: { criterion: string; score: number; passed: boolean }[];
+  fixes: DraftCheckFix[];
+  linkChecked: boolean; // false when the link could not be confirmed while typing; never a hard fail
+  summary: string; // one sentence, e.g. "Two fixes and this course will be verified."
+  // "Draft this for me" (W1 phase 2): null unless the AI provider is configured
+  suggestions: { field: DraftCheckField; value: string }[] | null;
+}

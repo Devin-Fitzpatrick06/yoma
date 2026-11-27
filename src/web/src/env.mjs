@@ -42,6 +42,9 @@ export const env = createEnv({
     // Course Quality demo: the Learner · Reviewer · Partner view switcher, and its partner organisation
     NEXT_PUBLIC_COURSE_QUALITY_DEMO: z.boolean(),
     NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID: z.string().optional(),
+    // Ziqi iteration 4 switches, off by default: My Yoma and the journey map; the partner pre-publish check
+    NEXT_PUBLIC_PATHWAY_ENABLED: z.boolean(),
+    NEXT_PUBLIC_PREPUBLISH_ENABLED: z.boolean(),
     NEXT_PUBLIC_DD_RUM_APP_ID: z.string().optional(),
     NEXT_PUBLIC_DD_RUM_TOKEN: z.string().optional(),
     NEXT_PUBLIC_DD_RUM_SESSION_SAMPLE_RATE: z
@@ -99,6 +102,10 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_COURSE_QUALITY_DEMO === "true",
     NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID:
       process.env.NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID,
+    NEXT_PUBLIC_PATHWAY_ENABLED:
+      process.env.NEXT_PUBLIC_PATHWAY_ENABLED === "true",
+    NEXT_PUBLIC_PREPUBLISH_ENABLED:
+      process.env.NEXT_PUBLIC_PREPUBLISH_ENABLED === "true",
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.

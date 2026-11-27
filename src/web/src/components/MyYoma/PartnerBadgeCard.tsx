@@ -7,6 +7,7 @@ import { PARTNER_BADGE_LABELS, percent } from "~/lib/pathway";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const LEVEL_STYLE: Record<PartnerBadgeLevel, { icon: string; ring: string }> = {
+  Platinum: { icon: "💎", ring: "bg-purple-tint" },
   Gold: { icon: "🥇", ring: "bg-yellow-tint" },
   Silver: { icon: "🥈", ring: "bg-gray-light" },
   Bronze: { icon: "🥉", ring: "bg-orange-light" },
