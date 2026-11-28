@@ -351,6 +351,9 @@ class CheckError extends Error {
   constructor(code, message, extra = {}) { super(message); this.code = code; Object.assign(this, extra); }
 }
 
+const bareHost = (name) => name.toLowerCase().replace(/\.$/, "").replace(/^www\./, "");
+const sameSite = (a, b) => bareHost(a) === bareHost(b);
+
 // With --proxy, a name this machine cannot resolve may be left to the proxy only for a link the user gave. A redirect hop or a
 // link read from a sitemap is chosen by a site, which could point it at a name only the proxy's network knows.
 const UNVERIFIED_REDIRECT = "could not be looked up on this machine, so the redirect target could not be verified locally and the redirect was not followed.";
@@ -360,7 +363,7 @@ const UNVERIFIED_SITEMAP_LINK = "came from a sitemap and could not be looked up 
  * Resolves and checks one hop. Returns the addresses to pin, or null when the proxy will resolve the name.
  * origin: "input" (a link given to the CLI, hop 0), "redirect" (a later hop) or "sitemap" (a link read from a sitemap, hop 0).
  */
-async function validateHop(url, options, origin = "input") {
+async function validateHop(url, options, origin = "input", inputHost = null) {
   const port = Number(url.port || (url.protocol === "https:" ? 443 : 80));
   const host = url.hostname.replace(/^\[|\]$/g, "");
 
@@ -381,7 +384,9 @@ async function validateHop(url, options, origin = "input") {
   } catch (error) {
     // behind a proxy that resolves names itself, a name this machine cannot resolve is left to the proxy, for input links only
     if (options.proxy && ["ENOTFOUND", "EAI_AGAIN", "ESERVFAIL"].includes(error.code)) {
-      if (origin === "redirect") throw new CheckError("REFUSED", UNVERIFIED_REDIRECT, { unverified: true });
+      // a redirect that stays on the host the user gave (http to https, another path, adding or dropping "www.") may go
+      // to the proxy too: the user already chose to send that name to it
+      if (origin === "redirect" && !(inputHost && sameSite(host, inputHost))) throw new CheckError("REFUSED", UNVERIFIED_REDIRECT, { unverified: true });
       if (origin === "sitemap") throw new CheckError("REFUSED", UNVERIFIED_SITEMAP_LINK, { unverified: true });
       return { host, port, addresses: null };
     }
@@ -645,7 +650,7 @@ async function checkLink(raw, options, { wantBody = false, maxBytes = MAX_BODY_B
 
   try {
     for (let hop = 0; hop <= options.maxRedirects; hop++) {
-      const target = await untilAborted(validateHop(current, options, hop > 0 ? "redirect" : fromSitemap ? "sitemap" : "input"), controller.signal);
+      const target = await untilAborted(validateHop(current, options, hop > 0 ? "redirect" : fromSitemap ? "sitemap" : "input", fromSitemap ? null : requested.hostname), controller.signal);
       await paceHost(current.hostname, options.perHostDelayMs, controller.signal);
 
       const response = await sendRequest(current, target, options, controller.signal, maxBytes);

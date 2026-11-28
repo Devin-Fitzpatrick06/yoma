@@ -24,6 +24,8 @@ const routes = {
   "/ok": (res) => html(res, 200, page("Introduction to Data Analysis")),
   "/to-internal": (res) => redirect(res, "http://secret.internal-only.example/admin"),
   "/to-same-site": (res) => redirect(res, "/ok"),
+  "/to-www": (res) => redirect(res, "http://www.courses.public-site.example/ok"),
+  "/to-sibling": (res) => redirect(res, "http://other.public-site.example/ok"),
   "/sitemap.xml": (res) => {
     res.writeHead(200, { "content-type": "application/xml" });
     res.end('<?xml version="1.0"?><urlset><url><loc>http://secret.internal-only.example/ok</loc></url></urlset>');
@@ -118,13 +120,21 @@ test("a redirect to a name this machine cannot resolve is refused, and the proxy
   assert.equal(report.counts.Refused, 1);
 });
 
-test("a redirect on the same unresolvable input host is refused too: every hop after the first must verify", async () => {
+test("a redirect that stays on the unresolvable input host is followed through the proxy (http to https, another path)", async () => {
   connects.length = 0;
   const report = await check(await listFile(["http://courses.public-site.example/to-same-site"]));
 
-  assert.equal(report.results[0].status, "Refused");
-  assert.match(report.results[0].reason, /could not be verified locally/);
-  assert.deepEqual(connects, ["courses.public-site.example:80"]);
+  assert.equal(report.results[0].status, "Redirected", report.results[0].reason);
+  assert.deepEqual(connects, ["courses.public-site.example:80", "courses.public-site.example:80"]);
+});
+
+test("adding \"www.\" counts as the same host; any other unresolvable host is still refused", async () => {
+  connects.length = 0;
+  const report = await check(await listFile(["http://courses.public-site.example/to-www", "http://courses.public-site.example/to-sibling"]));
+
+  assert.deepEqual(report.results.map((r) => r.status), ["Redirected", "Refused"]);
+  assert.match(report.results[1].reason, /could not be verified locally/);
+  assert.deepEqual(connects, ["courses.public-site.example:80", "www.courses.public-site.example:80", "courses.public-site.example:80"]);
 });
 
 test("a sitemap link this machine cannot resolve is refused, though the sitemap itself was an input", async () => {
