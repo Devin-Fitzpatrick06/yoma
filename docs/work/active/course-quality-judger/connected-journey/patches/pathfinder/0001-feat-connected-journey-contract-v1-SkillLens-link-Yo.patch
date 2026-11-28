@@ -1,0 +1,481 @@
+From 0a2e018fa345ec11a1459a1bac9fe088f7ad7758 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 02:52:01 +0000
+Subject: [PATCH 1/2] feat: connected journey (contract v1): SkillLens link,
+ YoID thread, back to the listing
+
+Only with ?journey=demo; without it PathFinder behaves as before.
+
+- engine/journey.js: link building (every received param passed on plus
+  PathFinder's own, return last and unchanged, pilot code never passed on),
+  http(s)-only return check, YoID thread states for Phase 2.
+- "Continue to SkillLens" is the contract's link 2 and opens in the same tab.
+- Arriving/leaving handoff cards in the contract's exact wording, Yoma colours.
+- YoID thread strip and "Back to the listing" link at the top of the page.
+- Each plan step names its platform (P2E, Yoma, imaGen); the plan ends with
+  the weekly WhatsApp / SMS check-in.
+- NEXT_PROTOTYPE_URL defaults to SkillLens's /demo/p2e in .env.example;
+  SKILLLENS_URL + /demo/p2e is used when it is empty.
+- Tests: test/journey.test.mjs, served-file check, e2e journey scenarios.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ .env.example          |  7 ++++-
+ e2e/scenarios.mjs     | 50 +++++++++++++++++++++--------
+ engine/journey.js     | 35 +++++++++++++++++++++
+ lib/server.mjs        |  3 +-
+ pathfinder.html       | 71 +++++++++++++++++++++++++++++++++++++++--
+ serve.mjs             |  4 ++-
+ sw.js                 |  4 +--
+ test/journey.test.mjs | 73 +++++++++++++++++++++++++++++++++++++++++++
+ test/server.test.mjs  |  2 ++
+ 9 files changed, 228 insertions(+), 21 deletions(-)
+ create mode 100644 engine/journey.js
+ create mode 100644 test/journey.test.mjs
+
+diff --git a/.env.example b/.env.example
+index 7cfd19d..3f2faa6 100644
+--- a/.env.example
++++ b/.env.example
+@@ -34,8 +34,13 @@ YOMA_AUTH_CLIENT_SECRET=
+ PUBLIC_URL=
+ # Link to the next GenU prototype in the joined-up demo (Phase 3, SkillLens), shown once the plan is saved.
+ # PathFinder adds ?from=pathfinder&course=…&course_title=…&listing=…&goal=… to it.
++# Connected journey (opened with ?journey=demo): PathFinder instead passes on every parameter it received plus its own
++# (journey contract v1: journey, from, yoid, listing, goal, plan, course, return) and opens it in the same tab.
++# Local journey demo: SkillLens's mock P2E course page. Leave both empty for the pilot (no link is shown).
+ NEXT_PROTOTYPE_NAME=SkillLens
+-NEXT_PROTOTYPE_URL=
++NEXT_PROTOTYPE_URL=http://localhost:3001/demo/p2e
++# Or set SKILLLENS_URL (e.g. http://localhost:3001) and leave NEXT_PROTOTYPE_URL empty: PathFinder adds /demo/p2e.
++SKILLLENS_URL=
+ # Shared secret for the RapidPro/WhatsApp webhooks (/api/rapidpro/*). Off when empty. Use a long random value.
+ RAPIDPRO_TOKEN=
+ # DEMO ONLY. true = when Azure voice is off, use Chrome's built-in speech recognition (audio goes to Google).
+diff --git a/e2e/scenarios.mjs b/e2e/scenarios.mjs
+index 9472093..7fc4fdf 100644
+--- a/e2e/scenarios.mjs
++++ b/e2e/scenarios.mjs
+@@ -73,7 +73,7 @@ const restartDir = mkdtempSync(join(tmpdir(), 'pf-e2e-restart-'));
+ writeFileSync(join(restartDir, 'yoma-cache.json'), JSON.stringify(sync.get()));
+ const demoVoice = await listen(createApp({ sync, ai: createAI({}), demoVoice: true, rateLimit: { max: 1000 } }));
+ const linked = await listen(createApp({ sync, ai: createAI({}), rateLimit: { max: 1000 }, nextPrototype: { name: 'YoCV', url: 'https://yocv.example.org/?from=pathfinder' } }));
+-const journeyApp = await listen(createApp({ sync, ai: createAI({}), rateLimit: { max: 1000 }, nextPrototype: { name: 'SkillLens', url: 'https://skilllens.example.org/' } }));
++const journeyApp = await listen(createApp({ sync, ai: createAI({}), rateLimit: { max: 1000 }, nextPrototype: { name: 'SkillLens', url: 'https://skilllens.example.org/demo/p2e' } }));
+ // "Continue with Yoma": a fake Keycloak, and the fake Yoma API for skills and saving.
+ const kcState = {}; const kc = await startMockKeycloak(kcState);
+ const port = await new Promise(r => { const t = net.createServer().listen(0, '127.0.0.1', () => { const p = t.address().port; t.close(() => r(p)); }); });
+@@ -421,14 +421,21 @@ await scenario('15-year-old: guardian agrees, plan saved, but no Skills Backpack
+   await ctx.close();
+ });
+ 
++// Journey contract v1: what Ziqi sends (link 1), and what PathFinder must send SkillLens (link 2)
++const LISTING = 'http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000301';
++const FROM_ZIQI = `/?journey=demo&from=ziqi&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&return=${encodeURIComponent(LISTING)}`;
+ await scenario('Journey (team shared mock data): Ziqi hands over the Saved Opportunity; PathFinder hands the Learning Plan to SkillLens', async () => {
+   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+   const page = await ctx.newPage(); page.errors = []; page.on('pageerror', e => page.errors.push(e.message));
+-  await page.goto(journeyApp + '/?journey=demo');
+-  await waitChat(page, /From Ziqi/);
+-  const intro = await chatText(page);
+-  assert(/Saved Opportunity/.test(intro) && /A verified opportunity and the user's goal/.test(intro), 'incoming handoff item not named as in the shared data and the journey');
+-  assert(/Solar Installation Assistant \(Trainee\)/.test(intro) && /Sunrise Solar Ltd/.test(intro), 'the shared job not shown');
++  await page.goto(journeyApp + FROM_ZIQI);
++  await waitChat(page, /From Ziqi · Phase 1/);
++  const intro = await page.locator('.handoff').first().innerText();
++  assert(/^From Ziqi · Phase 1\s+Saved Opportunity\s+Solar Installation Assistant \(Trainee\)\s+✓ Recorded on your YoID \(mock-up\)$/.test(intro.trim()), 'arriving card not worded as in the contract: ' + intro);
++  const bar = page.locator('#journey-bar');
++  assert(/YoID · yoid-ng-7f3a0123 · mock-up/.test(await bar.innerText()), 'YoID thread label missing');
++  const states = async () => (await bar.locator('li').allInnerTexts()).map(x => x.replace('✓', '').replace(/\s+/g, ' ').trim());
++  assert((await states()).join('|') === 'Saved Opportunity recorded|Learning Plan in progress|Skill Credential next|Job Application next', 'thread before the plan: ' + await states());
++  assert(await bar.locator('a.jback').getAttribute('href') === LISTING && await bar.locator('a.jback').innerText() === 'Back to the listing', 'Back to the listing link should use return');
+   await tap(page, 'English'); await tap(page, '20'); await tap(page, 'Yes, use my profile'); await tap(page, 'Skip');
+   await waitChat(page, /Which state do you live in/);   // the goal came from Phase 1, so it isn't asked again
+   await tap(page, 'Another state'); await tap(page, '6–10 hours'); await tap(page, 'Very little'); await tap(page, 'Quick');
+@@ -439,14 +446,31 @@ await scenario('Journey (team shared mock data): Ziqi hands over the Saved Oppor
+   assert(/Working Safely at Height/.test(plan) && /Solar PV Installation Basics/.test(plan), 'the shared courses should be in the plan: ' + plan);
+   assert(!/Solar Sales Agent/.test(plan), 'the pay-to-apply job must be filtered out');
+   assert(/Asks for a fee/.test(await page.locator('#p-match').innerText()), 'the scam job should be listed as removed');
++  // Cross-platform: every step names its platform, and the plan includes the WhatsApp/SMS check-in
++  const plats = await page.locator('.plan').last().locator('.pstep .plat').allInnerTexts();
++  assert(plats.join('|') === 'P2E|P2E|Yoma|WhatsApp / SMS', 'step platforms: ' + plats.join('|'));
++  assert(/Weekly check-in on WhatsApp or SMS/.test(plan), 'the WhatsApp/SMS check-in should be in the plan');
+   await tap(page, 'Save my plan'); await tap(page, 'Yes, activate it');
+-  await waitChat(page, /Learning Plan/);
+-  assert(/Plan step: complete a P2E course/.test(await chatText(page)), 'outgoing handoff should also use the journey wording');
+-  const next = page.locator('a.next-proto').last();
+-  const href = new URL(await next.getAttribute('href'));
+-  assert(href.origin === 'https://skilllens.example.org' && href.searchParams.get('from') === 'pathfinder', 'wrong SkillLens link: ' + href);
+-  assert(href.searchParams.get('course') === 'opp-course-001' && href.searchParams.get('plan') === 'plan-001' && href.searchParams.get('listing') === 'opp-job-001', 'SkillLens link should carry the shared ids: ' + href);
+-  assert(/continue in SkillLens/.test(await next.innerText()), 'next button should name SkillLens');
++  await waitChat(page, /Handing on to SkillLens · Phase 3/);
++  const out = (await page.locator('.handoff').last().innerText()).trim();
++  assert(/^Handing on to SkillLens · Phase 3\s+Learning Plan\s+Plan step: complete a P2E course \(Solar PV Installation Basics\)\s+Continue to SkillLens\s+✓ Recorded on your YoID \(mock-up\)$/.test(out), 'leaving card not worded as in the contract: ' + out);
++  const next = page.locator('.handoff a.next-proto').last();
++  assert(await next.getAttribute('href') === 'https://skilllens.example.org/demo/p2e?journey=demo&from=pathfinder&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&plan=plan-001&course=opp-course-001&return=' + encodeURIComponent(LISTING),
++    'SkillLens link should be the contract\'s link 2: ' + await next.getAttribute('href'));
++  assert(await next.getAttribute('target') === null, 'the journey continues in the same tab');
++  assert((await states()).join('|') === 'Saved Opportunity recorded|Learning Plan recorded|Skill Credential next|Job Application next', 'thread after the plan: ' + await states());
++  assert(!page.errors.length, page.errors.join('; '));
++  await ctx.close();
++});
++
++await scenario('Journey: a return URL that is not http(s) is ignored; without journey=demo nothing changes', async () => {
++  const ctx = await browser.newContext(); const page = await ctx.newPage(); page.errors = []; page.on('pageerror', e => page.errors.push(e.message));
++  await page.goto(journeyApp + '/?journey=demo&from=ziqi&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&return=' + encodeURIComponent('javascript:alert(1)'));
++  await waitChat(page, /From Ziqi · Phase 1/);
++  assert(await page.locator('#journey-bar').isVisible() && !(await page.locator('#journey-bar a.jback').count()), 'Back to the listing should be hidden for a non-http return');
++  await page.goto(journeyApp + '/');
++  await page.waitForSelector('.opts button', { timeout: 10000 });
++  assert(await page.locator('#journey-bar').isHidden(), 'the YoID thread is only for the journey');
+   assert(!page.errors.length, page.errors.join('; '));
+   await ctx.close();
+ });
+diff --git a/engine/journey.js b/engine/journey.js
+new file mode 100644
+index 0000000..2225059
+--- /dev/null
++++ b/engine/journey.js
+@@ -0,0 +1,35 @@
++/* The connected journey (journey contract v1): Ziqi → PathFinder → SkillLens → YoCV → back to the Ziqi listing.
++   A classic script with no DOM access (like plan-engine.js), loaded by pathfinder.html and tested in test/journey.test.mjs.
++   Only used when the page is opened with ?journey=demo; without it PathFinder behaves as before. */
++const JOURNEY_PHASE = 2;   // PathFinder is Phase 2 of 4
++const JOURNEY_STEPS = ['Saved Opportunity', 'Learning Plan', 'Skill Credential', 'Job Application'];
++// The contract's order for the link parameters. Anything else received is passed on, before `return`.
++const JOURNEY_ORDER = ['journey', 'from', 'yoid', 'listing', 'goal', 'plan', 'course', 'credential', 'application'];
++// Received parameters PathFinder never passes on: the pilot access code is PathFinder's own.
++const JOURNEY_PRIVATE = ['code'];
++
++// Only absolute http: and https: return URLs are followed; anything else is ignored. A valid one is passed on unchanged.
++function journeyReturn(raw){
++  if (!raw) return '';
++  try { const u = new URL(String(raw)); return u.protocol === 'http:' || u.protocol === 'https:' ? String(raw) : ''; }
++  catch { return ''; }
++}
++
++// The link to the next app: every parameter received, plus PathFinder's own (own values win).
++// `received` is a URLSearchParams (or [key, value] pairs); `own` is {key: value}, empty values are skipped.
++function journeyLink(base, received, own){
++  const u = new URL(base);
++  const got = new Map();
++  for (const [k, v] of received) if (!JOURNEY_PRIVATE.includes(k) && !got.has(k)) got.set(k, v);
++  for (const [k, v] of Object.entries(own || {})) if (v !== undefined && v !== null && v !== '') got.set(k, String(v));
++  const ret = journeyReturn(got.get('return')); got.delete('return');
++  const keys = [...JOURNEY_ORDER.filter(k => got.has(k)), ...[...got.keys()].filter(k => !JOURNEY_ORDER.includes(k))];
++  for (const k of keys) u.searchParams.set(k, got.get(k));
++  if (ret) u.searchParams.set('return', ret);
++  return u.toString();
++}
++
++// The YoID thread for the app at phase `phase`: before it recorded, its own step in progress until done, later steps next.
++function journeyThread(phase, done){
++  return JOURNEY_STEPS.map((name, i) => ({name, state: i + 1 < phase || (i + 1 === phase && done) ? 'recorded' : i + 1 === phase ? 'in progress' : 'next'}));
++}
+diff --git a/lib/server.mjs b/lib/server.mjs
+index c6c1536..17a84c1 100644
+--- a/lib/server.mjs
++++ b/lib/server.mjs
+@@ -19,7 +19,8 @@ const STATIC = {
+   '/icon.svg': ['icon.svg', 'image/svg+xml'],
+   '/privacy.html': ['privacy.html', 'text/html; charset=utf-8'],
+   '/tokens/yoma-tokens.css': ['tokens/yoma-tokens.css', 'text/css; charset=utf-8'],
+-  '/engine/plan-engine.js': ['engine/plan-engine.js', 'text/javascript; charset=utf-8']
++  '/engine/plan-engine.js': ['engine/plan-engine.js', 'text/javascript; charset=utf-8'],
++  '/engine/journey.js': ['engine/journey.js', 'text/javascript; charset=utf-8']
+ };
+ const STATES = ['lagos', 'kano', 'fct', 'oyo', 'rivers', 'other', 'online'];
+ const CASE_REASONS = ['urgent', 'help', 'missed', 'no_match', 'person', 'report'];
+diff --git a/pathfinder.html b/pathfinder.html
+index d1133bb..836776f 100644
+--- a/pathfinder.html
++++ b/pathfinder.html
+@@ -194,6 +194,26 @@ ul.rules b{font-weight:700}
+ .stats b{color:var(--ink)}
+ .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;max-width:min(92vw,460px);z-index:20;box-shadow:0 10px 30px -10px rgba(0,0,0,.4)}
+ footer{color:var(--muted);font-size:13px;max-width:80ch}
++/* Connected journey (journey contract v1): only with ?journey=demo. Yoma colours and type from the shared tokens. */
++.jbar{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--yoma-surface);border:1px solid var(--line);border-radius:var(--yoma-radius)}
++.jbar[hidden]{display:none}
++.jthread{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}
++.jlabel{font-family:var(--yoma-font-display);font-weight:700;font-size:14px;color:var(--accent)}
++.jthread ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
++.jthread li{display:flex;gap:6px;align-items:baseline;padding:3px 10px;border-radius:var(--yoma-radius-pill);border:1px solid var(--line);font-size:13px;color:var(--muted);background:var(--surface-2)}
++.jthread li small{font-size:11.5px}
++.jthread li.recorded{border-color:transparent;background:var(--ok-soft);color:var(--ok);font-weight:600}
++.jthread li.progress{border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
++.jback{color:var(--accent);font-weight:600;font-size:14px;text-underline-offset:3px}
++.handoff.jc{border:1px solid var(--line);border-radius:var(--yoma-radius);background:var(--yoma-surface);box-shadow:var(--shadow);gap:2px;font-family:var(--yoma-font-body)}
++.handoff.jc b{font-size:16px}
++.jc-eyebrow{font-size:12px;font-weight:600;color:var(--muted)}
++.jc-item{font-size:14px}
++.jc-rec{color:var(--ok);font-weight:600;font-size:13px}
++a.next-proto.jc-btn{background:var(--yoma-blue);color:var(--yoma-purple);justify-self:start;margin:6px 0 2px}
++.pstep-head{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
++.plat{font-size:11px;font-weight:600;padding:1px 7px;border-radius:var(--yoma-radius-pill);border:1px solid var(--line);color:var(--muted)}
++.t-check{background:var(--accent-soft);color:var(--accent)}
+ @media (prefers-reduced-motion:reduce){.composer button.mic.rec{animation:none}.typing i{animation:none}.chat{scroll-behavior:auto}}
+ </style>
+ 
+@@ -215,6 +235,8 @@ footer{color:var(--muted);font-size:13px;max-width:80ch}
+     </ol>
+   </header>
+ 
++  <nav class="jbar" id="journey-bar" aria-label="Your YoID journey" hidden></nav>
++
+   <div class="controls">
+     <div class="ctl"><span>Test as</span>
+       <div class="seg" id="persona">
+@@ -292,6 +314,7 @@ footer{color:var(--muted);font-size:13px;max-width:80ch}
+ <div class="toast" id="toast" role="status" hidden></div>
+ 
+ <script src="engine/plan-engine.js"></script>
++<script src="engine/journey.js"></script>
+ <script>
+ const $ = s => document.querySelector(s);
+ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+@@ -1341,7 +1364,13 @@ async function aiRankCourses(){
+    Phase 1 (Ziqi) hands PathFinder "A verified opportunity and the user's goal".
+    PathFinder (Phase 2) hands SkillLens (Phase 3) "Plan step: complete a P2E course".
+    Open with ?journey=demo to use the shared mock data, or ?from=ziqi&listing=<Yoma id>&goal=job for a real listing. */
+-const JOURNEY = {in: null};
++const JOURNEY = {in: null, demo: false, params: new URLSearchParams(), yoid: '', ret: ''};
++// The connected journey's wording (journey contract v1). Exact, and the same in all four apps, so not translated here.
++const JC = {from: 'From {app} · Phase {n}', to: 'Handing on to {app} · Phase {n}', cont: 'Continue to {app}', rec: '✓ Recorded on your YoID (mock-up)',
++  back: 'Back to the listing', thread: 'YoID · {yoid} · mock-up', states: {recorded: 'recorded', 'in progress': 'in progress', next: 'next'},
++  checkTag: 'Check-in', checkTitle: 'Weekly check-in on WhatsApp or SMS',
++  checkWhy: 'Every week PathFinder asks how each step is going, on WhatsApp or by SMS on a basic phone. After two missed check-ins, a facilitator steps in.'};
++const jfill = (s, v) => s.replace(/\{(\w+)\}/g, (m, k) => v[k] ?? m);
+ // Handoff items: the short name is the one in the team's shared mock data (mockups/SHARED-MOCK-DATA.md);
+ // the line under it is the journey diagram's wording. Both are shown so the screen matches either slide.
+ const ITEM_IN = {name: 'Saved Opportunity', desc: "A verified opportunity and the user's goal"},
+@@ -1350,6 +1379,8 @@ async function loadJourney(){
+   const q = new URLSearchParams(location.search);
+   try {
+     if (q.get('journey') === 'demo') {
++      // Connected journey: keep every parameter received, to pass on to SkillLens (journey contract v1)
++      JOURNEY.demo = true; JOURNEY.params = q; JOURNEY.ret = journeyReturn(q.get('return'));
+       // The team's shared mock data (mockups/shared-mock-data.json): Halima, the solar trainee job, the P2E courses
+       const d = await getJSON('/api/journey', 8000);
+       const byId = id => d.opportunities.find(o => o.id === id), org = id => (d.partners.find(p => p.id === id) || {}).name || id;
+@@ -1359,6 +1390,7 @@ async function loadJourney(){
+       const opp = o => ({id: o.id, title: o.title, org: org(o.org), src: 'Yoma', kind: 'opp', type: o.type, states: [o.state || 'all'], remote: !!o.remote,
+         minAge: 18, skills: [...(o.mustHave || []), ...(o.canLearn || [])], sectors: [yp.sector], openEnded: true, sample: true, scam: !!o.scam,
+         link: o.link || 'https://yoma.world/opportunities', informal: {earnNow: false, phoneOnly: false, noCert: true}});
++      JOURNEY.yoid = q.get('yoid') || yp.yoidId;
+       JOURNEY.in = {from: 'Ziqi', who: yp.displayName, goal: yp.goal, goalText: yp.goalText, sector: yp.sector, planId: lp.id,
+         listing: {...opp(job), verified: true}, course: course(byId(step('start').opportunityId)), learnCourse: course(byId(step('learn').opportunityId)),
+         handoffCourseId: d.skillChallenge && d.skillChallenge.afterCourse,
+@@ -1372,11 +1404,33 @@ async function loadJourney(){
+ }
+ const goalText = g => lbl(O.goal.find(o => o.v === g) || O.goal[0]);
+ function handoffHTML(m){
++  if (JOURNEY.demo) return journeyCardHTML(m);
+   if (m.dir === 'in') return `<div class="handoff"><span class="tag t-apply">${esc(t('handoffFrom', {name: m.from}))} · Phase 1</span>
+     <b>${esc(ITEM_IN.name)}</b><div class="handoff-desc">${esc(ITEM_IN.desc)}</div><div>${esc(m.title)} · ${esc(m.org)} <span class="sig"><span>${esc(t('sigVerified'))}</span></span></div><div>${esc(t('goalIs'))} ${esc(m.goal)}</div></div>`;
+   return `<div class="handoff"><span class="tag t-learn">${esc(t('handoffTo', {name: NEXT.proto ? NEXT.proto.name : 'SkillLens'}))} · Phase 3</span>
+     <b>${esc(ITEM_OUT.name)}</b><div class="handoff-desc">${esc(ITEM_OUT.desc)}</div><div>${esc(m.title)} · ${esc(m.provider)}</div>${nextProtoLink()}</div>`;
+ }
++// The contract's handoff card: arriving from Ziqi (Phase 1), leaving for SkillLens (Phase 3).
++function journeyCardHTML(m){
++  const rec = `<div class="jc-rec">${esc(JC.rec)}</div>`;
++  if (m.dir === 'in') return `<div class="handoff jc"><span class="jc-eyebrow">${esc(jfill(JC.from, {app: m.from, n: JOURNEY_PHASE - 1}))}</span>
++    <b>${esc(ITEM_IN.name)}</b><div class="jc-item">${esc(m.title)}</div>${rec}</div>`;
++  return `<div class="handoff jc"><span class="jc-eyebrow">${esc(jfill(JC.to, {app: NEXT.proto ? NEXT.proto.name : 'SkillLens', n: JOURNEY_PHASE + 1}))}</span>
++    <b>${esc(ITEM_OUT.name)}</b><div class="jc-item">${esc(ITEM_OUT.desc)} (${esc(m.title)})</div>${nextProtoLink()}${planRecorded() ? rec : ''}</div>`;
++}
++// The Learning Plan counts as recorded on YoID once it is saved and the Skills Backpack is on (nothing is written before a yes).
++const planRecorded = () => !!(S.saved && S.backpack === true);
++function renderJourneyBar(){
++  const el = $('#journey-bar'); if (!el) return;
++  el.hidden = !JOURNEY.demo; if (!JOURNEY.demo) return;
++  const steps = journeyThread(JOURNEY_PHASE, planRecorded());
++  el.innerHTML = `<div class="jthread"><span class="jlabel">${esc(jfill(JC.thread, {yoid: JOURNEY.yoid}))}</span><ol>${steps.map(st =>
++    `<li class="${st.state === 'in progress' ? 'progress' : st.state}">${st.state === 'recorded' ? '<span aria-hidden="true">✓</span>' : ''}${esc(st.name)} <small>${esc(JC.states[st.state])}</small></li>`).join('')}</ol></div>
++    ${JOURNEY.ret ? `<a class="jback" href="${esc(JOURNEY.ret)}">${esc(JC.back)}</a>` : ''}`;
++}
++// Which platform a plan step happens on, shown on each step in the journey.
++const platformOf = s => { const p = s.openings ? (s.openings[0] || {}).platform || 'Yoma' : s.platform || '';
++  return /passport to earning|p2e/i.test(p) ? 'P2E' : /imagen/i.test(p) ? 'imaGen' : 'Yoma'; };
+ function handoffCourse(){
+   const steps = S.plan.steps.filter(s => s.kind !== 'apply' && !s.item.pseudo);
+   const named = S.journey && S.journey.handoffCourseId && steps.find(s => s.item.id === S.journey.handoffCourseId);   // SkillLens tests this course
+@@ -1418,6 +1472,12 @@ const yoidLabel = r => t({skills: 'yoidSkills', plan: 'yoidPlan', course: 'yoidC
+ const NEXT = {proto: null};
+ function nextProtoLink(){
+   if (!NEXT.proto) return '';
++  if (JOURNEY.demo) {   // journey contract v1, link 2: every parameter received plus PathFinder's own, in the same tab
++    const c = S.plan ? handoffCourse() : null, q = JOURNEY.params, j = S.journey || {};
++    const href = journeyLink(new URL(NEXT.proto.url, location.href).toString(), q, {journey: 'demo', from: 'pathfinder', yoid: JOURNEY.yoid,
++      listing: q.get('listing') || (j.listing && j.listing.id), goal: q.get('goal') || S.a.goal, plan: j.planId, course: c && c.id});
++    return `<a class="next-proto jc-btn" href="${esc(href)}">${esc(jfill(JC.cont, {app: NEXT.proto.name}))}</a>`;
++  }
+   const u = new URL(NEXT.proto.url, location.href), c = S.plan ? handoffCourse() : null;
+   const pin = S.journey && S.journey.listing ? S.journey.listing.id : S.plan ? (S.plan.steps.find(s => s.items) || {items: [{}]}).items[0].id : '';
+   const add = {from: 'pathfinder', plan: S.journey && S.journey.planId, course: c && c.id, course_title: c && c.title, listing: pin, goal: S.a.goal};
+@@ -1607,14 +1667,16 @@ function openingHTML(o){
+ const openingSMS = (o, j) => `  ${'abcdefgh'[j]}) ${o.title}\n     ${o.src}\n     ${o.meta}${o.link ? '\n     ' + o.link.replace(/^https?:\/\//, '') : ''}`;
+ function planCard(steps){
+   if (channel === 'sms') {
+-    const lines = steps.map((s, i) => `${i+1}) ${tag(s.kind).toUpperCase()}${S.saved ? ' [' + statusLbl(s.status) + ']' : ''}\n${s.title}\n`
++    const lines = steps.map((s, i) => `${i+1}) ${tag(s.kind).toUpperCase()}${JOURNEY.demo ? ' · ' + platformOf(s) : ''}${S.saved ? ' [' + statusLbl(s.status) + ']' : ''}\n${s.title}\n`
+       + (s.openings ? s.openings.map(openingSMS).join('\n') + `\n${t('why')}${s.why}\n! ` + t('neverPaySms', {n: i+1}) + (s.openings.some(o => o.inPerson) ? '\n! ' + t('safeInPerson') + (S.age < 18 ? ' ' + t('minorInPerson') : '') : '')
+         : `${s.src}\n${s.meta}\n${t('why')}${s.why}\nLink: ${s.link ? s.link.replace(/^https?:\/\//, '') : 'gen.u/' + s.kind[0] + (i+1)}`));
++    if (JOURNEY.demo) lines.push(`${JC.checkTag.toUpperCase()} · WhatsApp / SMS\n${JC.checkTitle}\n${JC.checkWhy}`);
+     return `<div class="msg bot">${esc(t('planTitle').toUpperCase() + '\n\n' + lines.join('\n\n') + '\n\n' + t('smsReport'))}</div>`;
+   }
+   return `<div class="plan"><h4>${esc(t('planTitle'))}</h4>${steps.map((s, i) => `
+     <div class="pstep ${s.status === 'done' ? 'isdone' : ''}">
+-      <span class="tag t-${s.kind}">${esc(t('step'))} ${i+1} · ${esc(tag(s.kind))}</span>
++      ${JOURNEY.demo ? `<div class="pstep-head"><span class="tag t-${s.kind}">${esc(t('step'))} ${i+1} · ${esc(tag(s.kind))}</span><span class="plat">${esc(platformOf(s))}</span></div>`
++        : `<span class="tag t-${s.kind}">${esc(t('step'))} ${i+1} · ${esc(tag(s.kind))}</span>`}
+       <div class="ttl">${esc(s.title)}</div>
+       ${s.openings ? '' : `<div class="src">${esc(s.src)}</div><div class="meta">${esc(s.meta)}</div>`}
+       <div class="why">${esc(s.why)}</div>
+@@ -1626,6 +1688,8 @@ function planCard(steps){
+         : `<div class="row"><button class="open" data-open="${esc(s.title)}|${esc(s.platform)}" data-link="${esc(s.link)}">${esc(t('openOn', {p: s.platform}))}<span class="sr-only">: ${esc(s.title)}</span></button>
+         <span>${S.saved ? `<span class="status ${s.status}">${esc(statusLbl(s.status))}</span> ` : ''}<button class="open report" data-report="${esc(s.id)}">${esc(t('report'))}<span class="sr-only"> ${esc(s.title)}</span></button></span></div>`}
+     </div>`).join('')}
++    ${JOURNEY.demo ? `<div class="pstep jc-checkin"><div class="pstep-head"><span class="tag t-check">${esc(JC.checkTag)}</span><span class="plat">WhatsApp / SMS</span></div>
++      <div class="ttl">${esc(JC.checkTitle)}</div><div class="why">${esc(JC.checkWhy)}</div></div>` : ''}
+     <div class="plan-foot"><a href="${esc(shareLink(steps))}" target="_blank" rel="noopener">${esc(t('share'))}</a><span>${esc(t('shareNote'))}</span></div>
+     ${S.saved && NEXT.proto ? `<div class="plan-foot">${nextProtoLink()}</div>` : ''}</div>`;
+ }
+@@ -1673,6 +1737,7 @@ function renderChat(){
+   $('#chan-label').textContent = sms ? 'SMS · basic phone' : 'WhatsApp · Nigeria';
+ }
+ function renderPanel(){
++  renderJourneyBar();
+   const a = S.a, ans = (v, map) => v === undefined ? '<dd class="empty">—</dd>' : `<dd>${esc(map ? map(v) : v)}</dd>`;
+   const optName = (k) => v => { const o = O[k].find(x => x.v === v); return o ? o.en : v; };
+   $('#p-answers').innerHTML = `<h3>Answers stored <em>6 + age check</em></h3><dl class="kv">
+diff --git a/serve.mjs b/serve.mjs
+index 54a0750..c7a4957 100644
+--- a/serve.mjs
++++ b/serve.mjs
+@@ -20,11 +20,13 @@ sync.schedule(hour);
+ const port = Number(env.PORT) || 4173;
+ const rateLimit = { max: Number(env.AI_RATE_LIMIT) || 60, windowMs: 10 * 60e3 };
+ const store = createStore('data');
++// The next prototype (Phase 3, SkillLens). NEXT_PROTOTYPE_URL wins; otherwise the journey contract's SKILLLENS_URL + /demo/p2e.
++const nextUrl = env.NEXT_PROTOTYPE_URL || (env.SKILLLENS_URL ? env.SKILLLENS_URL.replace(/\/+$/, '') + '/demo/p2e' : '');
+ const yomaAuth = env.YOMA_AUTH_ISSUER && env.YOMA_AUTH_CLIENT_ID && env.PUBLIC_URL
+   ? { issuer: env.YOMA_AUTH_ISSUER, clientId: env.YOMA_AUTH_CLIENT_ID, clientSecret: env.YOMA_AUTH_CLIENT_SECRET || '', publicUrl: env.PUBLIC_URL } : null;
+ createApp({ sync, ai, store, staffCode: env.STAFF_CODE || '', accessCode: env.PILOT_ACCESS_CODE || '', trustProxy: env.TRUST_PROXY === 'true', demoVoice: env.DEMO_BROWSER_VOICE === 'true', yomaAuth,
+   rapidproToken: env.RAPIDPRO_TOKEN || '',
+-  nextPrototype: env.NEXT_PROTOTYPE_URL ? { name: env.NEXT_PROTOTYPE_NAME || 'SkillLens', url: env.NEXT_PROTOTYPE_URL } : null, yomaBase: (env.YOMA_API_BASE || 'https://api.yoma.world/api/v3').replace(/\/+$/, ''), rateLimit, log }).listen(port, () => {
++  nextPrototype: nextUrl ? { name: env.NEXT_PROTOTYPE_NAME || 'SkillLens', url: nextUrl } : null, yomaBase: (env.YOMA_API_BASE || 'https://api.yoma.world/api/v3').replace(/\/+$/, ''), rateLimit, log }).listen(port, () => {
+   log(`Pathfinder running at http://localhost:${port}`);
+   log(`AI: ${ai.provider === 'none' ? 'off (keyword rules and templates)' : `${ai.provider}, voice ${ai.features.voice ? 'on' : 'off'}`}`);
+   log(`Yoma: ${sync.get().source} copy loaded; daily sync at ${String(hour).padStart(2, '0')}:00`);
+diff --git a/sw.js b/sw.js
+index 38d91f1..a336061 100644
+--- a/sw.js
++++ b/sw.js
+@@ -1,8 +1,8 @@
+ // Offline and slow-data support.
+ // The app page and /api/listings: try the network, but if it takes longer than 4 s (or fails), answer from the
+ // copy saved on this phone and update that copy in the background. Only a real app page (x-pf-app: 1) is saved.
+-const SHELL = 'pf-shell-v6', DATA = 'pf-data-v2', WAIT_MS = 4000;
+-const SHELL_FILES = ['/', '/icon.svg', '/manifest.webmanifest', '/tokens/yoma-tokens.css', '/engine/plan-engine.js'];
++const SHELL = 'pf-shell-v7', DATA = 'pf-data-v2', WAIT_MS = 4000;
++const SHELL_FILES = ['/', '/icon.svg', '/manifest.webmanifest', '/tokens/yoma-tokens.css', '/engine/plan-engine.js', '/engine/journey.js'];
+ 
+ self.addEventListener('install', e => {
+   e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES)).then(() => self.skipWaiting()));
+diff --git a/test/journey.test.mjs b/test/journey.test.mjs
+new file mode 100644
+index 0000000..7f15270
+--- /dev/null
++++ b/test/journey.test.mjs
+@@ -0,0 +1,73 @@
++// The connected journey (journey contract v1): the link to SkillLens, passing on parameters, the return URL, the YoID thread.
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import vm from 'node:vm';
++
++const ctx = vm.createContext({ URL, URLSearchParams });
++vm.runInContext(readFileSync(new URL('../engine/journey.js', import.meta.url), 'utf8') + '\n;globalThis.J = {JOURNEY_PHASE, JOURNEY_STEPS, journeyReturn, journeyLink, journeyThread};', ctx);
++const { journeyReturn, journeyLink, journeyThread } = ctx.J;
++const html = readFileSync(new URL('../pathfinder.html', import.meta.url), 'utf8');
++
++const LISTING = 'http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000301';
++// What Ziqi sends (contract link 1)
++const fromZiqi = new URLSearchParams(`journey=demo&from=ziqi&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&return=${encodeURIComponent(LISTING)}`);
++const own = { journey: 'demo', from: 'pathfinder', yoid: 'yoid-ng-7f3a0123', listing: 'opp-job-001', goal: 'job', plan: 'plan-001', course: 'opp-course-001' };
++
++test('the SkillLens link is exactly the contract\'s link 2', () => {
++  assert.equal(journeyLink('http://localhost:3001/demo/p2e', fromZiqi, own),
++    'http://localhost:3001/demo/p2e?journey=demo&from=pathfinder&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&plan=plan-001&course=opp-course-001'
++    + '&return=http%3A%2F%2Flocalhost%3A3000%2Fopportunities%2Fc0a7e000-0000-4000-8000-000000000301');
++});
++
++test('every parameter received is passed on, return unchanged and last; PathFinder\'s own "from" wins', () => {
++  const got = new URLSearchParams(fromZiqi); got.set('lang', 'ha'); got.set('credential', 'cred-002');
++  const u = new URL(journeyLink('https://skilllens.example.org/demo/p2e', got, own));
++  assert.equal(u.searchParams.get('from'), 'pathfinder');
++  assert.equal(u.searchParams.get('lang'), 'ha');
++  assert.equal(u.searchParams.get('credential'), 'cred-002');
++  assert.equal(u.searchParams.get('return'), LISTING);
++  assert.equal([...u.searchParams.keys()].at(-1), 'return');
++  assert.equal(u.searchParams.getAll('from').length, 1);
++});
++
++test('received values are kept when PathFinder has none of its own, and empty own values are skipped', () => {
++  const u = new URL(journeyLink('http://localhost:3001/demo/p2e', fromZiqi, { from: 'pathfinder', plan: '', course: null }));
++  assert.equal(u.searchParams.get('yoid'), 'yoid-ng-7f3a0123');
++  assert.equal(u.searchParams.get('goal'), 'job');
++  assert.ok(!u.searchParams.has('plan') && !u.searchParams.has('course'));
++});
++
++test('the pilot access code is never passed on', () => {
++  const got = new URLSearchParams(fromZiqi); got.set('code', 'secret-pilot-code');
++  assert.ok(!new URL(journeyLink('http://localhost:3001/demo/p2e', got, own)).searchParams.has('code'));
++});
++
++test('only http(s) return URLs are followed and passed on', () => {
++  assert.equal(journeyReturn(LISTING), LISTING);
++  assert.equal(journeyReturn('https://yoma.world/opportunities/x?a=1'), 'https://yoma.world/opportunities/x?a=1');
++  for (const bad of ['javascript:alert(1)', 'data:text/html,hi', '/opportunities/x', 'ftp://x.org/', '', null, undefined])
++    assert.equal(journeyReturn(bad), '', String(bad));
++  const got = new URLSearchParams(fromZiqi); got.set('return', 'javascript:alert(1)');
++  assert.ok(!new URL(journeyLink('http://localhost:3001/demo/p2e', got, own)).searchParams.has('return'));
++});
++
++test('the base URL keeps its own path and query', () => {
++  const u = new URL(journeyLink('https://skilllens.example.org/demo/p2e?embed=0', fromZiqi, own));
++  assert.equal(u.pathname, '/demo/p2e'); assert.equal(u.searchParams.get('embed'), '0');
++});
++
++test('the YoID thread for Phase 2: Saved Opportunity recorded, Learning Plan in progress then recorded, the rest next', () => {
++  const states = done => [...journeyThread(2, done)].map(s => `${s.name}: ${s.state}`);   // copied out of the vm realm for deepEqual
++  assert.deepEqual(states(false), ['Saved Opportunity: recorded', 'Learning Plan: in progress', 'Skill Credential: next', 'Job Application: next']);
++  assert.deepEqual(states(true), ['Saved Opportunity: recorded', 'Learning Plan: recorded', 'Skill Credential: next', 'Job Application: next']);
++});
++
++test('the app uses the contract\'s exact wording, and the journey link opens in the same tab', () => {
++  const jc = html.match(/const JC = \{([\s\S]*?)\};/)[1];
++  for (const s of ["'From {app} · Phase {n}'", "'Handing on to {app} · Phase {n}'", "'Continue to {app}'", "'✓ Recorded on your YoID (mock-up)'",
++    "'Back to the listing'", "'YoID · {yoid} · mock-up'"]) assert.ok(jc.includes(s), s);
++  const link = html.match(/if \(JOURNEY\.demo\) \{   \/\/ journey contract v1, link 2[\s\S]*?\n  \}/)[0];
++  assert.ok(!/target=/.test(link), 'the journey link must open in the same tab');
++  assert.match(html, /<script src="engine\/journey\.js"><\/script>/);
++});
+diff --git a/test/server.test.mjs b/test/server.test.mjs
+index ee159f8..ba856bc 100644
+--- a/test/server.test.mjs
++++ b/test/server.test.mjs
+@@ -139,6 +139,8 @@ test('the browser-voice demo fallback is off unless switched on', async () => {
+ test('the shared Yoma tokens file is served, and the next prototype link comes from settings', async () => {
+   const r = await fetch(base + '/tokens/yoma-tokens.css');
+   assert.equal(r.status, 200); assert.match(r.headers.get('content-type'), /text\/css/);
++  const jr = await fetch(base + '/engine/journey.js');   // the connected journey's link and thread rules
++  assert.equal(jr.status, 200); assert.match(jr.headers.get('content-type'), /javascript/);
+   assert.equal((await (await fetch(base + '/api/status')).json()).nextPrototype, null);
+   const linked = createApp({ sync: fakeSync, ai: createAI({}), nextPrototype: { name: 'YoCV', url: 'https://yocv.example.org/?from=pathfinder' } });
+   const b = await listen(linked);
+-- 
+2.43.0
+

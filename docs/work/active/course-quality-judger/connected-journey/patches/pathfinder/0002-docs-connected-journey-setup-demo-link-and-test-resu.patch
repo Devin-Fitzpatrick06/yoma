@@ -1,0 +1,148 @@
+From 939f02d460d82a7568ac85bfdd936ab3cd03fb89 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 02:52:01 +0000
+Subject: [PATCH 2/2] docs: connected journey setup, demo link and test results
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ README.md        |  6 +++---
+ docs/COHESION.md | 18 +++++++++++++++---
+ docs/DEMO.md     |  8 +++++---
+ docs/HANDOFF.md  |  9 +++++++++
+ docs/TESTING.md  | 10 ++++++----
+ 5 files changed, 38 insertions(+), 13 deletions(-)
+
+diff --git a/README.md b/README.md
+index 6bdb26b..e3c0bff 100644
+--- a/README.md
++++ b/README.md
+@@ -86,7 +86,7 @@ Other settings:
+ - `AI_ENRICH_LISTINGS`: AI tagging of listings during the sync.
+ - `PILOT_ACCESS_CODE`: locks a hosted pilot behind a code. Open `/?code=…` once on each phone. Wrong codes are limited to 10 tries per 10 minutes.
+ - `YOMA_AUTH_ISSUER`, `YOMA_AUTH_CLIENT_ID`, `YOMA_AUTH_CLIENT_SECRET`, `PUBLIC_URL`: turn on **"Continue with Yoma"**. These need a Keycloak client registered by Yoma for Pathfinder, with redirect URI `<PUBLIC_URL>/auth/yoma/callback`.
+-- `NEXT_PROTOTYPE_NAME`, `NEXT_PROTOTYPE_URL`: the next prototype in the joined-up GenU demo, shown as a button once the plan is saved.
++- `NEXT_PROTOTYPE_NAME`, `NEXT_PROTOTYPE_URL`: the next prototype in the joined-up GenU demo, shown as a button once the plan is saved. For the connected journey, `http://localhost:3001/demo/p2e` (SkillLens's mock P2E course page). If it is empty, `SKILLLENS_URL` + `/demo/p2e` is used.
+ - `DEMO_BROWSER_VOICE`: **demo only.** `true` lets voice notes use Chrome's built-in speech recognition when Azure voice isn't set up. The audio goes to Google, so it must stay `false` for the pilot. The app labels it "Demo only" whenever it's used.
+ - `STAFF_CODE`: turns on the facilitator case inbox at `/staff`. Open `/staff?code=…` once. Use a long random code.
+ - `PORT`: the port the server listens on.
+@@ -161,10 +161,10 @@ The **Behind the scenes** panel shows:
+ ## Tests
+ 
+ ```bash
+-npm test                    # 98 unit and API tests, no installs, about 2 seconds
++npm test                    # 106 unit and API tests, no installs, about 5 seconds
+ ```
+ 
+-Browser scenarios (23 of them) run the real server against a mock Yoma API and a mock Azure, in Chromium:
++Browser scenarios (24 of them) run the real server against a mock Yoma API and a mock Azure, in Chromium:
+ 
+ ```bash
+ npm i --no-save playwright && npx playwright install chromium
+diff --git a/docs/COHESION.md b/docs/COHESION.md
+index b519393..559fb9a 100644
+--- a/docs/COHESION.md
++++ b/docs/COHESION.md
+@@ -76,9 +76,21 @@ PathFinder uses the team's file, `mockups/shared-mock-data.json` (explained in `
+ | Course SkillLens tests | Solar PV Installation Basics · `opp-course-001` |
+ | Scam listing PathFinder must remove | Solar Sales Agent (pay ₦5,000 registration fee) · `opp-job-002` |
+ 
+-Open `/?journey=demo` to run PathFinder with this data, as if Ziqi had just handed over. The plan matches the shared Learning Plan, the scam job appears under "removed" in Behind the scenes, and the SkillLens link carries `plan=plan-001`, `course=opp-course-001` and `listing=opp-job-001`.
++Open `/?journey=demo` to run PathFinder with this data, as if Ziqi had just handed over (see section 6 for the full link Ziqi sends). The plan matches the shared Learning Plan, the scam job appears under "removed" in Behind the scenes, and the SkillLens link carries `plan=plan-001`, `course=opp-course-001` and `listing=opp-job-001`.
++
++## 6. The connected journey (journey contract v1)
++
++The four teams agreed one contract for the links, the handoff card and the YoID thread. PathFinder implements it whenever the page is opened with `journey=demo`; without it, nothing changes.
++
++- **In (link 1, from Ziqi):** `PATHFINDER_URL/?journey=demo&from=ziqi&yoid=…&listing=opp-job-001&goal=job&return=…`
++- **Out (link 2, to SkillLens):** `NEXT_PROTOTYPE_URL?journey=demo&from=pathfinder&yoid=…&listing=opp-job-001&goal=job&plan=plan-001&course=opp-course-001&return=…`, in the same tab. Every parameter received is passed on, plus PathFinder's own; `from` becomes `pathfinder`. The pilot access code (`code`) is never passed on.
++- **`return`** is the Ziqi listing. Only `http:` and `https:` addresses are followed; anything else is dropped and **Back to the listing** is hidden.
++- **Cards**, worded exactly as in the contract: *From Ziqi · Phase 1* / **Saved Opportunity** / the job / *✓ Recorded on your YoID (mock-up)*, and after saving *Handing on to SkillLens · Phase 3* / **Learning Plan** / *Plan step: complete a P2E course (Solar PV Installation Basics)* / **Continue to SkillLens**. The tick line shows only when the Skills Backpack is on, because nothing is written to YoID before a yes.
++- **YoID thread** at the top of the page: *YoID · yoid-ng-7f3a0123 · mock-up*, with Saved Opportunity recorded, Learning Plan in progress (recorded once the plan is saved with the Backpack on), Skill Credential and Job Application next.
++- **Across platforms:** each plan step names its platform (P2E, Yoma, imaGen) and the plan ends with the weekly **WhatsApp / SMS check-in**. This is what PathFinder adds next to Ziqi's map within Yoma.
++
++The rules (link building, `return` check, thread states) are in `engine/journey.js`, tested in `test/journey.test.mjs`. The journey wording is English only, as in the contract, so it is not in the translation tables.
+ 
+ **Still to agree with the other teams:**
+-- Ziqi's real link format, if it differs from `?from=ziqi&listing=…&goal=…`.
+-- SkillLens's address, set in `NEXT_PROTOTYPE_URL`.
++- ~~Ziqi's real link format~~ and ~~SkillLens's address~~: agreed in journey contract v1 (section 6).
+ - Moving `tokens/` and `mockups/shared-mock-data.json` to one shared repository.
+diff --git a/docs/DEMO.md b/docs/DEMO.md
+index 7fc1bbe..45043bb 100644
+--- a/docs/DEMO.md
++++ b/docs/DEMO.md
+@@ -18,11 +18,13 @@ This script works without Azure keys.
+ 3. Do one practice voice note so Chrome has already asked for microphone permission.
+ 4. Have the slide and the GitHub repo open in other tabs, in case anything fails.
+ 
+-**For the joint four-prototype demo** (PathFinder as Phase 2): start the server with the SkillLens address too, then open **http://localhost:4173/?journey=demo** instead of Tab 1.
++**For the joint four-prototype demo** (PathFinder as Phase 2): start the server with the SkillLens address too. In the connected journey Ziqi opens PathFinder for you; to start at PathFinder, open the link Ziqi would send (journey contract v1, link 1) instead of Tab 1:
+ ```bash
+-DEMO_BROWSER_VOICE=true STAFF_CODE=demo NEXT_PROTOTYPE_URL=<SkillLens address> node serve.mjs
++DEMO_BROWSER_VOICE=true STAFF_CODE=demo NEXT_PROTOTYPE_URL=http://localhost:3001/demo/p2e node serve.mjs
+ ```
+-Show the **"From Ziqi"** card (*A verified opportunity and the user's goal*), make the plan, save it, tap **Yes, activate it** for the Skills Backpack (the same question FunDoo asks), then show the **"Handing on to SkillLens"** card (*Plan step: complete a P2E course*) and click **Next: continue in SkillLens →**.
++http://localhost:4173/?journey=demo&from=ziqi&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&return=http%3A%2F%2Flocalhost%3A3000%2Fopportunities%2Fc0a7e000-0000-4000-8000-000000000301
++
++Show the YoID thread at the top (*Saved Opportunity* recorded, *Learning Plan* in progress) and the **"From Ziqi · Phase 1"** card, make the plan (each step names its platform: P2E, Yoma, and the WhatsApp / SMS check-in), save it, tap **Yes, activate it** for the Skills Backpack (the same question FunDoo asks), then show the **"Handing on to SkillLens · Phase 3"** card and click **Continue to SkillLens**. It opens SkillLens in the same tab. **Back to the listing** returns to Ziqi.
+ 
+ ## Script
+ 
+diff --git a/docs/HANDOFF.md b/docs/HANDOFF.md
+index d7d2366..5fe528a 100644
+--- a/docs/HANDOFF.md
++++ b/docs/HANDOFF.md
+@@ -138,3 +138,12 @@ Added:
+ Waiting on others:
+ - Camila: the FunDoo/RapidPro sandbox (the flow file has not been imported anywhere yet).
+ - The other three teams: link formats, and SkillLens's address.
++
++## Update, 28 November 2026 (connected journey, sent as a patch)
++
++Branch `connected-journey`, made by a teammate on the Ziqi side and sent as `git format-patch` files for the owner to apply.
++
++- **Journey contract v1** (agreed by all four teams), only when the page is opened with `journey=demo`: the arriving and leaving cards use the contract's exact wording, a YoID thread strip sits at the top, "Back to the listing" uses the `return` parameter, and "Continue to SkillLens" passes on every parameter received plus `plan` and `course`, in the same tab. See docs/COHESION.md section 6.
++- **Across platforms:** each plan step shows its platform (P2E, Yoma, imaGen), and the plan ends with the weekly WhatsApp / SMS check-in.
++- **Settings:** `.env.example` now sets `NEXT_PROTOTYPE_URL=http://localhost:3001/demo/p2e` for the local journey demo; `SKILLLENS_URL` works too. Leave both empty for the pilot.
++- **Tests:** 106 unit (new `test/journey.test.mjs`), 24 browser scenarios.
+diff --git a/docs/TESTING.md b/docs/TESTING.md
+index 2fbf91a..456cf45 100644
+--- a/docs/TESTING.md
++++ b/docs/TESTING.md
+@@ -1,11 +1,11 @@
+ # Testing
+ 
+-Last run: 13 November 2026, Node 22, Chromium (Playwright).
++Last run: 28 November 2026, Node 22, Chromium (Playwright).
+ 
+ | Suite | Command | Result |
+ |---|---|---|
+-| Unit and API tests | `npm test` | **98 / 98 pass** (about 2 s) |
+-| Browser scenarios | `npm run e2e` | **23 / 23 pass** |
++| Unit and API tests | `npm test` | **106 / 106 pass** (about 5 s) |
++| Browser scenarios | `npm run e2e` | **24 / 24 pass** |
+ | Live check, real Yoma API | `node sync.mjs` + the app | **Done 14 Nov 2026**: 5,171 real listings. Results and fixes [below](#live-check-real-yoma-14-november-2026) |
+ | Live check, real Azure OpenAI | see [Live check](#live-check-run-this-before-the-demo) | **Not run yet.** Needs the team's Azure keys |
+ 
+@@ -21,6 +21,7 @@ The automated tests use **mock** Yoma and Azure servers (`test/helpers/`) that c
+ | Yoma sync (`sync.test.mjs`) | Paging through 230 results. Filtering to Nigeria and Worldwide. Mapping and informal signals. Change counts ("1 new, 1 closed"). Yoma down: saved copy kept. Yoma returns 0 listings: the catalogue isn't wiped. Corrupt cache plus Yoma down: bundled sample. AI enrichment failure keeps the rule tags. Next run time. Hourly retry after a failure |
+ | AI layer (`ai.test.mjs`) | Azure URL and `api-key` header. Unknown skills dropped. Phone numbers never reach the AI. Fenced or prose-wrapped JSON parsed. Bad JSON falls back to rules. Timeout falls back within the time limit. One retry after a 500. No AI configured: no network calls. Plain-word answers: local match first, AI second, invalid AI value rejected. Reasons with promises ("guarantee") or invented numbers rejected. Listing tagging in batches survives a failed batch. Transcripts cleaned. Empty audio flagged |
+ | Server (`server.test.mjs`) | Listings with source, gzip and ETag/304. Status. Personal details stripped on the route. 400 for bad input. 413 for oversized JSON and audio over 2 MB. 429 after 30 AI calls in 10 minutes. 404. Static files. Access code (401 without it, cookie after `?code=`) |
++| Connected journey (`journey.test.mjs`) | The SkillLens link is exactly the journey contract's link 2. Every parameter received is passed on, `from` becomes `pathfinder`, `return` goes last and unchanged; the pilot access code is never passed on. Only `http(s)` return URLs are followed. YoID thread states for Phase 2. The contract's wording is in the app, and the journey link opens in the same tab |
+ | App text (`html.test.mjs`) | The app's skill list matches the server's. Every English message has a Hausa and Yoruba version. Placeholders such as `{date}` are kept in every translation |
+ 
+ ## Browser scenarios (`e2e/scenarios.mjs`)
+@@ -46,7 +47,8 @@ The automated tests use **mock** Yoma and Azure servers (`test/helpers/`) that c
+ | 19 | Finishing a plan | Check-ins through to the end, then "Make my next plan" builds a different plan and the panel shows plan 2 | Pass |
+ | 20 | Continue with Yoma | Sign-in through a fake Yoma Keycloak (PKCE). Real Yoma skills are read. "Save my plan" saves the opportunities to the Yoma account | Pass |
+ | 21 | Skills Backpack (YoID) and next prototype | Nothing is written before the Skills Backpack question. "Tell me more" then "Yes, activate it" adds the confirmed skills and the plan. "Not now" (scenarios 9 and 19) writes nothing. The "Next: continue in YoCV" button has the right link and readable colours | Pass |
+-| 22 | Journey from Ziqi to SkillLens (team's shared mock data) | `?journey=demo`: "Saved Opportunity" card for Halima's solar job, goal not asked again. The plan matches the shared Learning Plan (height safety → solar PV → the saved job). The pay-to-apply job is removed. The SkillLens link carries `plan-001`, `opp-course-001` and `opp-job-001` | Pass |
++| 22 | Journey from Ziqi to SkillLens (journey contract v1, team's shared mock data) | Ziqi's link (`journey=demo`, `yoid`, `return`): the "From Ziqi · Phase 1" card and the YoID thread are worded as in the contract, goal not asked again, "Back to the listing" uses `return`. The plan matches the shared Learning Plan (height safety → solar PV → the saved job), each step names its platform (P2E, Yoma) and the WhatsApp / SMS check-in is shown. The pay-to-apply job is removed. After saving, "Continue to SkillLens" is exactly the contract's link 2, in the same tab, and the thread shows the Learning Plan recorded | Pass |
++| 24 | Journey: bad `return`, and no journey | A `javascript:` return is ignored and "Back to the listing" is hidden; without `journey=demo` the YoID thread is not shown | Pass |
+ | 23 | 15-year-old | Guardian agrees and the plan is saved, but the Skills Backpack isn't offered (YoID starts at 16, as in FunDoo) | Pass |
+ | 17 | Demo voice without Azure | With `DEMO_BROWSER_VOICE=true`, voice uses Chrome speech recognition (a stand-in in the test), is labelled "Demo only", and the words become skills | Pass |
+ | 16 | Pilot: urgent message | A case reaches the staff inbox with a code shown to the young person. No message text is stored. A listing report and the pilot counts are recorded | Pass |
+-- 
+2.43.0
+
