@@ -35,6 +35,7 @@ namespace Yoma.Core.Domain.CourseQuality.Extensions
         AIUsed = value.AIUsed,
         AIModel = value.AIModel,
         AISummary = value.AISummary,
+        AIUsage = value.ToAIUsage(),
         LearnerCard = Deserialize<LearnerCard>(value.LearnerCard),
         FixNote = fixNote,
         ReviewedByEmail = value.ReviewedByEmail,
@@ -68,6 +69,30 @@ namespace Yoma.Core.Domain.CourseQuality.Extensions
       ArgumentNullException.ThrowIfNull(value, nameof(value));
 
       return string.IsNullOrEmpty(value.PageEvidence) ? null : Deserialize<CourseQualityPageEvidence>(value.PageEvidence);
+    }
+
+    public static CourseQualityAIUsage? ToAIUsage(this CourseQualityAssessmentRecord value)
+    {
+      ArgumentNullException.ThrowIfNull(value, nameof(value));
+
+      return ParseAIUsage(value.AIUsage);
+    }
+
+    /// <summary>
+    /// Null for no usage, and for a stored value that cannot be read: usage is an account of a run, never a reason to fail one.
+    /// </summary>
+    public static CourseQualityAIUsage? ParseAIUsage(string? value)
+    {
+      if (string.IsNullOrWhiteSpace(value)) return null;
+
+      try
+      {
+        return JsonConvert.DeserializeObject<CourseQualityAIUsage>(value, Settings);
+      }
+      catch (JsonException)
+      {
+        return null;
+      }
     }
 
     public static string Serialize(this CourseQualityPageEvidence value)
@@ -115,6 +140,7 @@ namespace Yoma.Core.Domain.CourseQuality.Extensions
       record.AIUsed = value.AIUsed;
       record.AIModel = value.AIModel;
       record.AISummary = value.AISummary;
+      record.AIUsage = value.AIUsage == null ? null : JsonConvert.SerializeObject(value.AIUsage, Settings);
       record.Criteria = JsonConvert.SerializeObject(value.Criteria, Settings);
       record.LearnerCard = StoredCard(value.LearnerCard);
       record.FixNote = value.FixNote == null ? null : JsonConvert.SerializeObject(value.FixNote, Settings);

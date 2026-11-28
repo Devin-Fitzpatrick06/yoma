@@ -55,7 +55,7 @@ namespace Yoma.Core.Infrastructure.Anthropic.Client
 
       var text = string.Concat(message.Content.Select(o => o.Value).OfType<TextBlock>().Select(o => o.Text));
 
-      return new AnthropicCompletion(message.StopReason?.Raw(), text);
+      return new AnthropicCompletion(message.StopReason?.Raw(), text, message.Usage?.InputTokens ?? 0, message.Usage?.OutputTokens ?? 0);
     }
 
     public void Dispose()

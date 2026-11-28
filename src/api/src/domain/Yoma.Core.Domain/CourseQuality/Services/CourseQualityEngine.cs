@@ -127,6 +127,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         AIUsed = ai?.IsAI ?? false,
         AIModel = ai?.Model,
         AISummary = ai == null ? null : Trim(ai.Summary, MaxTextLength),
+        AIUsage = ai?.Usage,
         DateAssessed = now,
         ReviewReasons = reasons,
         LearnerCard = new LearnerCard

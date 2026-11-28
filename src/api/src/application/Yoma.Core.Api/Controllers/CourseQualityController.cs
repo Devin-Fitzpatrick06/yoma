@@ -19,16 +19,18 @@ namespace Yoma.Core.Api.Controllers
     private readonly ICourseQualityService _courseQualityService;
     private readonly ICourseQualityGradingService _gradingService;
     private readonly ICourseQualityFeedbackService _feedbackService;
+    private readonly ICourseQualityAIUsageService _aiUsageService;
     #endregion
 
     #region Constructor
     public CourseQualityController(ILogger<CourseQualityController> logger, ICourseQualityService courseQualityService, ICourseQualityGradingService gradingService,
-      ICourseQualityFeedbackService feedbackService)
+      ICourseQualityFeedbackService feedbackService, ICourseQualityAIUsageService aiUsageService)
     {
       _logger = logger ?? throw new ArgumentNullException(nameof(logger));
       _courseQualityService = courseQualityService ?? throw new ArgumentNullException(nameof(courseQualityService));
       _gradingService = gradingService ?? throw new ArgumentNullException(nameof(gradingService));
       _feedbackService = feedbackService ?? throw new ArgumentNullException(nameof(feedbackService));
+      _aiUsageService = aiUsageService ?? throw new ArgumentNullException(nameof(aiUsageService));
     }
     #endregion
 
@@ -169,6 +171,21 @@ namespace Yoma.Core.Api.Controllers
       var result = _courseQualityService.GetCoverage();
 
       if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Request {requestName} handled", nameof(GetCoverage));
+
+      return StatusCode((int)HttpStatusCode.OK, result);
+    }
+
+    [SwaggerOperation(Summary = "Get the configured AI model and the tokens, cost and outcomes of AI runs (Admin role required)")]
+    [HttpGet("ai/usage")]
+    [ProducesResponseType(typeof(CourseQualityAIUsageSummary), (int)HttpStatusCode.OK)]
+    [Authorize(Roles = $"{Constants.Role_Admin}")]
+    public IActionResult GetAIUsage()
+    {
+      if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Handling request {requestName}", nameof(GetAIUsage));
+
+      var result = _aiUsageService.GetSummary();
+
+      if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Request {requestName} handled", nameof(GetAIUsage));
 
       return StatusCode((int)HttpStatusCode.OK, result);
     }

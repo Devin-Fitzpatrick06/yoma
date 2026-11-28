@@ -216,6 +216,12 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     /// set with the grade, null on an assessment that has not been through the service.
     /// </summary>
     public CourseQualityDropOff? DropOff { get; set; }
+
+    /// <summary>
+    /// The AI call behind this assessment, with its tokens and cost; null when no AI ran. Set on a fallback to the reader too,
+    /// so a failed or declined call is still accounted for.
+    /// </summary>
+    public CourseQualityAIUsage? AIUsage { get; set; }
   }
 
   public enum CourseQualityDropOffStatus
@@ -391,5 +397,10 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public bool DatesEndConfirmed { get; set; }
 
     public string? TimelineSummary { get; set; }
+
+    /// <summary>
+    /// The model call this result came from, or that was tried before the reader took over. Null when no model was called.
+    /// </summary>
+    public CourseQualityAIUsage? Usage { get; set; }
   }
 }
