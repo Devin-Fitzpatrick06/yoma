@@ -1,0 +1,25 @@
+{
+  "_about": "Shared page rules for the link health check. The Yoma API applies the same patterns: soft-not-found and sign-in from CourseQualityPageMatch.cs, bot wall and expired from LinkHealthPageRules.cs (src/api/src/domain/Yoma.Core.Domain/CourseQuality/). Change both together. Patterns are case-insensitive regular expressions valid in both .NET and JavaScript.",
+  "version": 1,
+  "leadTextLength": 500,
+  "shortPageLength": 1000,
+  "botWallHeaders": [
+    "x-amzn-waf-action",
+    "cf-mitigated"
+  ],
+  "gone": {
+    "_where": "Page title, first heading, or the first leadTextLength characters of visible text.",
+    "softNotFound": "\\b404\\b|\\bnot\\s+found\\b|\\bpage\\s+(?:does\\s+not|doesn'?t)\\s+exist\\b|(?:could\\s+not|couldn'?t|can'?t|cannot)\\s+find\\s+(?:the|that|this)\\s+page\\b|\\b(?:page|course|listing)\\s+(?:is\\s+|has\\s+been\\s+)?(?:no\\s+longer\\s+available|removed|retired)\\b|\\bno\\s+longer\\s+accepting\\s+(?:responses|applications|registrations?|enrol+ments?)\\b",
+    "expired": "\\b(?:page|link|listing|offer|opportunity|course|job|vacancy|posting|advert|event)\\s+(?:has\\s+|is\\s+|was\\s+)?(?:now\\s+)?expired\\b|\\bthis\\s+(?:page|link)\\s+(?:is\\s+)?(?:no\\s+longer\\s+(?:available|active|valid)|has\\s+been\\s+(?:removed|deleted|taken\\s+down))\\b|\\bpage\\s+gone\\b"
+  },
+  "botWall": {
+    "_where": "Page title or first heading; the visible text only when the page is shorter than shortPageLength.",
+    "pattern": "just\\s+a\\s+moment|checking\\s+your\\s+browser|verify\\s+(?:that\\s+)?you\\s+are\\s+(?:a\\s+)?human|attention\\s+required|are\\s+you\\s+a\\s+robot|access\\s+denied|captcha|unusual\\s+traffic|request\\s+unsuccessful|ddos\\s+protection|security\\s+check|client\\s+challenge|enable\\s+javascript\\s+and\\s+cookies"
+  },
+  "signIn": {
+    "_where": "Final address path, page title or first heading; the wording only when the page is shorter than shortPageLength.",
+    "path": "/(?:log[-_]?in|sign[-_]?in)(?:/|\\.|$)",
+    "name": "^\\s*(?:log\\s*in|sign\\s*in)\\b",
+    "wording": "redirecting\\s+to\\s+(?:the\\s+)?(?:log\\s*in|sign\\s*in)|(?:must|need\\s+to)\\s+(?:be\\s+)?(?:log\\s*in|logged\\s+in|sign\\s*in|signed\\s+in)|please\\s+(?:log|sign)\\s*in\\s+to\\s+(?:continue|view|access)"
+  }
+}

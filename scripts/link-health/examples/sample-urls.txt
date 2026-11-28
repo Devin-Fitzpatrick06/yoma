@@ -1,0 +1,22 @@
+# Sample input for check-links.mjs: one link per line; blank lines and lines starting with # are skipped.
+# Course links listed on Yoma (from the live catalogue export):
+https://alison.com/course/ai-audience-intelligence-for-social-media-marketers
+https://online.atingi.org/enrol/index.php?id=4236
+https://www.open.edu/openlearn/society-politics-law/applying-social-work-law-children-and-families/content-section-0?intro=1
+https://www.netacad.com/courses/engaging-stakeholders?courseLang=en-US&instance_id=ddde4fcd-58a4-4e05-b040-a973c9eeffb5
+https://www.coursera.org/courses?query=climate%20change
+
+# Obviously dead: a domain that can never exist (.invalid is reserved), and a missing page on a real site
+https://yoma-link-health-sample.invalid/course/1
+https://alison.com/course/this-course-does-not-exist-link-health-sample
+
+# Malformed
+htp:/missing-a-slash
+www.example.org/no-scheme
+
+# Private and cloud metadata addresses: refused, never opened
+http://192.168.0.1/admin
+http://169.254.169.254/latest/meta-data/
+
+# A duplicate: checked once
+https://alison.com/course/ai-audience-intelligence-for-social-media-marketers
