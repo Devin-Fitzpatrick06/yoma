@@ -168,11 +168,21 @@ with the URLs set, then opens Ziqi signed in as Halima.
 
 The click path:
 
-1. Ziqi: sign in, My Yoma shows her route on Yoma, the A grade and the scam held back; open the solar job, Save.
-2. "Plan it with PathFinder" → PathFinder: the plan.
+1. Ziqi: sign in; My Yoma shows her route on Yoma. Open the solar job: the listing shows Ziqi's verdict, "Checked by
+   Ziqi: Verified · Grade A" (from its public card; hidden if there is none). Save.
+2. "Plan it with PathFinder" → PathFinder: the plan, with the scam job held back from it.
 3. "Continue to SkillLens" → SkillLens: the challenge, passed on attempt 2, credential recorded.
 4. "Continue to YoCV" → YoCV: the CV with the verified credential, the QR, Apply.
 5. "Back to the listing" → the Ziqi listing shows "Job Application received", with the thread complete.
+
+Presenter notes:
+
+- My Yoma asks 4 quick questions on Halima's first visit (she has no My Yoma profile, on purpose: it shows My Yoma).
+  Pick "Sales & customer service".
+- In SkillLens, switch to Computer view if it opens in Phone view, and tap "Save to my profile" before "Add Skill
+  Credential to my YoID".
+- In YoCV, pick the role "Solar installation assistant" if it is not preselected.
+- To run it again, `scripts/connected-journey/journey.sh reset` un-saves the solar job.
 
 A hosted version needs PathFinder and YoCV deployed (each is a Node server) and Ziqi on a reachable host. Not needed for
 a live presentation.

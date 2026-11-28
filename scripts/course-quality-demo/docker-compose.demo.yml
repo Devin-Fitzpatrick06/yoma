@@ -97,6 +97,8 @@ services:
       - AI__OpenAICompatible__IsLocal
       - AI__OpenAICompatible__TimeoutInSeconds
       - AI__OpenAICompatible__ApiKey
+      # On with start.sh --journey only, so the journey job's listing can show Ziqi's verdict from its public card.
+      - CourseQuality__Jobs__ShowInBrowse
     volumes:
       - data-protection:/root/.aspnet/DataProtection-Keys
     depends_on:

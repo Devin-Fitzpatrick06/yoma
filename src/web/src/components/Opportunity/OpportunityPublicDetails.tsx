@@ -1218,6 +1218,7 @@ const OpportunityPublicDetails: React.FC<{
             <JourneyListingPanel
               opportunityId={opportunityInfo.id}
               saved={isOppSaved}
+              card={learnerCard}
             />
           )}
 

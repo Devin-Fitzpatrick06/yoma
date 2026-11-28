@@ -83,6 +83,22 @@ export const JOURNEY_COMPLETE_LINE =
   "✓ Journey complete: all four items are on your YoID (mock-up)";
 export const SAVE_HINT = "Save this opportunity to hand it on to PathFinder.";
 
+/**
+ * Ziqi's verdict on the journey listing, from the listing's public card
+ * (`GET /courseQuality/opportunity/{id}/card`): "Checked by Ziqi: Verified · Grade A". Null without
+ * a card, so the line is hidden rather than guessed. Anything other than Verified reads as "Not yet
+ * verified" (as on the learner card), and a grade shows only on a verified listing.
+ */
+export const ziqiVerdictLine = (
+  card: { status: string; grade: string | null } | null | undefined,
+): string | null => {
+  if (!card) return null;
+  if (card.status !== "Verified") return "Checked by Ziqi: Not yet verified";
+  const grade =
+    card.grade && card.grade !== "Ungraded" ? ` · Grade ${card.grade}` : "";
+  return `Checked by Ziqi: Verified${grade}`;
+};
+
 /** The thread's label: `YoID · yoid-ng-7f3a0123 · mock-up`. */
 export const threadLabel = (yoid: string): string => `YoID · ${yoid} · mock-up`;
 

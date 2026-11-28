@@ -63,8 +63,10 @@ Every link opens in the **same tab**: the journey is one path, not four tabs.
 
 ## The handoff card
 
-One card per app; the wording below is exact. Yoma colours: white card, `#41204b` purple heading, `#387f6a` green
-"recorded" text, `#4cade9` blue button, Nunito headings, Open Sans body, 12 px radius.
+One card per app; the wording below is exact, in sentence case as written (no uppercase transform on the eyebrow).
+Yoma colours: white card, `#41204b` purple heading, `#387f6a` green "recorded" text, a blue (`#4cade9`) button with
+purple (`#41204b`) text, Nunito headings, Open Sans body, 12 px radius. The button is the same in all four apps:
+white text on that blue is about 2.5:1 and fails contrast.
 
 - **Arriving** (top of the receiving app, when `journey=demo`):
   - eyebrow: `From {Previous app} · Phase {n-1}`
