@@ -46,6 +46,11 @@ namespace Yoma.Core.Domain.CourseQuality.Models
 
     public string? AISummary { get; set; }
 
+    /// <summary>
+    /// JSON of <see cref="CourseQualityAIUsage"/>; null when no AI ran.
+    /// </summary>
+    public string? AIUsage { get; set; }
+
     public string Criteria { get; set; } = null!;
 
     public string LearnerCard { get; set; } = null!;

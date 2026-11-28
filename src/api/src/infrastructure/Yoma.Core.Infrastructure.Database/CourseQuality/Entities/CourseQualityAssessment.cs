@@ -54,6 +54,9 @@ namespace Yoma.Core.Infrastructure.Database.CourseQuality.Entities
     [Column(TypeName = "text")]
     public string? AISummary { get; set; }
 
+    [Column(TypeName = "jsonb")] //optional: null when no AI ran, never an empty string (22P02, see the note on Criteria)
+    public string? AIUsage { get; set; }
+
     [Required] //nullable column results in an EF error: 22P02 invalid input syntax for type json
     [Column(TypeName = "jsonb")]
     public string Criteria { get; set; } = null!;

@@ -1,10 +1,11 @@
 using Yoma.Core.Domain.CourseQuality.Interfaces;
 using Yoma.Core.Domain.CourseQuality.Models;
 
-namespace Yoma.Core.Infrastructure.Anthropic.Services
+namespace Yoma.Core.Domain.CourseQuality.Services
 {
   /// <summary>
-  /// Claude first, the keyless reader when Claude declines or fails.
+  /// The configured model first, the keyless reader when the model declines, fails or answers outside the schema. A metered
+  /// model's usage stays on the result either way, so a call that cost tokens and gave no answer is still accounted for.
   /// </summary>
   public sealed class CourseQualityProviderFallback : ICourseQualityAIProvider
   {
@@ -26,10 +27,21 @@ namespace Yoma.Core.Infrastructure.Anthropic.Services
 
     public async Task<CourseQualityAIResult?> Evaluate(CourseQualityAIRequest request, CancellationToken cancellationToken)
     {
-      var result = _primary.IsEnabled ? await _primary.Evaluate(request, cancellationToken) : null;
-      if (result != null || !_fallback.IsEnabled) return result;
+      var call = !_primary.IsEnabled ? CourseQualityAICall.NotCalled
+        : _primary is ICourseQualityMeteredAIProvider metered ? await metered.Call(request, cancellationToken)
+        : new CourseQualityAICall(await _primary.Evaluate(request, cancellationToken), null);
 
-      return await _fallback.Evaluate(request, cancellationToken);
+      if (call.Result != null)
+      {
+        call.Result.Usage ??= call.Usage;
+        return call.Result;
+      }
+
+      if (!_fallback.IsEnabled) return null;
+
+      var result = await _fallback.Evaluate(request, cancellationToken);
+      if (result != null && call.Usage != null) result.Usage = call.Usage;
+      return result;
     }
     #endregion
   }

@@ -548,7 +548,7 @@ namespace Yoma.Core.Test.CourseQuality
       {
         "id", "opportunityId", "opportunityTitle", "organizationId", "organizationName", "rubricVersion", "score", "confidence", "status",
         "reviewStatus", "criteria", "aiUsed", "aiModel", "aiSummary", "learnerCard", "fixNote", "reviewedByEmail", "reviewNote", "dateReviewed", "dateAssessed",
-        "reviewReasons", "grade", "feedback", "dropOff"
+        "reviewReasons", "grade", "feedback", "dropOff", "aiUsage"
       };
       Assert.Equal(expected.Order(), json.Properties().Select(o => o.Name).Order());
 

@@ -40,6 +40,7 @@ using Yoma.Core.Infrastructure.SAYouth;
 using Yoma.Core.Infrastructure.SendGrid;
 using Yoma.Core.Infrastructure.Shared;
 using Yoma.Core.Infrastructure.Anthropic;
+using Yoma.Core.Infrastructure.OpenAICompatible;
 using Yoma.Core.Infrastructure.Substack;
 using Yoma.Core.Infrastructure.Twilio;
 using Yoma.Core.Infrastructure.IXO.YellowCard;
@@ -86,6 +87,8 @@ namespace Yoma.Core.Api
           _configuration.GetSection(ScheduleJobOptions.Section).Bind(options));
       services.Configure<CourseQualityOptions>(options =>
           _configuration.GetSection(CourseQualityOptions.Section).Bind(options));
+      services.Configure<CourseQualityAIOptions>(options =>
+          _configuration.GetSection(CourseQualityAIOptions.Section).Bind(options));
       services.Configure<PartnerBadgeOptions>(options =>
           _configuration.GetSection(PartnerBadgeOptions.Section).Bind(options));
       services.Configure<LearnerBadgeOptions>(options =>
@@ -166,7 +169,9 @@ namespace Yoma.Core.Api
       services.ConfigureServices_InfrastructurePayoutProvider();
       services.ConfigureServices_InfrastructureNewsFeedProvider(_configuration, _appSettings);
       services.AddScoped<ICourseQualityAIProvider, CourseQualitySourcePageReader>();
+      // AI:Provider picks one of these; None leaves the keyless reader
       services.ConfigureServices_InfrastructureCourseQualityAIProvider(_configuration);
+      services.ConfigureServices_InfrastructureCourseQualityOpenAICompatibleProvider(_configuration);
       ConfigureServices_InfrastructureSyncProviders(services, _configuration, _appSettings);
       #endregion Services & Infrastructure
 

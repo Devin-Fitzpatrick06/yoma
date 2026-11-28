@@ -511,6 +511,9 @@ namespace Yoma.Core.Infrastructure.Database.Migrations
           b.Property<string>("AISummary")
             .HasColumnType("text");
 
+          b.Property<string>("AIUsage")
+            .HasColumnType("jsonb");
+
           b.Property<bool>("AIUsed")
             .HasColumnType("boolean");
 

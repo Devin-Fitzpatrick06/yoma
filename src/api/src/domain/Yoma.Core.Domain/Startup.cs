@@ -126,6 +126,8 @@ namespace Yoma.Core.Domain
 
       // a provider registered later replaces this default
       services.TryAddScoped<ICourseQualityAIProvider, NoOpCourseQualityAIProvider>();
+      services.TryAddSingleton(CourseQualityAIEndpoint.None);
+      services.AddScoped<ICourseQualityAIUsageService, CourseQualityAIUsageService>();
       #endregion Course Quality
 
       #region Pathway

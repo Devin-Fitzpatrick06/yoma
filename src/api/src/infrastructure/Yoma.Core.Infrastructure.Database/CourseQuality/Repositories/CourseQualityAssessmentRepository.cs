@@ -34,6 +34,7 @@ namespace Yoma.Core.Infrastructure.Database.CourseQuality.Repositories
         AIUsed = entity.AIUsed,
         AIModel = entity.AIModel,
         AISummary = entity.AISummary,
+        AIUsage = entity.AIUsage,
         Criteria = entity.Criteria,
         LearnerCard = entity.LearnerCard,
         FixNote = entity.FixNote,
@@ -100,6 +101,7 @@ namespace Yoma.Core.Infrastructure.Database.CourseQuality.Repositories
       entity.AIUsed = item.AIUsed;
       entity.AIModel = item.AIModel;
       entity.AISummary = item.AISummary;
+      entity.AIUsage = string.IsNullOrWhiteSpace(item.AIUsage) ? null : item.AIUsage;
       entity.Criteria = item.Criteria;
       entity.LearnerCard = item.LearnerCard;
       entity.FixNote = item.FixNote;

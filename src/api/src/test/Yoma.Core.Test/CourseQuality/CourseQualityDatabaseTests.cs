@@ -227,6 +227,47 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.Equal(coverage.Assessed, coverage.Course + coverage.Webinar + coverage.Unknown);
     }
 
+    // iteration 5: the AIUsage jsonb column, null and set, and the usage summary over it
+    [Fact]
+    public async Task AIUsage_RoundTrips_AndSummarizes_OnPostgres()
+    {
+      Assert.SkipWhen(string.IsNullOrEmpty(ConnectionString), "COURSE_QUALITY_TEST_DB is not set");
+
+      await using (var migrate = Context()) await migrate.Database.MigrateAsync(TestContext.Current.CancellationToken);
+
+      await using var context = Context();
+      var (opportunityId, organizationId, _, _, _) = await SeedCourse(context);
+      var repository = new CourseQualityAssessmentRepository(context);
+
+      var keyless = Assessment(opportunityId, organizationId, false);
+      await repository.Create(keyless.ToRecord(DateTimeOffset.UtcNow, new string('a', 64)));
+
+      var metered = Assessment(opportunityId, organizationId, false);
+      metered.AIUsage = new CourseQualityAIUsage
+      {
+        Provider = AIProviderKind.OpenAICompatible,
+        Model = "qwen2.5:3b",
+        EndpointHost = "localhost:11434",
+        IsLocal = true,
+        InputTokens = 1094,
+        OutputTokens = 377,
+        CostUsd = 0m,
+        DurationMs = 61000,
+        DateRun = DateTimeOffset.UtcNow,
+        Outcome = CourseQualityAIOutcome.Answered
+      };
+      await repository.Create(metered.ToRecord(DateTimeOffset.UtcNow, new string('a', 64)));
+
+      Assert.Null(repository.Query().Single(o => o.Id == keyless.Id).ToAssessment().AIUsage);
+      var stored = repository.Query().Single(o => o.Id == metered.Id).ToAssessment().AIUsage!;
+      Assert.Equal(1094, stored.InputTokens);
+      Assert.Equal(CourseQualityAIOutcome.Answered, stored.Outcome);
+
+      var summary = new CourseQualityAIUsageService(repository, CourseQualityAIEndpoint.None).GetSummary();
+      Assert.Contains(summary.Recent, o => o.AssessmentId == metered.Id && o.OrganizationId == organizationId);
+      Assert.DoesNotContain(summary.Recent, o => o.AssessmentId == keyless.Id);
+    }
+
     [Fact]
     public async Task GradeRubricAndFeedback_RoundTrip_OnPostgres()
     {
