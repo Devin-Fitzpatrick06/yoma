@@ -18,6 +18,7 @@ import {
   getOpportunityInfoById,
   getOpportunityInfoByIdAdminOrgAdminOrUser,
 } from "~/api/services/opportunities";
+import { JOURNEY_CONFIG } from "~/components/Journey/journeyConfig";
 import MainLayout from "~/components/Layout/Main";
 import OpportunityMetaTags from "~/components/Opportunity/OpportunityMetaTags";
 import OpportunityPublicDetails from "~/components/Opportunity/OpportunityPublicDetails";
@@ -26,6 +27,7 @@ import { InternalServerError } from "~/components/Status/InternalServerError";
 import { Unauthenticated } from "~/components/Status/Unauthenticated";
 import { Unauthorized } from "~/components/Status/Unauthorized";
 import { OPPORTUNITY_QUERY_KEYS } from "~/hooks/useOpportunityMutations";
+import { isJourneyListing } from "~/lib/journey";
 import { config } from "~/lib/react-query-config";
 import type { NextPageWithLayout } from "~/pages/_app";
 import { type User, authOptions } from "~/server/auth";
@@ -62,8 +64,12 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
       );
     }
 
-    // never throws: without a card the page renders as it does for other types
-    if (dataOpportunityInfo.type === "Learning")
+    // never throws: without a card the page renders as it does for other types. The journey
+    // listing (a Job, demo only) also loads it, for Ziqi's verdict in the journey panel
+    if (
+      dataOpportunityInfo.type === "Learning" ||
+      isJourneyListing(JOURNEY_CONFIG, dataOpportunityInfo.id)
+    )
       dataLearnerCard = await getLearnerCard(opportunityId, context);
 
     if (session)

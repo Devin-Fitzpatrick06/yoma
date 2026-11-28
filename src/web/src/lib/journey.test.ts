@@ -21,6 +21,7 @@ import {
   threadSteps,
   toJourneyConfig,
   ziqiThreadSteps,
+  ziqiVerdictLine,
 } from "./journey";
 
 const LISTING_ID = "c0a7e000-0000-4000-8000-000000000301";
@@ -434,5 +435,41 @@ describe("handoff copy", () => {
       line: "✓ Recorded on your YoID (mock-up)",
     });
     assert.equal(arrivingCopy(4).eyebrow, "From SkillLens · Phase 3");
+  });
+});
+
+describe("ziqiVerdictLine", () => {
+  test("verified with a grade", () => {
+    assert.equal(
+      ziqiVerdictLine({ status: "Verified", grade: "A" }),
+      "Checked by Ziqi: Verified · Grade A",
+    );
+  });
+
+  test("verified without a grade, or Ungraded: no grade is shown", () => {
+    assert.equal(
+      ziqiVerdictLine({ status: "Verified", grade: null }),
+      "Checked by Ziqi: Verified",
+    );
+    assert.equal(
+      ziqiVerdictLine({ status: "Verified", grade: "Ungraded" }),
+      "Checked by Ziqi: Verified",
+    );
+  });
+
+  test("not verified never shows a grade", () => {
+    assert.equal(
+      ziqiVerdictLine({ status: "NeedsReview", grade: "B" }),
+      "Checked by Ziqi: Not yet verified",
+    );
+    assert.equal(
+      ziqiVerdictLine({ status: "NotVerified", grade: null }),
+      "Checked by Ziqi: Not yet verified",
+    );
+  });
+
+  test("no card: no line", () => {
+    assert.equal(ziqiVerdictLine(null), null);
+    assert.equal(ziqiVerdictLine(undefined), null);
   });
 });

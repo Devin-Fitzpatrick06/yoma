@@ -4,10 +4,12 @@ import type { HandoffCopy } from "~/lib/journey";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The journey's handoff card (contract v1, "The handoff card"): an eyebrow, the item name in
-// bold, the item's title, a green "recorded" line and, leaving, a blue button that is a real
-// link in the same tab. The copy comes from `~/lib/journey` (arrivingCopy / leavingCopy /
-// finalCopy), so the wording stays exact. Yoma tokens: white card, purple heading, green
-// "recorded", blue button, Nunito heading, 12px radius.
+// bold, the item's title, a green "recorded" line and, leaving, a blue button with purple text
+// (the same in all four apps; white on this blue is under 3:1, and the hover is the lighter
+// blue-shade because purple on blue-dark is under 4.5:1) that is a real link in the same
+// tab. The copy comes from `~/lib/journey` (arrivingCopy / leavingCopy / finalCopy), so the
+// wording stays exact. Yoma tokens: white card, purple heading, green "recorded", blue button,
+// Nunito heading, 12px radius.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type HeadingLevel = 2 | 3 | 4;
@@ -37,9 +39,8 @@ export const HandoffCard: React.FC<{
       data-journey-card={copy.variant}
       className={`flex w-full min-w-0 flex-col gap-1.5 rounded-xl border-l-4 bg-white p-4 shadow-lg md:p-5 ${accent} ${className}`}
     >
-      <p className="text-gray-dark text-xs font-semibold tracking-wide uppercase">
-        {copy.eyebrow}
-      </p>
+      {/* sentence case, as the contract writes it: no uppercase transform */}
+      <p className="text-gray-dark text-xs font-semibold">{copy.eyebrow}</p>
       <Heading
         id={headingId}
         className="font-nunito text-purple text-lg font-black break-words md:text-xl"
@@ -55,7 +56,7 @@ export const HandoffCard: React.FC<{
         {showButton && (
           <a
             href={href!}
-            className="btn bg-blue hover:bg-blue-dark h-11 min-h-11 rounded-full border-none px-6 text-white normal-case max-sm:w-full"
+            className="btn bg-blue hover:bg-blue-shade text-purple h-11 min-h-11 rounded-full border-none px-6 normal-case max-sm:w-full"
           >
             {copy.button}
             <IoArrowForward aria-hidden="true" className="h-4 w-4" />

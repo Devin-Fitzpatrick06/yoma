@@ -41,6 +41,7 @@ import {
   DEFAULT_JOURNEY_YOID,
   DEFAULT_PATHFINDER_URL,
   pathFinderLink,
+  ziqiVerdictLine,
 } from "~/lib/journey";
 import type { NextPageWithLayout } from "~/pages/_app";
 
@@ -109,6 +110,11 @@ const JOURNEY_PATHFINDER_FIXTURE_HREF = pathFinderLink({
   pathfinderUrl: DEFAULT_PATHFINDER_URL,
   yoid: DEFAULT_JOURNEY_YOID,
   returnUrl: `http://localhost:3000${JOURNEY_LISTING_FIXTURE_HREF}`,
+});
+// what Ziqi measured on the journey job (journey-contract.md, "Ziqi's actual grades")
+const JOURNEY_VERDICT_FIXTURE = ziqiVerdictLine({
+  status: "Verified",
+  grade: "A",
 });
 
 const FAKE_AI_RUN_MS = 4000;
@@ -187,6 +193,7 @@ const ZiqiAdminPreview: NextPageWithLayout = () => (
               yoid={DEFAULT_JOURNEY_YOID}
               pathfinderHref={JOURNEY_PATHFINDER_FIXTURE_HREF}
               headingLevel={3}
+              verdict={JOURNEY_VERDICT_FIXTURE}
             />
           </PreviewCard>
           <PreviewCard label="Listing, saved: hand on to PathFinder">
@@ -196,6 +203,7 @@ const ZiqiAdminPreview: NextPageWithLayout = () => (
               yoid={DEFAULT_JOURNEY_YOID}
               pathfinderHref={JOURNEY_PATHFINDER_FIXTURE_HREF}
               headingLevel={3}
+              verdict={JOURNEY_VERDICT_FIXTURE}
             />
           </PreviewCard>
           <PreviewCard label="Listing, back from YoCV (the last screen)">
@@ -205,6 +213,7 @@ const ZiqiAdminPreview: NextPageWithLayout = () => (
               yoid={DEFAULT_JOURNEY_YOID}
               pathfinderHref={JOURNEY_PATHFINDER_FIXTURE_HREF}
               headingLevel={3}
+              verdict={JOURNEY_VERDICT_FIXTURE}
             />
           </PreviewCard>
           <PreviewCard label="My Yoma, the end of the route (saved, then not)">
@@ -222,7 +231,7 @@ const ZiqiAdminPreview: NextPageWithLayout = () => (
         </div>
         <div className="flex flex-wrap justify-center gap-4 lg:justify-start">
           <YoIdCardFrame
-            title="☀️ Your journey"
+            title="☀️ Your connected journey"
             url={JOURNEY_LISTING_FIXTURE_HREF}
           >
             <JourneyYoidCard
@@ -232,7 +241,7 @@ const ZiqiAdminPreview: NextPageWithLayout = () => (
             />
           </YoIdCardFrame>
           <YoIdCardFrame
-            title="☀️ Your journey"
+            title="☀️ Your connected journey"
             url={JOURNEY_LISTING_FIXTURE_HREF}
           >
             <JourneyYoidCard

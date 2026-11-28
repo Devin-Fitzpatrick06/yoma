@@ -212,7 +212,11 @@ const YoIDDashboard: NextPageWithLayout<{
         {/* CONNECTED JOURNEY (demo, NEXT_PUBLIC_JOURNEY_ENABLED) */}
         {JOURNEY_ACTIVE && JOURNEY_LISTING_HREF && (
           <div className="flex w-full flex-col gap-2 sm:w-[300px] md:w-[350px] lg:w-[400px]">
-            <Header title="☀️ Your journey" url={JOURNEY_LISTING_HREF} />
+            {/* "connected": My Yoma's path section is already "Your journey" */}
+            <Header
+              title="☀️ Your connected journey"
+              url={JOURNEY_LISTING_HREF}
+            />
             <div className="flex min-h-[185px] w-full flex-col gap-4 rounded-lg bg-white p-4 shadow">
               <Suspense
                 className="flex grow flex-col"
