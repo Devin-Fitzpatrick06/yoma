@@ -71,6 +71,10 @@ services:
     ports:
       - 127.0.0.1:5050:5000
       - 127.0.0.1:3000:3000
+    # For start.sh --local-ai-url http://host.docker.internal:11434/v1 (the native Ollama app). Docker Desktop has this
+    # name already; Linux needs it mapped. The API and web share this container's network, so they get it too.
+    extra_hosts:
+      - host.docker.internal:host-gateway
     networks:
       default:
       fixtures:
@@ -82,6 +86,17 @@ services:
       dockerfile: Dockerfile
     network_mode: service:gateway
     env_file: demo.env
+    # Ziqi's AI (iteration 5). Names only, no values: each is passed through from start.sh's environment when it is set
+    # there, and left out of the container when it is not. start.sh sets them only after the start-up checks have run,
+    # so the AI never slows the import; without --local-ai or --ai-url it sets AI__Provider=None (no AI). The optional
+    # key comes from ZIQI_AI_API_KEY in the shell that runs start.sh and is never written to a file.
+    environment:
+      - AI__Provider
+      - AI__OpenAICompatible__BaseUrl
+      - AI__OpenAICompatible__Model
+      - AI__OpenAICompatible__IsLocal
+      - AI__OpenAICompatible__TimeoutInSeconds
+      - AI__OpenAICompatible__ApiKey
     volumes:
       - data-protection:/root/.aspnet/DataProtection-Keys
     depends_on:
@@ -162,6 +177,39 @@ services:
         aliases:
           - demo-fixtures.localtest.me
 
+  # A free, locally hosted open model for Ziqi's AI check: start.sh --local-ai only (profile local-ai). It serves an
+  # OpenAI-compatible API at http://ollama:11434/v1 on the default network, which the gateway is on, so the API (which
+  # shares the gateway's network) resolves "ollama" like it resolves "postgres". No port is published: only the demo's
+  # containers reach it. Docker Desktop on a Mac has no GPU, so it runs on the CPU (see README.md, "Ziqi AI").
+  ollama:
+    image: docker.io/ollama/ollama:0.12.3
+    profiles: [local-ai]
+    environment:
+      # Keeps the model loaded between checks, and room for a listing plus its page text.
+      OLLAMA_KEEP_ALIVE: 30m
+      OLLAMA_CONTEXT_LENGTH: "8192"
+    volumes:
+      - ollama-models:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+
+  # One-shot: downloads the configured model into the ollama service (about 2 GB for qwen2.5:3b, once; the volume keeps
+  # it). Ollama skips a model it already has, so later starts take seconds.
+  ollama-pull:
+    image: docker.io/ollama/ollama:0.12.3
+    profiles: [local-ai]
+    entrypoint: ["ollama", "pull"]
+    command: ["${ZIQI_LOCAL_AI_MODEL:-qwen2.5:3b}"]
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    depends_on:
+      ollama:
+        condition: service_healthy
+
 networks:
   fixtures:
     internal: true
@@ -175,3 +223,8 @@ volumes:
   keycloak-themes:
   keycloak-pg:
   data-protection:
+  # Kept by stop.sh and by start.sh's reset (both remove the demo's other volumes), so the model downloads only once.
+  # start.sh creates it; remove it with: docker volume rm yoma-course-quality-demo-ollama-models
+  ollama-models:
+    name: yoma-course-quality-demo-ollama-models
+    external: true

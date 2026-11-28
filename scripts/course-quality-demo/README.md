@@ -7,7 +7,8 @@ not change.
 **This demo is for Yoma staff only. Do not show it to learners or partners as a live service.** The
 badges and costs are provisional: the scoring criteria are placeholders until the project lead sets
 the final ones, and no AI ran. "Verified by Yoma" here means the current rules passed, and a cost is
-only what the page reader found. Treat every result as a prototype output.
+only what the page reader found. Treat every result as a prototype output. The AI check is off unless you start with
+`--local-ai` (a free open model on this Mac) or point it at another server; see "Ziqi AI" below.
 
 ## Before you start
 
@@ -25,8 +26,9 @@ From the repo folder:
 scripts/course-quality-demo/start.sh
 ```
 
-When it finishes, it prints the links (including the Ziqi iteration 4 pages, below), the test sign-ins, the counts by
-type (courses, impact actions, jobs) and a summary. Open the course list only after that:
+When it finishes, it prints the links (including the Ziqi iteration 4 and 5 pages, below), the test sign-ins, the counts
+by type (courses, events, impact actions, jobs), whether Ziqi's AI is on (provider, model, local and free or not) and a
+summary. Open the course list only after that:
 the website starts last, once every course is in, and `start.sh` loads the course list once so the page it keeps for
 5 minutes already shows the courses.
 
@@ -35,7 +37,7 @@ What a start does depends on whether a saved demo database is in `scripts/course
 | Start | What happens | Time on this Mac |
 | ----- | ------------ | ---------------- |
 | Saved database present | Loads it, sets the named courses 101 to 108 to today's dates, assesses those 8 again and regrades | about 2.5 minutes |
-| No saved database (the default) | Imports every live Yoma course, impact action and job, assesses and grades a sample of 40 courses, opens the website. Saves nothing | about 8 minutes |
+| No saved database (the default) | Imports every live Yoma course, event, impact action and job, assesses and grades a sample of 40 courses, opens the website. Saves nothing | about 8 minutes |
 | `--full`, or `--refresh` | Imports every live Yoma course, assesses all of them at the product's polite pace, grades them, and saves the database | about 45 minutes, projected: alison.com's 2,054 pages at 1.1 s each set the pace |
 | `--sample 40` | Imports every live course but assesses only 40 from mixed hosts, and saves nothing. For testing | about 3.5 minutes |
 
@@ -112,6 +114,16 @@ choose Log out. Each `start.sh` also signs every browser out of the previous dem
   as feed jobs do. A task whose title is already taken is skipped. `start.sh` adds them once, before the jobs, only when
   the database has no impact actions, so an older saved database gets them on its next start (and is saved again). Then
   Ziqi's listing checks run on them (`seed/assess-live.mjs --tasks --no-grade`); impact actions get no grade.
+- **Every live Yoma event: 17 listings** (28 November 2026), fetched into `.cache/live-events.json` by
+  `seed/fetch-live-catalogue.mjs --events` and added by `seed/generate-events-sql.mjs`. The type is `Event`
+  (`e20dcceb-59c3-46d0-ab0a-d321d8bc4c31`) on live Yoma and in this branch alike. Categories, countries, languages and
+  skills come with them, as for impact actions; the live difficulty goes into the `EventDifficulty` custom field (Beginner
+  and Any Level become Open to all, Intermediate becomes Familiarity needed, Advanced becomes Experienced individuals, as
+  the custom-field migration maps them). 10 of the 17 have no link, so their "link works" check fails: that is live data,
+  not a demo fault. No participation is added for events. `start.sh` adds them once, after the impact actions, only when
+  the database has no events (so an older saved database gets them and is saved again), then runs Ziqi's listing checks
+  on them (`seed/assess-live.mjs --events --no-grade`, `CourseQuality__VerifyTypes__1=Event`); events get no grade. With
+  courses, impact actions and jobs, the demo audits all four types.
 
 ### Scaled demo data: views, starts and completions
 
@@ -257,6 +269,57 @@ demo only.
 2. Solar Installation appears here too, if you resolved it in step 2.
 3. A reviewer's note does not appear here, and the page says that notes are not emailed.
 
+## Ziqi AI (iteration 5): a free, local open model
+
+The AI check is off by default, and every check `start.sh` runs at start-up runs without it, so a start takes the same
+time either way. With one of the options below, the API restarts with the AI on at the end of the start. Then a
+reviewer runs it on demand: **Run AI check** on a course's reviewer card. No paid AI is used unless you point the demo at
+a paid server yourself.
+
+| Start | Where the model runs | Cost |
+| --- | --- | --- |
+| `start.sh --local-ai` | An Ollama container in the demo (`ollama/ollama:0.12.3`), model `qwen2.5:3b` | Free: every run records $0.00 |
+| `start.sh --local-ai-model qwen2.5:1.5b` | The same, a smaller model: faster, weaker answers | Free |
+| `start.sh --local-ai-url http://host.docker.internal:11434/v1` | The native Ollama app on this Mac (uses the Mac's GPU through Metal, much faster) | Free |
+| `start.sh --ai-url URL --ai-model NAME` | Any OpenAI-compatible server, for example a government host | Whatever that host charges; shown only when `AI:Prices` has the model, otherwise "unknown", never guessed |
+
+- **The first `--local-ai` start downloads the model** (about 2 GB for `qwen2.5:3b`, 1 GB for `qwen2.5:1.5b`) while the
+  API and website build. It is kept in the Docker volume `yoma-course-quality-demo-ollama-models`, which `stop.sh` keeps;
+  remove it with `docker volume rm yoma-course-quality-demo-ollama-models`. Give Docker about 8 GB of memory.
+- **Speed on a Mac:** Docker Desktop has no GPU access, so the container runs the model on the CPU. One course check
+  with `qwen2.5:3b` takes roughly 1 to 3 minutes on an Apple-silicon Mac, most of it reading the page text (the first
+  after a start also loads the model, about 10 to 20 seconds more), and `qwen2.5:1.5b` about half that. These are
+  estimates from the model size and prompt length, not yet timed on a Mac: `ai-smoke.sh` prints the real duration. The API waits up to 300 seconds. For a live
+  audience, the native Ollama app is much faster: install it from ollama.com, run `ollama pull qwen2.5:3b`, then start
+  with `--local-ai-url http://host.docker.internal:11434/v1`. On Linux the app must listen beyond localhost
+  (`OLLAMA_HOST=0.0.0.0 ollama serve`).
+- **A key, if the server needs one,** is read from the environment variable `ZIQI_AI_API_KEY` in the shell that runs
+  `start.sh` (for example `ZIQI_AI_API_KEY=... scripts/course-quality-demo/start.sh --ai-url ... --ai-model ...`). It is
+  passed to the API container as `AI__OpenAICompatible__ApiKey` at runtime only and never written to a file.
+- **The settings** go to the API through its environment (`docker-compose.demo.yml`, service `api`, names only):
+  `AI__Provider=OpenAICompatible`, `AI__OpenAICompatible__BaseUrl` (`http://ollama:11434/v1` for the container),
+  `AI__OpenAICompatible__Model`, `AI__OpenAICompatible__IsLocal` (true for both local options, so the cost is 0) and
+  `AI__OpenAICompatible__TimeoutInSeconds=300`. Without an AI option, `AI__Provider=None`.
+- **The model server is internal:** no port is published. The API reaches it as `ollama`, by service name on the demo's
+  default network, which the gateway (whose network the API shares) is on.
+
+One-command proof that a live LLM runs through the backend, with its tokens and cost:
+
+```bash
+scripts/course-quality-demo/ai-smoke.sh
+```
+
+It signs in as the demo admin, runs `POST /courseQuality/opportunity/{id}/assess` on named course 102 (or the number
+or id you give it) and prints the model, provider, tokens in and out, cost, duration and outcome. The AI can only lower
+a result, so the course may need a look afterwards; the next `start.sh` resets the named courses.
+
+## Link health (iteration 5)
+
+- In the website: `http://localhost:3000/admin/course-quality/links`, signed in as the reviewer. Paste or upload links
+  from any platform (Yoma, YouthHub, 1MiO), run, read the results and export a CSV.
+- Without Yoma: `node scripts/link-health/check-links.mjs` reads a .txt, .csv or sitemap and writes a CSV or Markdown
+  report. It needs only Node; see `scripts/link-health/` for its options.
+
 ## How the demo pages reach the link checker
 
 The link checker refuses private addresses by design, and the demo does not change it. Docker
@@ -285,3 +348,8 @@ runtime on macOS cannot.
 - **A row says "NOT AS EXPECTED":** check that course before presenting it. The summary lists only the named courses and
   any that missed.
 - **Port in use:** the message names the app. Quit it and start again.
+- **`ai-smoke.sh` says the AI is off:** the demo was started without an AI option. Run `stop.sh`, then
+  `start.sh --local-ai`.
+- **The AI check times out or the API log shows a timeout:** the CPU model is too slow for that page. Use
+  `--local-ai-model qwen2.5:1.5b`, or the native Ollama app with `--local-ai-url`.
+- **The model download failed:** see `.logs/local-ai.log`, and check the model name on ollama.com/library.

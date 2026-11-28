@@ -9,7 +9,7 @@ if ! docker info >/dev/null 2>&1; then
   exit 0
 fi
 
-docker compose -f "$DEMO_DIR/docker-compose.demo.yml" --profile setup down -v --remove-orphans
+docker compose -f "$DEMO_DIR/docker-compose.demo.yml" --profile setup --profile local-ai down -v --remove-orphans
 
 left="$(docker ps -aq --filter label=com.docker.compose.project=yoma-course-quality-demo | wc -l | tr -d ' ')"
 if [ "$left" -ne 0 ]; then
@@ -18,3 +18,6 @@ if [ "$left" -ne 0 ]; then
 fi
 
 echo "The demo has stopped. Its containers and data are gone. The built images stay, so the next start is quicker."
+if docker volume inspect yoma-course-quality-demo-ollama-models >/dev/null 2>&1; then
+  echo "Downloaded local AI models stay too. To free that space: docker volume rm yoma-course-quality-demo-ollama-models"
+fi

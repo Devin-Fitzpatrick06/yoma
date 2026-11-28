@@ -6,7 +6,8 @@
 // checks read only the listing (the feed itself says the job is open), so feed jobs need no per-host pacing.
 // With --tasks it runs the listing checks on the impact actions from .cache/live-tasks.json (CourseQuality:VerifyTypes
 // has ImpactAction in the demo), with its own progress file. Impact actions get no grade until "good" is defined for them.
-// Usage: assess-live.mjs [--jobs | --tasks] [--sample N] [--concurrency K] [--no-grade]   Progress to stderr, a summary to stdout.
+// With --events it does the same for the live events from .cache/live-events.json (VerifyTypes has Event in the demo).
+// Usage: assess-live.mjs [--jobs | --tasks | --events] [--sample N] [--concurrency K] [--no-grade]   Progress to stderr, a summary to stdout.
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { adminFetch, runGrading } from "./api.mjs";
 import { loadCatalogue, random } from "./live.mjs";
@@ -20,10 +21,15 @@ const concurrency = arg("--concurrency", 4);
 const grade = !process.argv.includes("--no-grade");
 const jobs = process.argv.includes("--jobs");
 const tasks = process.argv.includes("--tasks");
-const progressPath = new URL(jobs ? "../.cache/job-assessment-progress.jsonl" : tasks ? "../.cache/task-assessment-progress.jsonl" : "../.cache/assessment-progress.jsonl", import.meta.url);
+const events = process.argv.includes("--events");
+if ([jobs, tasks, events].filter(Boolean).length > 1) throw new Error("Choose one of --jobs, --tasks and --events.");
+const progressPath = new URL(
+  jobs ? "../.cache/job-assessment-progress.jsonl" : tasks ? "../.cache/task-assessment-progress.jsonl"
+    : events ? "../.cache/event-assessment-progress.jsonl" : "../.cache/assessment-progress.jsonl", import.meta.url);
 const jobsPath = new URL("../.cache/live-jobs.json", import.meta.url);
 const tasksPath = new URL("../.cache/live-tasks.json", import.meta.url);
-const noun = jobs ? "jobs" : tasks ? "impact actions" : "courses";
+const eventsPath = new URL("../.cache/live-events.json", import.meta.url);
+const noun = jobs ? "jobs" : tasks ? "impact actions" : events ? "events" : "courses";
 
 const hostOf = (url) => {
   try {
@@ -42,7 +48,8 @@ if (existsSync(progressPath)) {
 }
 
 const isFeed = (item) => item.syncedInfo?.syncType === "Pull";
-const source = jobs ? JSON.parse(readFileSync(jobsPath)).items : tasks ? JSON.parse(readFileSync(tasksPath)).items : loadCatalogue().items;
+const source = jobs ? JSON.parse(readFileSync(jobsPath)).items : tasks ? JSON.parse(readFileSync(tasksPath)).items
+  : events ? JSON.parse(readFileSync(eventsPath)).items : loadCatalogue().items;
 let items = source.map((item) => ({ id: item.id, host: jobs && isFeed(item) ? `feed:${item.id}` : item.url ? hostOf(item.url) : "(no link)" }));
 const byHost = Map.groupBy(items, (item) => item.host);
 for (const list of byHost.values()) list.sort((a, b) => random(a.id, "order") - random(b.id, "order"));
