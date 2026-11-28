@@ -117,6 +117,10 @@ setting the demo uses and is the easiest reference for a working local configura
 | `NEXT_PUBLIC_PATHWAY_ENABLED` | Web (build time) | My Yoma tab, first-visit redirect, YoID card, badge chips, pathway health |
 | `NEXT_PUBLIC_PREPUBLISH_ENABLED` | Web (build time) | The Ziqi check panel on the partner listing form |
 | `NEXT_PUBLIC_COURSE_QUALITY_DEMO` | Web (build time) | Demo-only: view switcher and fixture preview pages |
+| `NEXT_PUBLIC_JOURNEY_ENABLED` | Web (build time) | Demo-only: the connected four-prototype journey (Ziqi → PathFinder → SkillLens → YoCV): the handoff card and YoID thread on the journey listing, the YoID journey card, and "Your route on Yoma" with the PathFinder card on My Yoma. Off unless `true` |
+| `NEXT_PUBLIC_JOURNEY_LISTING_ID` | Web (build time) | The Yoma id of the journey listing (`opp-job-001`): `c0a7e000-0000-4000-8000-000000000301` in the local demo. No journey UI without it |
+| `NEXT_PUBLIC_JOURNEY_YOID` | Web (build time) | The mock YoID on the thread and the PathFinder link. Default `yoid-ng-7f3a0123` |
+| `NEXT_PUBLIC_PATHFINDER_URL` | Web (build time) | PathFinder's address for "Continue to PathFinder". Default `http://localhost:4173`; only `http:`/`https:` |
 
 Keep the web and API pathway switches on together.
 

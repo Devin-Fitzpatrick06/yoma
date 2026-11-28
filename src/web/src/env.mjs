@@ -45,6 +45,12 @@ export const env = createEnv({
     // Ziqi iteration 4 switches, off by default: My Yoma and the journey map; the partner pre-publish check
     NEXT_PUBLIC_PATHWAY_ENABLED: z.boolean(),
     NEXT_PUBLIC_PREPUBLISH_ENABLED: z.boolean(),
+    // Connected four-prototype journey (Ziqi → PathFinder → SkillLens → YoCV), off unless "true";
+    // the journey listing's Yoma id, the mock YoID, and PathFinder's address (see `~/lib/journey`)
+    NEXT_PUBLIC_JOURNEY_ENABLED: z.boolean(),
+    NEXT_PUBLIC_JOURNEY_LISTING_ID: z.string().optional(),
+    NEXT_PUBLIC_JOURNEY_YOID: z.string().optional(),
+    NEXT_PUBLIC_PATHFINDER_URL: z.string().optional(),
     NEXT_PUBLIC_DD_RUM_APP_ID: z.string().optional(),
     NEXT_PUBLIC_DD_RUM_TOKEN: z.string().optional(),
     NEXT_PUBLIC_DD_RUM_SESSION_SAMPLE_RATE: z
@@ -106,6 +112,11 @@ export const env = createEnv({
       process.env.NEXT_PUBLIC_PATHWAY_ENABLED === "true",
     NEXT_PUBLIC_PREPUBLISH_ENABLED:
       process.env.NEXT_PUBLIC_PREPUBLISH_ENABLED === "true",
+    NEXT_PUBLIC_JOURNEY_ENABLED:
+      process.env.NEXT_PUBLIC_JOURNEY_ENABLED === "true",
+    NEXT_PUBLIC_JOURNEY_LISTING_ID: process.env.NEXT_PUBLIC_JOURNEY_LISTING_ID,
+    NEXT_PUBLIC_JOURNEY_YOID: process.env.NEXT_PUBLIC_JOURNEY_YOID,
+    NEXT_PUBLIC_PATHFINDER_URL: process.env.NEXT_PUBLIC_PATHFINDER_URL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.
