@@ -368,6 +368,7 @@ export interface CourseQualityAIRun {
   assessmentId: string;
   opportunityId: string;
   opportunityTitle: string;
+  organizationId: string;
   usage: CourseQualityAIUsage;
 }
 

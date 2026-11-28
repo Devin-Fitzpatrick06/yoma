@@ -62,12 +62,14 @@ export const AI_USAGE_SUMMARY_FIXTURE: CourseQualityAIUsageSummary = {
       assessmentId: "fixture-assessment-1",
       opportunityId: "00000000-0000-0000-0000-000000000001",
       opportunityTitle: "Example: Introduction to data literacy",
+      organizationId: "00000000-0000-0000-0000-0000000000a1",
       usage: AI_USAGE_LOCAL_FIXTURE,
     },
     {
       assessmentId: "fixture-assessment-2",
       opportunityId: "00000000-0000-0000-0000-000000000002",
       opportunityTitle: "Example: Careers in renewable energy (webinar)",
+      organizationId: "00000000-0000-0000-0000-0000000000a1",
       usage: {
         ...AI_USAGE_LOCAL_FIXTURE,
         inputTokens: 3_870,
@@ -81,6 +83,7 @@ export const AI_USAGE_SUMMARY_FIXTURE: CourseQualityAIUsageSummary = {
       assessmentId: "fixture-assessment-3",
       opportunityId: "00000000-0000-0000-0000-000000000003",
       opportunityTitle: "Example: Junior support technician",
+      organizationId: "00000000-0000-0000-0000-0000000000a1",
       usage: {
         ...AI_USAGE_LOCAL_FIXTURE,
         inputTokens: 2_520,
