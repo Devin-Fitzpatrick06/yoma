@@ -30,8 +30,11 @@ These SHAs are in the other teams' repositories, not this one.
    - Only SkillLens is deployed (Vercel). PathFinder, YoCV and Ziqi run on a laptop.
 3. **There is no shared YoID.** Every "YoID write" is in-page or in-memory and private to one app. A shared YoID store
    is out of scope for prototypes; the plan below makes the YoID thread look and read identically everywhere instead.
-4. **My Yoma and PathFinder both build a learning path.** Iteration 4 said "Ziqi owns pathways"; the journey gives the
-   plan to PathFinder. Shown side by side, two prototypes appear to do the same job. Decision needed (Open questions).
+4. **My Yoma and PathFinder both build a path from the same data.** The split is decided: Ziqi maps *within* Yoma, and
+   PathFinder maps *across* platforms, as the bridge between Yoma and Passport to Earning plus WhatsApp/SMS. But in code,
+   PathFinder's only real P2E content is the 13 P2E courses already listed on Yoma; other P2E courses and every imaGen
+   challenge are samples, and it has no P2E connection of its own. The split only shows on screen if PathFinder's plan
+   visibly does what Yoma can't: steps labelled by platform, and a WhatsApp check-in.
 5. **Grades don't match.** The contract gives `opp-job-001` "A-" and the scam job "F"; Ziqi grades A–D and holds back
    a scam as "Not verified". Change the contract to Ziqi's real output, not the reverse.
 6. **Port clash.** PathFinder and YoCV both default to port 4173.
@@ -124,13 +127,17 @@ same thread. Label it "YoID · yoid-ng-7f3a0123 · mock-up".
 - **Z4. Close the loop.** The same listing page, opened with `?from=yocv&application=app-001`, shows "Job Application
   received · Phase 4" with the thread fully recorded. This is the journey's last screen.
 - **Z5. YoID thread** on the listing page and on the YoID page (the "My path" card already sits there).
-- **Z6. My Yoma.** Depends on Open question 1.
+- **Z6. My Yoma as "Your route on Yoma".** Phase 1 is discovery within Yoma: My Yoma maps Halima's route through Yoma's
+  own listings, and the solar job is the destination she saves. Its last step changes to "Plan it across P2E and
+  WhatsApp with PathFinder", which hands over the Saved Opportunity. My Yoma does not try to sequence P2E steps.
 
 ### PathFinder (Anagha), about half a day [guessing]
 
 - Accept and forward `yoid` and `return`.
 - Set `NEXT_PROTOTYPE_URL` to SkillLens.
 - Add the thread strip and a "Back to the listing" link that uses `return`.
+- Show each plan step's platform (P2E, Yoma, WhatsApp), and include at least one WhatsApp/SMS check-in in the demo
+  plan, so the cross-platform role is visible next to Ziqi's within-Yoma map.
 - Optional: RapidPro's "Next in your journey" message carries the SkillLens link.
 
 ### SkillLens (Charisse), about 1 day [guessing]
@@ -161,7 +168,7 @@ with the URLs set, then opens Ziqi signed in as Halima.
 
 The click path:
 
-1. Ziqi: browse, see the A grade and the scam held back, open the solar job, Save.
+1. Ziqi: sign in, My Yoma shows her route on Yoma, the A grade and the scam held back; open the solar job, Save.
 2. "Plan it with PathFinder" → PathFinder: the plan.
 3. "Continue to SkillLens" → SkillLens: the challenge, passed on attempt 2, credential recorded.
 4. "Continue to YoCV" → YoCV: the CV with the verified credential, the QR, Apply.
@@ -179,9 +186,9 @@ a live presentation.
 
 ## Open questions
 
-1. **My Yoma vs PathFinder.** Recommended: in the connected journey, Ziqi stops at the Saved Opportunity and PathFinder
-   owns the plan. My Yoma stays a Ziqi feature for browsing without a goal, and is not shown in the journey click-path.
-   The alternative, My Yoma showing PathFinder's `plan-001`, needs a shared plan store that does not exist.
+1. **Decided (2026-11-28):** Ziqi maps within Yoma (My Yoma is part of Phase 1); PathFinder maps across platforms and
+   bridges Yoma, Passport to Earning and WhatsApp/SMS. Still open for PathFinder's team: a real P2E connection, or
+   labelling the P2E-on-Yoma courses as such until one exists.
 2. **Grades in the contract.** Accept Ziqi's real grades (A–D, and "Not verified" for the scam) in place of "A-" and
    "F"?
 3. **Who hosts what** if GenU wants to click through it themselves after the presentation.
