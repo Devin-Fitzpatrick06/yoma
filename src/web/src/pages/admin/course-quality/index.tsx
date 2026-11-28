@@ -21,6 +21,10 @@ import type {
   CourseQualityReviewSearchFilter,
   CourseQualityReviewStatus,
 } from "~/api/models/courseQuality";
+import {
+  AI_USAGE_QUERY_KEY,
+  getCourseQualityAIUsage,
+} from "~/api/services/courseQualityAI";
 import { getPathwayHealth } from "~/api/services/pathway";
 import {
   getCourseQualityCoverage,
@@ -42,6 +46,7 @@ import {
   ListPageResults,
 } from "~/components/Common/ListPage/ListPageResults";
 import ListPageTabs from "~/components/Common/ListPage/ListPageTabs";
+import AIUsagePanel from "~/components/CourseQuality/AIUsagePanel";
 import { WAITING_FOR_REVIEW_TEXT } from "~/components/CourseQuality/GradeBreakdown";
 import GradeChip from "~/components/CourseQuality/GradeChip";
 import PathwayHealthPanel from "~/components/CourseQuality/PathwayHealthPanel";
@@ -187,6 +192,24 @@ const PathwayHealthSummary: React.FC<{ enabled: boolean }> = ({ enabled }) => {
   return (
     <PathwayHealthPanel
       health={data}
+      isError={isError}
+      isLoading={isLoading}
+      onRetry={() => void refetch()}
+    />
+  );
+};
+
+// Iteration 5: the configured model and what AI runs have used and cost
+const AIUsageSummary: React.FC<{ enabled: boolean }> = ({ enabled }) => {
+  const { data, isError, isLoading, refetch } = useQuery({
+    queryKey: AI_USAGE_QUERY_KEY,
+    queryFn: getCourseQualityAIUsage,
+    enabled,
+  });
+
+  return (
+    <AIUsagePanel
+      summary={data}
       isError={isError}
       isLoading={isLoading}
       onRetry={() => void refetch()}
@@ -616,6 +639,12 @@ const CourseQualityReview: NextPageWithLayout<{
                 Grading rubric
               </Link>
               <Link
+                href={`${BASE_PATH}/links`}
+                className="text-gray-dark text-sm font-semibold hover:underline"
+              >
+                Link health
+              </Link>
+              <Link
                 href={`${BASE_PATH}/review`}
                 aria-disabled={pendingCount === 0}
                 className={`${BTN_PRIMARY} gap-2 ${
@@ -635,6 +664,9 @@ const CourseQualityReview: NextPageWithLayout<{
 
           {/* COVERAGE */}
           <CoverageSummary enabled={!error} />
+
+          {/* AI USAGE (iteration 5) */}
+          <AIUsageSummary enabled={!error} />
 
           {/* PATHWAY HEALTH (Ziqi pathways switch only) */}
           {pathwayEnabled && <PathwayHealthSummary enabled={!error} />}
