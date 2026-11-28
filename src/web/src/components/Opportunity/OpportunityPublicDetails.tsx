@@ -42,6 +42,8 @@ import { updateSettings } from "~/api/services/user";
 import { AvatarImage } from "~/components/AvatarImage";
 import ZltoRewardBadge from "~/components/Opportunity/Badges/ZltoRewardBadge";
 import LearnerCard from "~/components/Opportunity/LearnerCard";
+import { JourneyListingPanel } from "~/components/Journey/JourneyListingPanel";
+import { JOURNEY_CONFIG } from "~/components/Journey/journeyConfig";
 import { PartnerBadgesScope } from "~/components/Opportunity/PartnerBadgeChip";
 import {
   getCommitmentDisplay,
@@ -66,6 +68,7 @@ import { Unauthenticated } from "~/components/Status/Unauthenticated";
 import { Unauthorized } from "~/components/Status/Unauthorized";
 import { OPPORTUNITY_QUERY_KEYS } from "~/hooks/useOpportunityMutations";
 import analytics from "~/lib/analytics";
+import { isJourneyListing } from "~/lib/journey";
 import {
   CUSTOM_FIELDS_ENABLED,
   OPPORTUNITY_TYPE_NANE_JOB,
@@ -1209,6 +1212,15 @@ const OpportunityPublicDetails: React.FC<{
 
       {opportunityInfo && (
         <div className="flex flex-col gap-4">
+          {/* CONNECTED JOURNEY (demo, NEXT_PUBLIC_JOURNEY_ENABLED): phase 1 on the journey listing
+              only. The saved state is the Save button's own (`isOppSaved`), so saving updates it */}
+          {!preview && isJourneyListing(JOURNEY_CONFIG, opportunityInfo.id) && (
+            <JourneyListingPanel
+              opportunityId={opportunityInfo.id}
+              saved={isOppSaved}
+            />
+          )}
+
           {layout === "tabbed" ? (
             // the provider's partner badge (W2): one request, nothing while it loads
             <PartnerBadgesScope

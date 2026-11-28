@@ -3,6 +3,9 @@ import Head from "next/head";
 import { useState, type ReactElement, type ReactNode } from "react";
 import type { CourseQualityAssessment } from "~/api/models/courseQuality";
 import { Header } from "~/components/Common/Header";
+import { JourneyListingView } from "~/components/Journey/JourneyListingPanel";
+import { JourneyYoidCard } from "~/components/Journey/JourneyYoidCard";
+import { PathFinderBridgeCard } from "~/components/Journey/PathFinderBridgeCard";
 import {
   AI_SUMMARY_FIXTURE,
   AI_USAGE_EMPTY_FIXTURE,
@@ -34,13 +37,19 @@ import {
   MY_PATH_SUMMARY_FIXTURE,
 } from "~/components/YoID/MyPathCard.fixtures";
 import { env } from "~/env.mjs";
+import {
+  DEFAULT_JOURNEY_YOID,
+  DEFAULT_PATHFINDER_URL,
+  pathFinderLink,
+} from "~/lib/journey";
 import type { NextPageWithLayout } from "~/pages/_app";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ziqi iteration 4 fixtures without the API or a sign-in: the YoID "My path" card (W3) and the
 // admin pathway health panel and drop-off slot (W5). Iteration 5 adds the reviewer card's AI
 // check, the admin AI usage panel and the link health page, with a fake AI run and a fake link
-// checker. Available in development and when the Course Quality demo is on
+// checker. The connected journey adds phase 1's listing panel, YoID card and My Yoma card in
+// their fixture states (before and after saving, and the last screen). Available in development and when the Course Quality demo is on
 // (NEXT_PUBLIC_COURSE_QUALITY_DEMO=true); a 404 otherwise.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -54,12 +63,13 @@ export const getServerSideProps: GetServerSideProps = async () => {
 };
 
 // the same frame the YoID dashboard gives each card
-const YoIdCardFrame: React.FC<{ title: string; children: ReactNode }> = ({
-  title,
-  children,
-}) => (
+const YoIdCardFrame: React.FC<{
+  title: string;
+  url?: string;
+  children: ReactNode;
+}> = ({ title, url = "/my-yoma", children }) => (
   <div className="flex w-full flex-col gap-2 sm:w-[300px] md:w-[350px] lg:w-[400px]">
-    <Header title={title} url="/my-yoma" />
+    <Header title={title} url={url} />
     <div className="flex min-h-[185px] w-full flex-col gap-4 rounded-lg bg-white p-4 shadow">
       {children}
     </div>
@@ -91,6 +101,15 @@ const PreviewCard: React.FC<{ label: string; children: ReactNode }> = ({
     {children}
   </div>
 );
+
+// the connected journey's fixtures: the Yoma listing of opp-job-001 on the local demo
+const JOURNEY_LISTING_FIXTURE_HREF =
+  "/opportunities/c0a7e000-0000-4000-8000-000000000301";
+const JOURNEY_PATHFINDER_FIXTURE_HREF = pathFinderLink({
+  pathfinderUrl: DEFAULT_PATHFINDER_URL,
+  yoid: DEFAULT_JOURNEY_YOID,
+  returnUrl: `http://localhost:3000${JOURNEY_LISTING_FIXTURE_HREF}`,
+});
 
 const FAKE_AI_RUN_MS = 4000;
 
@@ -152,6 +171,75 @@ const ZiqiAdminPreview: NextPageWithLayout = () => (
           </YoIdCardFrame>
           <YoIdCardFrame title="🧭 My path">
             <MyPathCard summary={null} />
+          </YoIdCardFrame>
+        </div>
+      </PreviewSection>
+
+      <PreviewSection
+        title="Connected journey"
+        description="Phase 1 of the four-prototype journey (NEXT_PUBLIC_JOURNEY_ENABLED): the solar job's listing before and after Save, the listing opened back from YoCV, the YoID card and the end of the route on My Yoma."
+      >
+        <div className="grid gap-4 lg:grid-cols-2">
+          <PreviewCard label="Listing, before Save">
+            <JourneyListingView
+              saved={false}
+              complete={false}
+              yoid={DEFAULT_JOURNEY_YOID}
+              pathfinderHref={JOURNEY_PATHFINDER_FIXTURE_HREF}
+              headingLevel={3}
+            />
+          </PreviewCard>
+          <PreviewCard label="Listing, saved: hand on to PathFinder">
+            <JourneyListingView
+              saved={true}
+              complete={false}
+              yoid={DEFAULT_JOURNEY_YOID}
+              pathfinderHref={JOURNEY_PATHFINDER_FIXTURE_HREF}
+              headingLevel={3}
+            />
+          </PreviewCard>
+          <PreviewCard label="Listing, back from YoCV (the last screen)">
+            <JourneyListingView
+              saved={true}
+              complete={true}
+              yoid={DEFAULT_JOURNEY_YOID}
+              pathfinderHref={JOURNEY_PATHFINDER_FIXTURE_HREF}
+              headingLevel={3}
+            />
+          </PreviewCard>
+          <PreviewCard label="My Yoma, the end of the route (saved, then not)">
+            <PathFinderBridgeCard
+              saved={true}
+              listingHref={JOURNEY_LISTING_FIXTURE_HREF}
+              headingLevel={3}
+            />
+            <PathFinderBridgeCard
+              saved={false}
+              listingHref={JOURNEY_LISTING_FIXTURE_HREF}
+              headingLevel={3}
+            />
+          </PreviewCard>
+        </div>
+        <div className="flex flex-wrap justify-center gap-4 lg:justify-start">
+          <YoIdCardFrame
+            title="☀️ Your journey"
+            url={JOURNEY_LISTING_FIXTURE_HREF}
+          >
+            <JourneyYoidCard
+              saved={false}
+              yoid={DEFAULT_JOURNEY_YOID}
+              listingHref={JOURNEY_LISTING_FIXTURE_HREF}
+            />
+          </YoIdCardFrame>
+          <YoIdCardFrame
+            title="☀️ Your journey"
+            url={JOURNEY_LISTING_FIXTURE_HREF}
+          >
+            <JourneyYoidCard
+              saved={true}
+              yoid={DEFAULT_JOURNEY_YOID}
+              listingHref={JOURNEY_LISTING_FIXTURE_HREF}
+            />
           </YoIdCardFrame>
         </div>
       </PreviewSection>

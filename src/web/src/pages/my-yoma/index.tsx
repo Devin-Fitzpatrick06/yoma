@@ -26,6 +26,7 @@ import {
 import { BTN_SECONDARY } from "~/components/Common/buttonStyles";
 import { ListPageSkeleton } from "~/components/Common/ListPage/ListPageResults";
 import MainLayout from "~/components/Layout/Main";
+import { useJourneyListingSaved } from "~/components/Journey/useJourneyListingSaved";
 import FirstVisitFlow from "~/components/MyYoma/FirstVisitFlow";
 import { FIRST_VISIT_REDIRECT_KEY } from "~/components/MyYoma/firstVisit";
 import MyYomaMapView from "~/components/MyYoma/MyYomaMapView";
@@ -92,6 +93,8 @@ const MyYomaSignedIn: React.FC = () => {
   });
   const myYoma = myYomaQuery.data;
   const inFlow = myYoma === null || editing || building;
+  // connected journey (demo): the PathFinder card at the end of the route links to the listing
+  const journeySaved = useJourneyListingSaved(!inFlow);
 
   const questionsQuery = useQuery({
     queryKey: [...PATHWAY_KEY, "questions"],
@@ -257,6 +260,7 @@ const MyYomaSignedIn: React.FC = () => {
           onSwap={onSwap}
           onStepEvent={onStepEvent}
           onChangeAnswers={onChangeAnswers}
+          journeySaved={journeySaved.saved}
         />
       )}
     </MyYomaShell>

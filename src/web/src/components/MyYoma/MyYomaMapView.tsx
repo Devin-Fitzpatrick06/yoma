@@ -1,3 +1,8 @@
+import {
+  JOURNEY_ACTIVE,
+  JOURNEY_LISTING_HREF,
+} from "~/components/Journey/journeyConfig";
+import { PathFinderBridgeCard } from "~/components/Journey/PathFinderBridgeCard";
 import type { JourneyMapProps } from "~/components/MyYoma/JourneyMap/types";
 import JourneyMap from "~/components/MyYoma/JourneyMap/JourneyMap";
 import LearnerBadges from "./LearnerBadges";
@@ -6,9 +11,15 @@ import YoIdSummaryCard from "./YoIdSummaryCard";
 // ─────────────────────────────────────────────────────────────────────────────
 // My Yoma with a path (iteration 4): the YoID card above the journey map, the learner badges
 // below it. The map is W1's `JourneyMap`; this view only frames it and passes the page's wiring.
+// Connected journey (demo, NEXT_PUBLIC_JOURNEY_ENABLED): the PathFinder card ends the route.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const MyYomaMapView: React.FC<JourneyMapProps> = (props) => {
+const MyYomaMapView: React.FC<
+  JourneyMapProps & {
+    /** Connected journey only: the youth has saved the journey listing. */
+    journeySaved?: boolean;
+  }
+> = ({ journeySaved = false, ...props }) => {
   const { myYoma } = props;
   const goal = myYoma.goalLabel || myYoma.profile.goalLabel;
 
@@ -25,6 +36,13 @@ const MyYomaMapView: React.FC<JourneyMapProps> = (props) => {
       <YoIdSummaryCard yoId={myYoma.yoId} profile={myYoma.profile} />
 
       <JourneyMap {...props} />
+
+      {JOURNEY_ACTIVE && JOURNEY_LISTING_HREF && (
+        <PathFinderBridgeCard
+          saved={journeySaved}
+          listingHref={JOURNEY_LISTING_HREF}
+        />
+      )}
 
       <LearnerBadges badges={myYoma.badges} />
     </div>
