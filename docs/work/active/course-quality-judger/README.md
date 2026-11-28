@@ -1,5 +1,7 @@
 # Course Quality Judger (MVP)
 
+> **Handover package:** [`docs/ziqi-handover/`](../../../ziqi-handover/README.md): setup, prompts, rubrics, test cases, what is live, rule-based or mocked, limitations and next steps.
+
 Status: in-progress
 
 No Linear ticket yet. Branch: `feature/course-quality-judger`, cut from `prototype`.

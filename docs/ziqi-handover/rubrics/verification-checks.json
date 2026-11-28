@@ -1,0 +1,102 @@
+{
+  "Enabled": false,
+  "ShowInBrowse": false,
+  "PopularityCompletedWeight": 0.7,
+  "PopularityStartedWeight": 0.3,
+  "RubricVersion": "v5-visible-proof",
+  "Criteria": {
+    "ListingLive": {
+      "Weight": 20,
+      "HardGate": true
+    },
+    "LinkWorks": {
+      "Weight": 20,
+      "HardGate": true
+    },
+    "DatesAccurate": {
+      "Weight": 30,
+      "HardGate": true
+    },
+    "DataComplete": {
+      "Weight": 15,
+      "HardGate": false
+    },
+    "FormatIdentified": {
+      "Weight": 15,
+      "HardGate": false
+    },
+    "JobOpen": {
+      "Weight": 25,
+      "HardGate": true
+    },
+    "NoScamSignals": {
+      "Weight": 25,
+      "HardGate": true
+    },
+    "JobDetailsClear": {
+      "Weight": 35,
+      "HardGate": false
+    },
+    "JobFresh": {
+      "Weight": 15,
+      "HardGate": false
+    }
+  },
+  "VerifiedScoreThreshold": 80,
+  "ReviewConfidenceThreshold": 0.7,
+  "HardGateScoreCap": 49,
+  "RuleOnlyConfidenceCap": 0.69,
+  "InconclusiveLinkScore": 50,
+  "InconclusiveLinkConfidencePenalty": 0.3,
+  "AIHardGateFailScore": 50,
+  "FormatUnknownScore": 20,
+  "WebinarMaxCommitmentHours": 3,
+  "CourseMinCommitmentHours": 168,
+  "DatePlausibleYearsPast": 15,
+  "DatePlausibleYearsFuture": 5,
+  "BatchSize": 100,
+  "Schedule": "0 * * * *",
+  "ReassessIntervalInDays": 7,
+  "SourcePageReaderEnabled": true,
+  "SelfPacedProviders": [
+    {
+      "Name": "Alison",
+      "Domains": [
+        "alison.com"
+      ]
+    }
+  ],
+  "CardMaxAgeInDays": 14,
+  "LinkCheck": {
+    "MaxRedirects": 5,
+    "TimeoutInSeconds": 15,
+    "MaxResponseBytes": 1048576,
+    "MinHostIntervalInMilliseconds": 1100,
+    "MaxSourceTextLength": 20000,
+    "UserAgent": "YomaCourseQualityBot/1.0 (+https://yoma.world)"
+  },
+  "RegradeDelayInSeconds": 30,
+  "LearnerFeedback": {
+    "Enabled": false,
+    "PromptDelayInMinutes": 1440,
+    "SnoozeInDays": 3,
+    "CommentMaxLength": 500,
+    "Good": [],
+    "Bad": []
+  },
+  "VerifyTypes": [
+    "Learning"
+  ],
+  "Jobs": {
+    "Enabled": false,
+    "RubricVersion": "jobs-v1",
+    "FreshDays": 45,
+    "StaleDays": 90,
+    "RuleConfidence": 0.9,
+    "ShowInBrowse": false
+  },
+  "PrePublish": {
+    "Enabled": false,
+    "LinkTimeoutMilliseconds": 3000
+  }
+}

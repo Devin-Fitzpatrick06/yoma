@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["confidence", "summary", "format", "cost", "criteria"],
+  "properties": {
+    "confidence": { "type": "number" },
+    "summary": { "type": "string" },
+    "format": { "type": "string", "enum": ["Unknown", "Course", "Webinar"] },
+    "cost": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "amount", "currency", "evidence"],
+      "properties": {
+        "type": { "type": "string", "enum": ["Unknown", "Free", "Paid"] },
+        "amount": { "type": ["number", "null"] },
+        "currency": { "type": ["string", "null"] },
+        "evidence": { "type": ["string", "null"] }
+      }
+    },
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["criterion", "score", "reason", "recommendation"],
+        "properties": {
+          "criterion": { "type": "string", "enum": ["LinkWorks", "DatesAccurate", "DataComplete", "FormatIdentified"] },
+          "score": { "type": "integer" },
+          "reason": { "type": "string" },
+          "recommendation": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

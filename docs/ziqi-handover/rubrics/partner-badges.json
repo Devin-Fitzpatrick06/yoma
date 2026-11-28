@@ -1,0 +1,26 @@
+{
+  "MinimumGradedCourses": 10,
+  "MaxOrganizationsPerRequest": 50,
+  "Levels": {
+    "Platinum": {
+      "MinShareTopGrades": 0.75,
+      "MaxShareHeldBack": 0.02,
+      "MinimumGradedCourses": 25
+    },
+    "Gold": {
+      "MinShareTopGrades": 0.60,
+      "MaxShareHeldBack": 0.05,
+      "MinimumGradedCourses": null
+    },
+    "Silver": {
+      "MinShareTopGrades": 0.45,
+      "MaxShareHeldBack": 0.10,
+      "MinimumGradedCourses": null
+    },
+    "Bronze": {
+      "MinShareTopGrades": 0.30,
+      "MaxShareHeldBack": 0.20,
+      "MinimumGradedCourses": null
+    }
+  }
+}

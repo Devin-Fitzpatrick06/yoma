@@ -1,0 +1,80 @@
+{
+  "Version": "jobs-g1",
+  "Factors": {
+    "PayTransparency": {
+      "Weight": 25.0,
+      "NeutralScore": 0,
+      "Parameters": {
+        "AmountScore": 100.0,
+        "PeriodOnlyScore": 30.0,
+        "NoneScore": 0.0,
+        "AMinScore": 100.0
+      }
+    },
+    "JobClarity": {
+      "Weight": 20.0,
+      "NeutralScore": 50,
+      "Parameters": {}
+    },
+    "YouthFit": {
+      "Weight": 20.0,
+      "NeutralScore": 50,
+      "Parameters": {}
+    },
+    "ListingSafety": {
+      "Weight": 15.0,
+      "NeutralScore": 50,
+      "Parameters": {
+        "StatusShare": 50.0,
+        "ScamShare": 50.0
+      }
+    },
+    "PartnerReliability": {
+      "Weight": 10.0,
+      "NeutralScore": 50,
+      "Parameters": {
+        "PriorPasses": 8.0,
+        "PriorChecks": 10.0
+      }
+    },
+    "ApplicantFeedback": {
+      "Weight": 10.0,
+      "NeutralScore": 50,
+      "Parameters": {
+        "PriorResponses": 10.0,
+        "PriorMean": 0.7
+      }
+    }
+  },
+  "Bands": [
+    {
+      "Grade": "A",
+      "Label": "Top pick",
+      "TopPercent": 17.0,
+      "MinScore": 65
+    },
+    {
+      "Grade": "B",
+      "Label": "Strong",
+      "TopPercent": 40.0,
+      "MinScore": 0
+    },
+    {
+      "Grade": "C",
+      "Label": "Good",
+      "TopPercent": 75.0,
+      "MinScore": 0
+    },
+    {
+      "Grade": "D",
+      "Label": "Basic",
+      "TopPercent": 100.0,
+      "MinScore": 0
+    }
+  ],
+  "NeedsReviewMaxGrade": "Ungraded",
+  "AMinSyllabusScore": 50,
+  "AMinFeedbackScore": 60,
+  "AFeedbackFloorMinResponses": 5,
+  "MinFactorsWithData": 3
+}

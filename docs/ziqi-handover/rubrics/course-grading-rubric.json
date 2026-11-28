@@ -1,0 +1,124 @@
+{
+  "Version": "g2-verified-only",
+  "Factors": {
+    "LearnerFeedback": {
+      "Weight": 20.0,
+      "NeutralScore": 50,
+      "Parameters": {
+        "PriorResponses": 10.0,
+        "PriorMean": 0.7
+      }
+    },
+    "SyllabusAvailable": {
+      "Weight": 18.0,
+      "NeutralScore": 0,
+      "Parameters": {
+        "CourseJsonLdPoints": 15.0,
+        "JsonLdFieldsPoints": 15.0,
+        "OutcomesPoints": 30.0,
+        "ModulesPoints": 30.0,
+        "PrerequisitesPoints": 10.0,
+        "MinListItems": 3.0,
+        "ListingTextFactor": 0.5
+      }
+    },
+    "ProviderReliability": {
+      "Weight": 15.0,
+      "NeutralScore": 50,
+      "Parameters": {
+        "PassRateShare": 40.0,
+        "DeadLinkShare": 20.0,
+        "LearnerShare": 33.33,
+        "ListingCountShare": 6.67,
+        "PriorPasses": 8.0,
+        "PriorChecks": 10.0,
+        "ListingCountCap": 20.0
+      }
+    },
+    "Comprehensiveness": {
+      "Weight": 12.0,
+      "NeutralScore": 50,
+      "Parameters": {
+        "ModulesShare": 30.0,
+        "ModulesCap": 15.0,
+        "AssessmentShare": 15.0,
+        "CertificateShare": 15.0,
+        "SkillsShare": 20.0,
+        "SkillsCap": 5.0,
+        "DescriptionShare": 20.0,
+        "DescriptionCap": 1500.0
+      }
+    },
+    "CourseLength": {
+      "Weight": 10.0,
+      "NeutralScore": 50,
+      "Parameters": {
+        "StudyHoursPerDay": 2.0,
+        "StudyHoursPerWeek": 5.0,
+        "StudyHoursPerMonth": 20.0,
+        "ShortHours": 0.5,
+        "IdealFromHours": 2.0,
+        "IdealToHours": 20.0,
+        "LongHours": 60.0,
+        "VeryLongHours": 100.0,
+        "ShortScore": 40.0,
+        "LongScore": 60.0,
+        "VeryLongScore": 40.0
+      }
+    },
+    "Completion": {
+      "Weight": 10.0,
+      "NeutralScore": 50,
+      "Parameters": {
+        "PriorStarts": 20.0
+      }
+    },
+    "ListingIntegrity": {
+      "Weight": 8.0,
+      "NeutralScore": 50,
+      "Parameters": {
+        "StatusShare": 40.0,
+        "ConfidenceShare": 20.0,
+        "LinkShare": 25.0,
+        "AgeShare": 15.0,
+        "MaxAgeYears": 3.0
+      }
+    },
+    "Accessibility": {
+      "Weight": 7.0,
+      "NeutralScore": 20,
+      "Parameters": {
+        "FreeScore": 40.0,
+        "FreePaidCertificateScore": 25.0,
+        "PaidScore": 0.0,
+        "UnknownCostScore": 20.0,
+        "LanguageBonus": 30.0,
+        "LowDataBonus": 30.0
+      }
+    },
+    "Outcomes": {
+      "Weight": 0.0,
+      "NeutralScore": 50,
+      "Parameters": {
+        "MinGroupSize": 20.0,
+        "ProgressionShare": 60.0,
+        "EmploymentShare": 40.0,
+        "ProgressionTarget": 0.5,
+        "EmploymentTarget": 0.2
+      }
+    },
+    "DropOff": {
+      "Weight": 0.0,
+      "NeutralScore": 50,
+      "Parameters": {
+        "MinGroupSize": 20.0
+      }
+    }
+  },
+  "Bands": [],
+  "NeedsReviewMaxGrade": "Ungraded",
+  "AMinSyllabusScore": 50,
+  "AMinFeedbackScore": 60,
+  "AFeedbackFloorMinResponses": 5,
+  "MinFactorsWithData": 3
+}
