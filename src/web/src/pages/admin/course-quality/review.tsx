@@ -33,10 +33,17 @@ import {
   submitCourseQualityReview,
 } from "~/api/services/courseQualityAdmin";
 import {
+  AI_USAGE_QUERY_KEY,
+  getCourseQualityAIUsage,
+  runCourseQualityAICheck,
+} from "~/api/services/courseQualityAI";
+import {
   BTN_DANGER,
   BTN_PRIMARY,
   BTN_SECONDARY,
 } from "~/components/Common/buttonStyles";
+import { describeModel } from "~/components/CourseQuality/AIUsage.helpers";
+import AIUsageCheck from "~/components/CourseQuality/AIUsageCheck";
 import CourseFeedbackLazySummary from "~/components/CourseQuality/CourseFeedbackLazySummary";
 import CourseFeedbackSummaryPanel from "~/components/CourseQuality/CourseFeedbackSummaryPanel";
 import { STICKY_ACTION_BAR } from "~/components/CourseQuality/DemoViewSwitcher";
@@ -178,7 +185,10 @@ const ReviewCard: React.FC<{
   item: CourseQualityAssessment;
   headingRef: React.Ref<HTMLHeadingElement>;
   showDropOff: boolean;
-}> = ({ item, headingRef, showDropOff }) => {
+  /** The configured model in words, for the AI check's pending state. */
+  configuredModel: string | null;
+  onAssessed: (assessment: CourseQualityAssessment) => void;
+}> = ({ item, headingRef, showDropOff, configuredModel, onAssessed }) => {
   // the search carries the grade; null means the course has none yet
   const grade = item.grade ?? null;
   const reasons = item.reviewReasons ?? [];
@@ -280,13 +290,6 @@ const ReviewCard: React.FC<{
               )}
               <ConfidenceMeter confidence={item.confidence} />
             </div>
-            {!item.aiUsed && (
-              <p className="text-gray-dark text-xs">
-                {item.aiModel
-                  ? "Page reader: no AI ran. The course page was read with fixed rules."
-                  : "Rules only: no course page could be read, so confidence is capped."}
-              </p>
-            )}
           </Section>
 
           {/* CHECKS */}
@@ -335,14 +338,6 @@ const ReviewCard: React.FC<{
                 );
               })}
             </ul>
-            {item.aiSummary && (
-              <div className="bg-gray-light rounded-lg px-3 py-2">
-                <h4 className="text-xs font-semibold">Evidence summary</h4>
-                <p className="text-gray-dark text-sm break-words whitespace-pre-line">
-                  {item.aiSummary}
-                </p>
-              </div>
-            )}
             <p className="text-gray-dark text-xs">
               Assessed{" "}
               <Moment format={DATE_FORMAT_HUMAN} utc={true}>
@@ -350,6 +345,14 @@ const ReviewCard: React.FC<{
               </Moment>
             </p>
           </Section>
+
+          {/* AI CHECK (iteration 5): the summary, the run behind it, and a fresh run */}
+          <AIUsageCheck
+            item={item}
+            configuredModel={configuredModel}
+            run={runCourseQualityAICheck}
+            onAssessed={onAssessed}
+          />
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">
@@ -598,6 +601,20 @@ const CourseQualityReviewMode: NextPageWithLayout<{
   // skipped in earlier batches of this session: left out of the next batch, kept per id
   const [skippedEarlier, setSkippedEarlier] = useState<string[]>([]);
   const excludedRef = useRef<ReadonlySet<string>>(new Set());
+  // iteration 5: a fresh AI check replaces the card's assessment, keyed by the batch item's id
+  const [refreshed, setRefreshed] = useState<
+    Record<string, CourseQualityAssessment>
+  >({});
+
+  const { data: aiUsage } = useQuery({
+    queryKey: AI_USAGE_QUERY_KEY,
+    queryFn: getCourseQualityAIUsage,
+    enabled: !error,
+  });
+  const configuredModel =
+    aiUsage?.configured && aiUsage.model
+      ? describeModel(aiUsage.provider, aiUsage.model, aiUsage.endpointHost)
+      : null;
 
   const {
     data: results,
@@ -627,7 +644,20 @@ const CourseQualityReviewMode: NextPageWithLayout<{
   });
 
   const items = useMemo(() => results?.items ?? [], [results]);
-  const current = index < items.length ? items[index]! : null;
+  const currentBase = index < items.length ? items[index]! : null;
+  const current = currentBase
+    ? (refreshed[currentBase.id] ?? currentBase)
+    : null;
+  /** The batch item an assessment stands for, so outcomes stay keyed by the batch. */
+  const baseIdOf = useCallback(
+    (assessment: CourseQualityAssessment) =>
+      items.find(
+        (candidate) =>
+          candidate.id === assessment.id ||
+          refreshed[candidate.id]?.id === assessment.id,
+      )?.id ?? assessment.id,
+    [items, refreshed],
+  );
   const decidedCount = items.filter((item) =>
     isDecided(outcomes[item.id]),
   ).length;
@@ -641,6 +671,7 @@ const CourseQualityReviewMode: NextPageWithLayout<{
   const startBatch = useCallback((exclude: string[]) => {
     excludedRef.current = new Set(exclude);
     setSkippedEarlier(exclude);
+    setRefreshed({});
     movedByUser.current = false;
     setOutcomes({});
     setIndex(0);
@@ -675,12 +706,12 @@ const CourseQualityReviewMode: NextPageWithLayout<{
   );
 
   const skip = useCallback(() => {
-    if (!current) return;
+    if (!currentBase) return;
     const next = { ...outcomes };
-    if (!isDecided(next[current.id])) next[current.id] = "Skipped";
+    if (!isDecided(next[currentBase.id])) next[currentBase.id] = "Skipped";
     setOutcomes(next);
     goTo(nextOpen(index, next));
-  }, [current, outcomes, goTo, nextOpen, index]);
+  }, [currentBase, outcomes, goTo, nextOpen, index]);
 
   const decisionMutation = useMutation({
     mutationFn: ({
@@ -698,13 +729,14 @@ const CourseQualityReviewMode: NextPageWithLayout<{
         note: input.note,
       }),
     onSuccess: async (_, { item, target }) => {
-      const next = { ...outcomes, [item.id]: target };
+      const baseId = baseIdOf(item);
+      const next = { ...outcomes, [baseId]: target };
       setOutcomes(next);
       setDecision(null);
       toast.success(`Decision saved: ${STATUS_LABELS[target]}`, {
         toastId: "courseQualityDecision",
       });
-      const at = items.findIndex((candidate) => candidate.id === item.id);
+      const at = items.findIndex((candidate) => candidate.id === baseId);
       goTo(nextOpen(at, next));
       // the queue, coverage, grades and partner notes can all change
       await queryClient.invalidateQueries({ queryKey: ["courseQuality"] });
@@ -724,7 +756,13 @@ const CourseQualityReviewMode: NextPageWithLayout<{
   const { mutate: submitDecision, isPending: isDeciding } = decisionMutation;
   const decide = useCallback(
     (target: FinalStatus) => {
-      if (!current || isDeciding || isDecided(outcomes[current.id])) return;
+      if (
+        !current ||
+        !currentBase ||
+        isDeciding ||
+        isDecided(outcomes[currentBase.id])
+      )
+        return;
       setShowHelp(false);
       if (
         target === "Verified" &&
@@ -739,7 +777,7 @@ const CourseQualityReviewMode: NextPageWithLayout<{
           input: { format: null, note: null },
         });
     },
-    [current, outcomes, isDeciding, submitDecision],
+    [current, currentBase, outcomes, isDeciding, submitDecision],
   );
 
   // KEYBOARD: V, N, S, ?
@@ -790,7 +828,7 @@ const CourseQualityReviewMode: NextPageWithLayout<{
   if (resolvedError === 403) return <Unauthorized />;
   if (error) return <InternalServerError />;
 
-  const currentOutcome = current ? outcomes[current.id] : undefined;
+  const currentOutcome = currentBase ? outcomes[currentBase.id] : undefined;
   const progress =
     items.length > 0 ? Math.round((decidedCount / items.length) * 100) : 0;
 
@@ -884,10 +922,10 @@ const CourseQualityReviewMode: NextPageWithLayout<{
             <span className="loading loading-spinner text-gray-dark" />
             <span className="sr-only">Loading courses to review</span>
           </div>
-        ) : current ? (
+        ) : current && currentBase ? (
           <div className="overflow-x-clip">
             <div
-              key={current.id}
+              key={currentBase.id}
               className={`motion-safe:[animation-duration:320ms] ${
                 direction === "forward"
                   ? "motion-safe:animate-slide-in-right"
@@ -898,6 +936,21 @@ const CourseQualityReviewMode: NextPageWithLayout<{
                 item={current}
                 headingRef={headingRef}
                 showDropOff={pathwayEnabled}
+                configuredModel={configuredModel}
+                onAssessed={(assessment) => {
+                  const baseId = currentBase.id;
+                  setRefreshed((value) => ({ ...value, [baseId]: assessment }));
+                  toast.success(
+                    "AI check finished: the card shows the result",
+                    {
+                      toastId: "courseQualityAICheck",
+                    },
+                  );
+                  // the usage panel, queue and coverage can change; the batch has its own root
+                  void queryClient.invalidateQueries({
+                    queryKey: ["courseQuality"],
+                  });
+                }}
               />
             </div>
           </div>

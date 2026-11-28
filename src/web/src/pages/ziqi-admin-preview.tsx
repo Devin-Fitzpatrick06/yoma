@@ -1,9 +1,29 @@
 import { type GetServerSideProps } from "next";
 import Head from "next/head";
-import type { ReactElement, ReactNode } from "react";
+import { useState, type ReactElement, type ReactNode } from "react";
+import type { CourseQualityAssessment } from "~/api/models/courseQuality";
 import { Header } from "~/components/Common/Header";
+import {
+  AI_SUMMARY_FIXTURE,
+  AI_USAGE_EMPTY_FIXTURE,
+  AI_USAGE_LOCAL_FIXTURE,
+  AI_USAGE_NOT_CONFIGURED_FIXTURE,
+  AI_USAGE_REMOTE_PRICED_FIXTURE,
+  AI_USAGE_REMOTE_UNPRICED_FIXTURE,
+  AI_USAGE_SUMMARY_FIXTURE,
+  aiCheckAssessmentFixture,
+} from "~/components/CourseQuality/AIUsage.fixtures";
+import AIUsageCheck from "~/components/CourseQuality/AIUsageCheck";
+import AIUsagePanel from "~/components/CourseQuality/AIUsagePanel";
 import DropOffSlot from "~/components/CourseQuality/DropOffSlot";
 import { collectingDropOff } from "~/components/CourseQuality/DropOffSlot.model";
+import {
+  fakeLinkHealthCheck,
+  LINK_HEALTH_FIXTURE_URLS,
+  LINK_HEALTH_REPORT_FIXTURE,
+} from "~/components/CourseQuality/LinkHealth.fixtures";
+import LinkHealthChecker from "~/components/CourseQuality/LinkHealthChecker";
+import LinkHealthGuide from "~/components/CourseQuality/LinkHealthGuide";
 import PathwayHealthPanel from "~/components/CourseQuality/PathwayHealthPanel";
 import { PATHWAY_HEALTH_COLLECTING_FIXTURE } from "~/components/CourseQuality/PathwayHealthPanel.fixtures";
 import MainLayout from "~/components/Layout/Main";
@@ -17,8 +37,10 @@ import type { NextPageWithLayout } from "~/pages/_app";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ziqi iteration 4 fixtures without the API or a sign-in: the YoID "My path" card (W3) and the
-// admin pathway health panel and drop-off slot (W5). Available in development and when the
-// Course Quality demo is on (NEXT_PUBLIC_COURSE_QUALITY_DEMO=true); a 404 otherwise.
+// admin pathway health panel and drop-off slot (W5). Iteration 5 adds the reviewer card's AI
+// check, the admin AI usage panel and the link health page, with a fake AI run and a fake link
+// checker. Available in development and when the Course Quality demo is on
+// (NEXT_PUBLIC_COURSE_QUALITY_DEMO=true); a 404 otherwise.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const getServerSideProps: GetServerSideProps = async () => {
@@ -56,6 +78,51 @@ const PreviewSection: React.FC<{
     {children}
   </section>
 );
+
+const PreviewCard: React.FC<{ label: string; children: ReactNode }> = ({
+  label,
+  children,
+}) => (
+  <div className="flex min-w-0 flex-col gap-2 rounded-2xl bg-white p-4 shadow-sm">
+    <p className="text-gray-dark text-xs font-semibold tracking-wide uppercase">
+      {label}
+    </p>
+    {children}
+  </div>
+);
+
+const FAKE_AI_RUN_MS = 4000;
+
+/** "Run AI check" on the preview: waits a few seconds, then answers with the local fixture. */
+const fakeAICheck = async (
+  opportunityId: string,
+): Promise<CourseQualityAssessment> => {
+  await new Promise((resolve) => setTimeout(resolve, FAKE_AI_RUN_MS));
+  return {
+    ...aiCheckAssessmentFixture(
+      {
+        ...AI_USAGE_LOCAL_FIXTURE,
+        durationMs: FAKE_AI_RUN_MS,
+        dateRun: new Date().toISOString(),
+      },
+      AI_SUMMARY_FIXTURE,
+    ),
+    opportunityId,
+  };
+};
+
+const RunnableAICheck: React.FC = () => {
+  const [item, setItem] = useState(() => aiCheckAssessmentFixture(null, null));
+  return (
+    <AIUsageCheck
+      item={item}
+      configuredModel="qwen2.5:3b on localhost:11434"
+      run={fakeAICheck}
+      onAssessed={setItem}
+      headingLevel="h4"
+    />
+  );
+};
 
 const ZiqiAdminPreview: NextPageWithLayout = () => (
   <>
@@ -106,6 +173,80 @@ const ZiqiAdminPreview: NextPageWithLayout = () => (
         <div className="flex max-w-md flex-col gap-2 rounded-2xl bg-white p-4 shadow-sm">
           <DropOffSlot dropOff={collectingDropOff()} showDetail={true} />
         </div>
+      </PreviewSection>
+
+      <PreviewSection
+        title="Reviewer card: AI check"
+        description="In reviewer mode, under Checks: the model, host, tokens, cost, time and outcome of the run. Run AI check here waits a few seconds and answers with example data."
+      >
+        <div className="grid gap-4 md:grid-cols-2">
+          <PreviewCard label="Local model, answered">
+            <AIUsageCheck
+              item={aiCheckAssessmentFixture(
+                AI_USAGE_LOCAL_FIXTURE,
+                AI_SUMMARY_FIXTURE,
+              )}
+              headingLevel="h4"
+            />
+          </PreviewCard>
+          <PreviewCard label="Remote model with a price">
+            <AIUsageCheck
+              item={aiCheckAssessmentFixture(
+                AI_USAGE_REMOTE_PRICED_FIXTURE,
+                AI_SUMMARY_FIXTURE,
+              )}
+              headingLevel="h4"
+            />
+          </PreviewCard>
+          <PreviewCard label="Remote model, no price, reply not in the format">
+            <AIUsageCheck
+              item={aiCheckAssessmentFixture(
+                AI_USAGE_REMOTE_UNPRICED_FIXTURE,
+                null,
+              )}
+              headingLevel="h4"
+            />
+          </PreviewCard>
+          <PreviewCard label="No AI ran yet: try Run AI check">
+            <RunnableAICheck />
+          </PreviewCard>
+        </div>
+      </PreviewSection>
+
+      <PreviewSection
+        title="Admin: AI usage"
+        description="On the Ziqi reviewer queue: the configured model, totals and recent runs; then no runs yet, and no model configured."
+      >
+        <AIUsagePanel
+          summary={AI_USAGE_SUMMARY_FIXTURE}
+          isLoading={false}
+          isError={false}
+        />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <AIUsagePanel
+            summary={AI_USAGE_EMPTY_FIXTURE}
+            isLoading={false}
+            isError={false}
+          />
+          <AIUsagePanel
+            summary={AI_USAGE_NOT_CONFIGURED_FIXTURE}
+            isLoading={false}
+            isError={false}
+          />
+        </div>
+      </PreviewSection>
+
+      <PreviewSection
+        title="Admin: Link health"
+        description="/admin/course-quality/links. Check links here too: a fake checker answers from the address alone and fetches nothing."
+      >
+        <LinkHealthChecker
+          check={fakeLinkHealthCheck}
+          initialText={LINK_HEALTH_FIXTURE_URLS.join("\n")}
+          initialPlatform="YouthHub (example)"
+          initialReport={LINK_HEALTH_REPORT_FIXTURE}
+        />
+        <LinkHealthGuide />
       </PreviewSection>
     </div>
   </>
