@@ -1,6 +1,7 @@
 # PathFinder: connected journey patch (for Anagha)
 
-Two commits on top of `anaghataneja-stack/pathfinder-prototype` `main` at `69d9f57`. They make PathFinder Phase 2 of
+Four commits on top of `anaghataneja-stack/pathfinder-prototype` `main` at `69d9f57`: the journey (0001, 0002) and a
+fix round after the four-app end-to-end test (0003, 0004). They make PathFinder Phase 2 of
 the four-prototype journey (Ziqi → PathFinder → SkillLens → YoCV → back to the listing), following the shared
 journey contract v1 (`journey-contract.md`, in the course-quality-judger folder two levels up from here).
 
@@ -8,6 +9,8 @@ journey contract v1 (`journey-contract.md`, in the course-quality-judger folder 
 | --- | --- |
 | `0001-feat-connected-journey-contract-v1-SkillLens-link-Yo.patch` | feat: connected journey (contract v1): SkillLens link, YoID thread, back to the listing |
 | `0002-docs-connected-journey-setup-demo-link-and-test-resu.patch` | docs: connected journey setup, demo link and test results |
+| `0003-fix-journey-Test-as-is-Halima-from-the-shared-mock-d.patch` | fix: journey "Test as" is Halima from the shared mock data, not Amina |
+| `0004-docs-journey-persona-fix-and-test-counts-107-unit-24.patch` | docs: journey persona fix and test counts (107 unit, 24 browser) |
 
 ## What changes
 
@@ -43,6 +46,23 @@ Only when the page is opened with `journey=demo`. Without it PathFinder behaves 
 - **Docs:** COHESION.md section 6, DEMO.md (the journey link), TESTING.md and README (new numbers, the setting),
   `.env.example`, and a short update at the end of HANDOFF.md.
 
+## Fix round after the end-to-end test (0003, 0004)
+
+The four apps were run end to end, Ziqi to YoCV and back. One PathFinder defect:
+
+- **"Test as" showed Amina in Halima's journey.** With `journey=demo` the control bar had **Amina** selected and the
+  Yoma profile panel said "Sample profile for Amina". Now a **Halima** persona (hidden outside the journey) is
+  selected, filled by `loadJourney()` from the shared mock data: "Halima · 20 · Kaduna · phone repair", and the panel
+  says "Sample profile for Halima Yusuf: 3 credentials". After "Yes, use my profile" it lists the credentials she
+  holds when the plan is made: those issued before the Learning Plan (`createdOn`) and not self-declared, that is
+  Digital Literacy Essentials, Community Tree Planting Day and Customer Service Basics. The solar and safety
+  credentials come later in the journey, so they are not there yet. The plan is unchanged (P2E, P2E, Yoma,
+  WhatsApp / SMS). Without `journey=demo`, Amina is still the default and the Halima button is hidden.
+- Tests: a unit test for `journeyPersona()` in `test/journey.test.mjs`; the e2e journey scenario checks the selected
+  persona and the panel, and the no-journey scenario checks Amina and the hidden button.
+- Checked (D6): **Continue to SkillLens** is Yoma blue `#4cade9` with purple `#41204b` text. "Back to the listing" in
+  the YoID strip is a text link (purple), not a button.
+
 ## Decisions you may want to change
 
 - **"Recorded" respects the Skills Backpack.** The Learning Plan shows as recorded (strip and tick line) only once the
@@ -67,7 +87,7 @@ git am /path/to/patches/pathfinder/*.patch
 ## How to test
 
 ```bash
-npm test                    # 106 unit and API tests (was 98)
+npm test                    # 107 unit and API tests (was 98)
 npm run e2e                 # 24 browser scenarios (was 23); needs Playwright and Chromium
 PORT=4173 NEXT_PROTOTYPE_URL=http://localhost:3001/demo/p2e node serve.mjs
 ```

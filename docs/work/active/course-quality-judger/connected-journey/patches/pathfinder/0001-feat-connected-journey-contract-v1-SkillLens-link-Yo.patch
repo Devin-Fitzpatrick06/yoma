@@ -1,7 +1,7 @@
 From 0a2e018fa345ec11a1459a1bac9fe088f7ad7758 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 28 Nov 2026 02:52:01 +0000
-Subject: [PATCH 1/2] feat: connected journey (contract v1): SkillLens link,
+Subject: [PATCH 1/4] feat: connected journey (contract v1): SkillLens link,
  YoID thread, back to the listing
 
 Only with ?journey=demo; without it PathFinder behaves as before.

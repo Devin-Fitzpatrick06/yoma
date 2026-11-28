@@ -1,0 +1,144 @@
+From 2d4c3c453b6b1465c5b46c449dde4a6f98eb1609 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 03:32:36 +0000
+Subject: [PATCH 3/4] fix: journey "Test as" is Halima from the shared mock
+ data, not Amina
+
+With ?journey=demo the control bar showed Amina selected and the Yoma
+profile panel said "Sample profile for Amina" while Halima's journey ran.
+
+- A Halima persona (hidden outside the journey), filled by loadJourney()
+  from the shared mock data: Halima Yusuf, 20, Kaduna, phone repair, and
+  the credentials she holds when the plan is made (issued before the
+  Learning Plan, not self-declared).
+- In the journey she is selected and the profile panel says "Sample
+  profile for Halima Yusuf".
+- Tests: unit test for journeyPersona(); the e2e journey scenario checks
+  the selected persona and the profile panel.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ e2e/scenarios.mjs     |  8 ++++++++
+ pathfinder.html       | 21 +++++++++++++++++++--
+ test/journey.test.mjs | 19 +++++++++++++++++++
+ 3 files changed, 46 insertions(+), 2 deletions(-)
+
+diff --git a/e2e/scenarios.mjs b/e2e/scenarios.mjs
+index 7fc4fdf..2b5910c 100644
+--- a/e2e/scenarios.mjs
++++ b/e2e/scenarios.mjs
+@@ -436,8 +436,15 @@ await scenario('Journey (team shared mock data): Ziqi hands over the Saved Oppor
+   const states = async () => (await bar.locator('li').allInnerTexts()).map(x => x.replace('✓', '').replace(/\s+/g, ' ').trim());
+   assert((await states()).join('|') === 'Saved Opportunity recorded|Learning Plan in progress|Skill Credential next|Job Application next', 'thread before the plan: ' + await states());
+   assert(await bar.locator('a.jback').getAttribute('href') === LISTING && await bar.locator('a.jback').innerText() === 'Back to the listing', 'Back to the listing link should use return');
++  // "Test as" is the journey's persona, Halima from the shared mock data, not Amina
++  const pressed = page.locator('#persona button[aria-pressed="true"]');
++  assert(await pressed.count() === 1 && /^Halima\s*20 · Kaduna · phone repair$/.test((await pressed.innerText()).trim()), 'Test as should be Halima: ' + await pressed.allInnerTexts());
++  assert(/Sample profile for Halima Yusuf: 3 credentials/.test(await page.locator('#p-profile').innerText()), 'profile should be Halima\'s: ' + await page.locator('#p-profile').innerText());
++  assert(!/Amina/.test(await page.locator('#p-profile').innerText()), 'no Amina in the journey');
+   await tap(page, 'English'); await tap(page, '20'); await tap(page, 'Yes, use my profile'); await tap(page, 'Skip');
+   await waitChat(page, /Which state do you live in/);   // the goal came from Phase 1, so it isn't asked again
++  const prof = await page.locator('#p-profile').innerText();
++  assert(/Digital Literacy Essentials/.test(prof) && /Customer Service Basics/.test(prof) && !/Solar PV/.test(prof), 'Halima\'s credentials read with consent: ' + prof);
+   await tap(page, 'Another state'); await tap(page, '6–10 hours'); await tap(page, 'Very little'); await tap(page, 'Quick');
+   await page.waitForSelector('.opts button:has-text("Save my plan")', { timeout: 20000 });
+   const plan = await page.locator('.plan').last().innerText();
+@@ -471,6 +478,7 @@ await scenario('Journey: a return URL that is not http(s) is ignored; without jo
+   await page.goto(journeyApp + '/');
+   await page.waitForSelector('.opts button', { timeout: 10000 });
+   assert(await page.locator('#journey-bar').isHidden(), 'the YoID thread is only for the journey');
++  assert(await page.locator('#persona button[data-v="halima"]').isHidden() && /^Amina/.test(await page.locator('#persona button[aria-pressed="true"]').innerText()), 'outside the journey, Halima is hidden and Amina is the default');
+   assert(!page.errors.length, page.errors.join('; '));
+   await ctx.close();
+ });
+diff --git a/pathfinder.html b/pathfinder.html
+index 836776f..a8dc691 100644
+--- a/pathfinder.html
++++ b/pathfinder.html
+@@ -240,6 +240,7 @@ a.next-proto.jc-btn{background:var(--yoma-blue);color:var(--yoma-purple);justify
+   <div class="controls">
+     <div class="ctl"><span>Test as</span>
+       <div class="seg" id="persona">
++        <button data-v="halima" aria-pressed="false" hidden>Halima<small id="halima-sub">Journey persona</small></button>
+         <button data-v="amina" aria-pressed="true">Amina<small>17 · Kano · 1 P2E course</small></button>
+         <button data-v="tunde" aria-pressed="false">Tunde<small>21 · Lagos · 2 P2E courses</small></button>
+         <button data-v="new" aria-pressed="false">New user<small>No Yoma record</small></button>
+@@ -368,7 +369,8 @@ const TYPE_LABEL = {other:'Opportunity',job:'Job',learnership:'Learnership',appr
+ const PERSONAS = {
+   amina:{name:'Amina',creds:[{title:'Digital Literacy Essentials',src:'Passport to Earning',skills:['digital-basics','online-safety']}]},
+   tunde:{name:'Tunde',creds:[{title:'Digital Literacy Essentials',src:'Passport to Earning',skills:['digital-basics','online-safety']},{title:'Get Job-Ready: Work Readiness',src:'Passport to Earning',skills:['cv','interview','comms','teamwork']}]},
+-  new:{name:'Young person #4821',creds:[]}
++  new:{name:'Young person #4821',creds:[]},
++  halima:{name:'Halima',full:'Halima Yusuf',creds:[]}   // the connected journey's persona; filled from the shared mock data by loadJourney()
+ };
+ const STATES = {lagos:'Lagos',kano:'Kano',fct:'FCT Abuja',oyo:'Oyo',rivers:'Rivers',other:'another state',online:'online only'};
+ const FAC = {kano:'Hauwa at the Kano partner centre',lagos:'Tolu at the Yaba partner centre',fct:'Chinedu at the Abuja partner centre',oyo:'Bisi at the Ibadan partner centre',rivers:'Ibim at the Port Harcourt partner centre'};
+@@ -1391,6 +1393,7 @@ async function loadJourney(){
+         minAge: 18, skills: [...(o.mustHave || []), ...(o.canLearn || [])], sectors: [yp.sector], openEnded: true, sample: true, scam: !!o.scam,
+         link: o.link || 'https://yoma.world/opportunities', informal: {earnNow: false, phoneOnly: false, noCert: true}});
+       JOURNEY.yoid = q.get('yoid') || yp.yoidId;
++      journeyPersona(d);
+       JOURNEY.in = {from: 'Ziqi', who: yp.displayName, goal: yp.goal, goalText: yp.goalText, sector: yp.sector, planId: lp.id,
+         listing: {...opp(job), verified: true}, course: course(byId(step('start').opportunityId)), learnCourse: course(byId(step('learn').opportunityId)),
+         handoffCourseId: d.skillChallenge && d.skillChallenge.afterCourse,
+@@ -1403,6 +1406,20 @@ async function loadJourney(){
+   } catch {}
+ }
+ const goalText = g => lbl(O.goal.find(o => o.v === g) || O.goal[0]);
++// In the journey, "Test as" is Halima from the shared mock data, not Amina: her name, and the credentials she already
++// holds when the plan is made (issued before the Learning Plan, not self-declared; the course and SkillLens ones come later).
++function journeyPersona(d){
++  const yp = d.youngPerson, org = id => (d.partners.find(p => p.id === id) || {}).name || id;
++  const before = (d.learningPlan && d.learningPlan.createdOn) || '9999-12-31';
++  PERSONAS.halima = {name: yp.firstName, full: `${yp.firstName} ${yp.lastName}`,
++    creds: (d.credentials || []).filter(c => c.issuer !== 'self' && c.issuedOn && c.issuedOn < before)
++      .map(c => ({title: c.title, src: org(c.issuer), skills: c.skills || []}))};
++  persona = 'halima';
++  const state = yp.state ? yp.state[0].toUpperCase() + yp.state.slice(1) : '';
++  const work = (yp.informalSkills || [])[0] === 'phone-repair' ? 'phone repair' : '';
++  const sub = document.getElementById('halima-sub'); if (sub) sub.textContent = [yp.age, state, work].filter(Boolean).join(' · ');
++  document.querySelectorAll('#persona button').forEach(b => { if (b.dataset.v === 'halima') b.hidden = false; b.setAttribute('aria-pressed', b.dataset.v === 'halima'); });
++}
+ function handoffHTML(m){
+   if (JOURNEY.demo) return journeyCardHTML(m);
+   if (m.dir === 'in') return `<div class="handoff"><span class="tag t-apply">${esc(t('handoffFrom', {name: m.from}))} · Phase 1</span>
+@@ -1758,7 +1775,7 @@ function renderPanel(){
+       <div class="chips" style="margin-top:8px">${S.yoma.names.map(n => `<span class="chip have">${esc(n)}</span>`).join('')}</div>` : `<h3>Yoma profile <em>${S.consent === null ? 'not asked yet' : S.consent ? 'read with consent (sample)' : 'not shared'}</em></h3>
+     ${S.consent ? (P.creds.length ? `<ul class="ex">${P.creds.map(c => `<li><span>${esc(c.title)}</span><span style="color:var(--ok)">${esc(c.src)}</span></li>`).join('')}</ul>
+       <div class="chips" style="margin-top:10px">${[...held()].map(k => `<span class="chip have">${esc(SK[k])}</span>`).join('')}</div>` : '<p class="empty-note">No credentials on this profile yet.</p>')
+-      : `<p class="empty-note">${S.consent === false ? 'The user chose not to share. Pathfinder plans from their answers only.' : `Sample profile for ${esc(P.name)}: ${P.creds.length} credential${P.creds.length === 1 ? '' : 's'}. Pathfinder asks before reading it.`}</p>`}
++      : `<p class="empty-note">${S.consent === false ? 'The user chose not to share. Pathfinder plans from their answers only.' : `Sample profile for ${esc(P.full || P.name)}: ${P.creds.length} credential${P.creds.length === 1 ? '' : 's'}. Pathfinder asks before reading it.`}</p>`}
+     <p class="empty-note" style="margin-top:10px"><b>Skills Backpack (YoID)</b>: ${S.backpack === true ? 'activated' : S.backpack === false ? (S.age !== null && S.age < 16 ? 'not offered (YoID starts at 16)' : 'declined, nothing written') : `not asked yet${S.yoidQueue && S.yoidQueue.length ? ` · ${S.yoidQueue.length} record waiting for consent` : ''}`}</p>
+     ${S.yoid && S.yoid.length ? `<p class="empty-note" style="margin-top:10px"><b>YoID records</b> (mocked writes for the prototype):</p>
+       <ul class="ex">${S.yoid.map(r => `<li><span>${esc(r.type)}${r.title ? ': ' + esc(r.title) : r.n ? ' (' + esc(r.n) + ')' : ''}</span><span style="color:var(--ok)">${esc(r.at.slice(0, 10))}</span></li>`).join('')}</ul>` : ''}
+diff --git a/test/journey.test.mjs b/test/journey.test.mjs
+index 7f15270..4d25fc8 100644
+--- a/test/journey.test.mjs
++++ b/test/journey.test.mjs
+@@ -71,3 +71,22 @@ test('the app uses the contract\'s exact wording, and the journey link opens in
+   assert.ok(!/target=/.test(link), 'the journey link must open in the same tab');
+   assert.match(html, /<script src="engine\/journey\.js"><\/script>/);
+ });
++
++test('in the journey, "Test as" is Halima from the shared mock data, with the credentials she holds before the plan', () => {
++  const data = JSON.parse(readFileSync(new URL('../mockups/shared-mock-data.json', import.meta.url), 'utf8'));
++  const fn = html.match(/function journeyPersona\(d\)\{[\s\S]*?\n\}/)[0];
++  const buttons = ['halima', 'amina', 'tunde', 'new'].map(v => ({dataset: {v}, hidden: v === 'halima', pressed: null, setAttribute(k, x) { this.pressed = String(x); }}));
++  const sub = {textContent: ''};
++  const c = vm.createContext({PERSONAS: {amina: {name: 'Amina', creds: []}}, persona: 'amina',
++    document: {getElementById: id => id === 'halima-sub' ? sub : null, querySelectorAll: () => buttons}});
++  vm.runInContext(fn + '\njourneyPersona(' + JSON.stringify(data) + ');', c);
++  assert.equal(c.persona, 'halima');
++  const P = c.PERSONAS.halima;
++  assert.equal(P.name, 'Halima'); assert.equal(P.full, 'Halima Yusuf');
++  assert.deepEqual([...P.creds].map(x => x.title), ['Digital Literacy Essentials', 'Community Tree Planting Day', 'Customer Service Basics']);
++  assert.ok(!P.creds.some(x => /Solar PV|Safely at Height/.test(x.title)), 'credentials earned later in the journey are not on her profile yet');
++  assert.equal(sub.textContent, '20 · Kaduna · phone repair');
++  assert.deepEqual(buttons.map(b => `${b.dataset.v}:${b.pressed}:${b.hidden}`), ['halima:true:false', 'amina:false:false', 'tunde:false:false', 'new:false:false']);
++  assert.match(html, /<button data-v="halima" aria-pressed="false" hidden>/, 'the Halima button is hidden outside the journey');
++  assert.match(html, /Sample profile for \$\{esc\(P\.full \|\| P\.name\)\}/);
++});
+-- 
+2.43.0
+

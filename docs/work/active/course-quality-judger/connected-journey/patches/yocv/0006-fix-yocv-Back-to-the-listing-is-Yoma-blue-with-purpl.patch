@@ -1,0 +1,74 @@
+From 16b34d49bbed2d51e87d92ece34af23682a1635f Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 03:39:43 +0000
+Subject: [PATCH 6/7] fix(yocv): Back to the listing is Yoma blue with purple
+ text
+
+The team decided that every prototype's Continue or Back button in the
+connected journey is Yoma blue #4cade9 with Yoma purple #41204b text.
+YoCV's Back to the listing had ink text, and white on darker blue on
+hover.
+
+- styles.css: purple text (--accent, 5.5:1 on the blue); the hover only
+  brightens the blue, as SkillLens does.
+- Test first in tests/cv-connected-journey.test.cjs.
+- Spec section 6 records the decision.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ .../specs/2026-11-28-yocv-connected-journey-design.md  |  2 +-
+ styles.css                                             |  6 +++---
+ tests/cv-connected-journey.test.cjs                    | 10 ++++++++++
+ 3 files changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md b/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
+index 11f1127..56bf9c3 100644
+--- a/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
++++ b/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
+@@ -48,7 +48,7 @@ Only an absolute `http:` or `https:` return is followed. Anything else hides the
+ 
+ ## 6. Look
+ 
+-White card, purple heading `#41204b`, green recorded text `#387f6a`, blue button `#4cade9`, Nunito headings, Open Sans body, 12 px radius. The blue joins the tokens as `--blue`. The button text is ink, not white, because white on that blue reads at 2.6:1.
++White card, purple heading `#41204b`, green recorded text `#387f6a`, blue button `#4cade9`, Nunito headings, Open Sans body, 12 px radius. The blue joins the tokens as `--blue`. The button text is purple `#41204b` (5.5:1 on the blue), the decision for all four prototypes; it was ink until the end-to-end test of 2026-11-28. Not white, because white on that blue reads at 2.6:1. The hover only brightens the blue a little.
+ 
+ ## 7. Data and copy
+ 
+diff --git a/styles.css b/styles.css
+index ba59438..2952cbc 100644
+--- a/styles.css
++++ b/styles.css
+@@ -70,8 +70,8 @@ body.yocv-app .opportunities{background:none;padding:0;border-radius:0}body.yocv
+ @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+ @media print{html,body,main,#view{background:#ffffff!important}@page{margin:18mm}body{background:#ffffff}body.yocv-app{padding-top:0}body.yocv-app .topbar,body.yocv-app .hero,body.yocv-app #tabs,body.yocv-app #tab-view,body.yocv-app .app-footer,body.yocv-app .step-pills,body.yocv-app .step-title,.topbar,.app-footer,.form-footer,.evidence-record,#toast,dialog,.skip-link,.review-heading,.print-hide,.step-line,.lead,.export-actions,.sample-preview,.opportunities,.action-row,.primary,.secondary,.text-button,.back-link{display:none!important}main,.page{display:block;padding:0;margin:0;min-height:0;max-width:none}.cv-paper{border:0;border-radius:0;padding:0}.cv-entry{break-inside:avoid}}
+ #show-qr-body{text-align:center}.show-qr-img{display:block;width:min(80vw,320px);height:auto;aspect-ratio:1;margin:0 auto 12px;background:#ffffff;padding:12px;border-radius:12px;border:1px solid var(--line)}.show-qr-code{font-size:20px}
+-/* The connected journey (journey contract v1): the handoff card and the YoID thread in Yoma's colours, the same in all four prototypes. Card white (--panel), heading purple (--accent, #41204b), recorded green (--green, #387f6a), button blue (--blue, #4cade9). The button text is ink, not white: white on that blue reads at 2.6:1. */
+-.journey-card{background:var(--panel);border-radius:12px;box-shadow:var(--shadow);padding:16px;margin:0 0 16px;font-family:"Open Sans",system-ui,sans-serif;border-top:4px solid var(--accent)}.journey-eyebrow{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:4px}.journey-title{font-family:"Nunito",system-ui,sans-serif;font-size:20px;color:var(--accent);margin:0 0 8px;overflow-wrap:anywhere}.journey-title strong{font-weight:900;display:block}.journey-item{display:block;font-family:"Open Sans",system-ui,sans-serif;font-size:16px;font-weight:600;color:var(--ink)}.journey-recorded{color:var(--green);font-weight:700;margin-top:8px}.claim-card .journey-card{margin:16px 0 0}.journey-card .journey-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 20px;margin-top:8px;border-radius:8px;background:var(--blue);color:var(--ink);font-family:"Nunito",system-ui,sans-serif;font-weight:800;text-decoration:none}.journey-card .journey-button:hover{background:var(--blue-dark);color:var(--panel)}
++/* The connected journey (journey contract v1): the handoff card and the YoID thread in Yoma's colours, the same in all four prototypes. Card white (--panel), heading purple (--accent, #41204b), recorded green (--green, #387f6a), button blue (--blue, #4cade9) with purple text (--accent, #41204b), the team's decision for all four prototypes. Not white: white on that blue reads at 2.6:1. */
++.journey-card{background:var(--panel);border-radius:12px;box-shadow:var(--shadow);padding:16px;margin:0 0 16px;font-family:"Open Sans",system-ui,sans-serif;border-top:4px solid var(--accent)}.journey-eyebrow{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:4px}.journey-title{font-family:"Nunito",system-ui,sans-serif;font-size:20px;color:var(--accent);margin:0 0 8px;overflow-wrap:anywhere}.journey-title strong{font-weight:900;display:block}.journey-item{display:block;font-family:"Open Sans",system-ui,sans-serif;font-size:16px;font-weight:600;color:var(--ink)}.journey-recorded{color:var(--green);font-weight:700;margin-top:8px}.claim-card .journey-card{margin:16px 0 0}.journey-card .journey-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 20px;margin-top:8px;border-radius:8px;background:var(--blue);color:var(--accent);font-family:"Nunito",system-ui,sans-serif;font-weight:800;text-decoration:none}.journey-card .journey-button:hover{filter:brightness(1.05)}
+ .journey-thread{background:var(--panel);border-radius:12px;box-shadow:var(--shadow);padding:12px 16px;margin:0 0 16px}.journey-thread-label{font-family:"Nunito",system-ui,sans-serif;font-weight:800;font-size:14px;color:var(--accent);margin-bottom:8px}.journey-thread ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.journey-step{display:flex;flex-direction:column;gap:2px;padding:8px;border-radius:8px;background:var(--page);border-top:3px solid var(--line);font-size:14px}.journey-step-name{font-weight:700;color:var(--ink);overflow-wrap:anywhere}.journey-step-state{font-weight:600}.journey-step.recorded{border-top-color:var(--green)}.journey-step.recorded .journey-step-state{color:var(--green)}.journey-step.in-progress{border-top-color:var(--accent);background:var(--accent-tint)}.journey-step.in-progress .journey-step-state{color:var(--accent)}.journey-step.next .journey-step-name,.journey-step.next .journey-step-state{color:var(--muted)}
+-body.yocv-app #view a.journey-button{color:var(--ink)}body.yocv-app #view a.journey-button:hover{color:var(--panel)}
++body.yocv-app #view a.journey-button{color:var(--accent)}body.yocv-app #view a.journey-button:hover{color:var(--accent)}
+ @media(max-width:640px){.journey-thread ol{grid-template-columns:1fr 1fr}}
+diff --git a/tests/cv-connected-journey.test.cjs b/tests/cv-connected-journey.test.cjs
+index 9e161c2..446873c 100644
+--- a/tests/cv-connected-journey.test.cjs
++++ b/tests/cv-connected-journey.test.cjs
+@@ -124,3 +124,13 @@ test('the journey\'s job picks its target role, Solar installation assistant, fr
+   assert.equal(journeyRole(journeyParams('?journey=demo&from=skilllens'),JOURNEY,roles),'','no listing param, no role');
+   assert.equal(journeyRole(journeyParams(LINK),JOURNEY,[{name:'Market seller'}]),'','a role not on the menu is not picked');
+ });
++
++test('the Back to the listing button is Yoma blue with Yoma purple text, as in the other three prototypes',()=>{
++  const css=read('styles.css');
++  assert.match(css,/--blue:#4cade9/i);assert.match(css,/--accent:#41204b/i);
++  const rule=/\.journey-card \.journey-button\{([^}]*)\}/.exec(css)[1];
++  assert.match(rule,/background:var\(--blue\)/);assert.match(rule,/(^|;)color:var\(--accent\)/);
++  const hover=/\.journey-card \.journey-button:hover\{([^}]*)\}/.exec(css)[1];
++  assert.ok(!/background:/.test(hover)&&!/color:var\(--panel\)/.test(hover),'hover keeps blue and purple');
++  for(const [,body] of css.matchAll(/a\.journey-button(?::hover)?\{([^}]*)\}/g))assert.match(body,/color:var\(--accent\)/,'the #view override keeps purple too');
++});
+-- 
+2.43.0
+

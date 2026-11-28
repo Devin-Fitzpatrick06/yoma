@@ -1,0 +1,128 @@
+From 4e05f9aa7d8209e92765233c7a0975237f9ffd81 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 03:34:24 +0000
+Subject: [PATCH 3/6] fix: journey plan card ends with PathFinder's WhatsApp /
+ SMS check-in (4 rows)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+PathFinder's journey plan shows 4 steps, the last the weekly check-in; the
+SkillLens plan card showed the shared plan-001's 3. With journey=demo the
+card now adds the check-in as row 4, worded as PathFinder shows it
+("Check-in · WhatsApp / SMS", "Weekly check-in on WhatsApp or SMS").
+Without journey=demo the card is unchanged.
+
+- lib/journey.ts: CHECK_IN wording; test in lib/journey.test.ts
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ app/demo/p2e/HostDemo.tsx | 20 ++++++++++++++++----
+ lib/journey.test.ts       | 12 ++++++++++--
+ lib/journey.ts            | 11 +++++++++++
+ 3 files changed, 37 insertions(+), 6 deletions(-)
+
+diff --git a/app/demo/p2e/HostDemo.tsx b/app/demo/p2e/HostDemo.tsx
+index b4f2d73..20c46e9 100644
+--- a/app/demo/p2e/HostDemo.tsx
++++ b/app/demo/p2e/HostDemo.tsx
+@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
+ import coursesJson from "../../../data/synthetic/courses.json";
+ import { Icon } from "../../../components/Icon";
+ import { HandoffCard, JourneyThread } from "../../../components/Journey";
+-import { ARRIVING, LEAVING_TO, OWN, PHASE_N, threadLabel, threadStates, type Journey } from "../../../lib/journey";
++import { ARRIVING, CHECK_IN, LEAVING_TO, OWN, PHASE_N, threadLabel, threadStates, type Journey } from "../../../lib/journey";
+ import { challenge, learner, opportunity, partnerName, plan, SOLAR_COURSE } from "../../../lib/shared";
+ import type { PracticeSample } from "../../../lib/schema";
+ import type { HandoffRecord } from "../../../lib/yoid";
+@@ -70,8 +70,11 @@ function ViewToggle({ view, onChange }: { view: View; onChange: (v: View) => voi
+   );
+ }
+ 
+-/** The handoff item that arrives from PathFinder: Halima's Learning Plan, with this course as the current step. */
+-function LearningPlan() {
++/**
++ * The handoff item that arrives from PathFinder: Halima's Learning Plan, with this course as the current step.
++ * In the journey it ends with PathFinder's weekly WhatsApp / SMS check-in, so it matches the plan PathFinder showed.
++ */
++function LearningPlan({ checkIn = false }: { checkIn?: boolean }) {
+   return (
+     <section aria-labelledby="plan" className="card-brand space-y-2 text-left">
+       <p className="text-sm font-semibold text-brand">Learning Plan {plan.id} · from {plan.createdBy}</p>
+@@ -87,6 +90,15 @@ function LearningPlan() {
+             </li>
+           );
+         })}
++        {checkIn && (
++          <li className="flex items-start gap-2 rounded-xl p-2 text-sm">
++            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-paper text-brand">{plan.steps.length + 1}</span>
++            <span>
++              <span className="text-xs font-semibold text-brand">{CHECK_IN.tag} · {CHECK_IN.platform}</span><br />
++              {CHECK_IN.title}<br /><span className="font-normal text-muted">{CHECK_IN.why}</span>
++            </span>
++          </li>
++        )}
+       </ol>
+     </section>
+   );
+@@ -231,7 +243,7 @@ export default function HostDemo({ journey, yocvHref }: Props) {
+             <h1 className={`text-brand ${wide ? "text-5xl" : "text-3xl"}`}>Course complete</h1>
+             <p className="chip inline-block">{course.title}{solar && ` · ${partnerName("org-p2e")}`}</p>
+             <p>Well done, {learner.displayName.split(" ")[0]}! You finished all the lessons.</p>
+-            {solar && <LearningPlan />}
++            {solar && <LearningPlan checkIn={!!journey} />}
+           </div>
+           <div className="space-y-4">
+             <section className={`rounded-3xl bg-brand p-5 text-paper ${wide ? "p-8" : ""}`}>
+diff --git a/lib/journey.test.ts b/lib/journey.test.ts
+index 39cb189..bcc3b2f 100644
+--- a/lib/journey.test.ts
++++ b/lib/journey.test.ts
+@@ -1,7 +1,7 @@
+ import { afterEach, describe, expect, it, vi } from "vitest";
+ import { courses } from "./data";
+-import { DEFAULT_YOCV_URL, parseJourney, safeReturn, threadLabel, threadStates, yocvLink } from "./journey";
+-import { learner } from "./shared";
++import { CHECK_IN, DEFAULT_YOCV_URL, parseJourney, safeReturn, threadLabel, threadStates, yocvLink } from "./journey";
++import { learner, plan } from "./shared";
+ 
+ const LISTING = "http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000301";
+ // Link 2 of the journey contract, as PathFinder builds it.
+@@ -100,3 +100,11 @@ describe("journey contract v1: the YoID thread at phase 3", () => {
+     expect(threadLabel("yoid-ng-7f3a0123")).toBe("YoID · yoid-ng-7f3a0123 · mock-up");
+   });
+ });
++
++describe("journey contract v1: the Learning Plan card", () => {
++  it("adds PathFinder's weekly check-in as the 4th row, worded as PathFinder shows it", () => {
++    expect(plan.steps).toHaveLength(3);
++    expect(`${CHECK_IN.tag} · ${CHECK_IN.platform}`).toBe("Check-in · WhatsApp / SMS");
++    expect(CHECK_IN.title).toBe("Weekly check-in on WhatsApp or SMS");
++  });
++});
+diff --git a/lib/journey.ts b/lib/journey.ts
+index ecdff45..8528e66 100644
+--- a/lib/journey.ts
++++ b/lib/journey.ts
+@@ -24,6 +24,17 @@ export const OWN = PHASES[PHASE_N - 1]; // Skill Credential
+ export const LEAVING_TO = PHASES[PHASE_N]; // YoCV
+ export const RECORDED_LINE = "✓ Recorded on your YoID (mock-up)";
+ 
++/**
++ * The plan's last row in the journey, worded as PathFinder shows it: PathFinder's Learning Plan ends with the weekly
++ * WhatsApp / SMS check-in, which the shared plan-001 (3 steps) does not list. Shown only with journey=demo.
++ */
++export const CHECK_IN = {
++  tag: "Check-in",
++  platform: "WhatsApp / SMS",
++  title: "Weekly check-in on WhatsApp or SMS",
++  why: "Every week PathFinder asks how each step is going, on WhatsApp or by SMS on a basic phone. After two missed check-ins, a facilitator steps in.",
++} as const;
++
+ /** Shared course id → SkillLens course id. Only the plan step SkillLens tests. */
+ export const COURSE_MAP: Record<string, string> = { "opp-course-001": "solar-pv" };
+ /** Shared YoID → the SkillLens sample learner (Halima, yp-001). */
+-- 
+2.43.0
+

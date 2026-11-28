@@ -1,7 +1,7 @@
 From 73ac6f8c739da449a17bf412279b39263547b5f3 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 28 Nov 2026 02:43:58 +0000
-Subject: [PATCH 2/2] docs: connected journey setup, NEXT_PUBLIC_YOCV_URL and
+Subject: [PATCH 2/6] docs: connected journey setup, NEXT_PUBLIC_YOCV_URL and
  progress log
 
 - README: "Connected journey" under The demo, NEXT_PUBLIC_YOCV_URL in the environment table, 112 tests

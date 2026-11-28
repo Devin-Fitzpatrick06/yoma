@@ -1,7 +1,7 @@
 From b9ef866571fdbc2281aa3d4c03244599e7f5bc59 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 28 Nov 2026 02:44:24 +0000
-Subject: [PATCH 2/3] feat(yocv): connected journey cards, YoID thread and the
+Subject: [PATCH 2/7] feat(yocv): connected journey cards, YoID thread and the
  link back to Ziqi
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8

@@ -1,7 +1,7 @@
 From 8f4e71bdfca99de0154b36feaa095ce6ab964c9f Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 28 Nov 2026 02:45:04 +0000
-Subject: [PATCH 3/3] docs(yocv): the connected journey spec, README, slides
+Subject: [PATCH 3/7] docs(yocv): the connected journey spec, README, slides
  and testing log
 
 The spec sets out YoCV's part of journey contract v1: the port, the

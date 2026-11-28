@@ -1,7 +1,7 @@
 From 939f02d460d82a7568ac85bfdd936ab3cd03fb89 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 28 Nov 2026 02:52:01 +0000
-Subject: [PATCH 2/2] docs: connected journey setup, demo link and test results
+Subject: [PATCH 2/4] docs: connected journey setup, demo link and test results
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e

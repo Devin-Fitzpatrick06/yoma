@@ -1,6 +1,7 @@
 # SkillLens: connected journey patch (for Charisse)
 
-Two commits on top of `wongkycharisse/skilllens` `main` at `72699cc`. They make `/demo/p2e` Phase 3 of the
+Six commits on top of `wongkycharisse/skilllens` `main` at `72699cc`: the journey (0001, 0002) and a fix round after
+the four-app end-to-end test (0003 to 0006). They make `/demo/p2e` Phase 3 of the
 four-prototype journey (Ziqi → PathFinder → SkillLens → YoCV → back to the listing), following the shared
 journey contract v1 (`journey-contract.md`, in the course-quality-judger folder two levels up from here).
 
@@ -8,6 +9,10 @@ journey contract v1 (`journey-contract.md`, in the course-quality-judger folder 
 | --- | --- |
 | `0001-feat-connected-journey-on-demo-p2e-journey-contract-.patch` | feat: connected journey on /demo/p2e (journey contract v1, Phase 3) |
 | `0002-docs-connected-journey-setup-NEXT_PUBLIC_YOCV_URL-an.patch` | docs: connected journey setup, NEXT_PUBLIC_YOCV_URL and progress log |
+| `0003-fix-journey-plan-card-ends-with-PathFinder-s-WhatsAp.patch` | fix: journey plan card ends with PathFinder's WhatsApp / SMS check-in (4 rows) |
+| `0004-fix-journey-shows-Halima-Yusuf-as-the-other-prototyp.patch` | fix: journey shows "Halima Yusuf", as the other prototypes do |
+| `0005-fix-journey-credential-shows-the-day-it-is-recorded-.patch` | fix: journey credential shows the day it is recorded, not 2026-12-20 |
+| `0006-docs-progress-log-for-the-connected-journey-fixes.patch` | docs: progress log for the connected journey fixes |
 
 ## What changes
 
@@ -39,9 +44,30 @@ Only when `/demo/p2e` is opened with `journey=demo`. Without it the page renders
 - **Docs:** a new "Connected journey" part in the README, INTEGRATION.md section 9, a row in HANDOVER.md, the new
   variable in `.env.example`, and a new row in the PROGRESS.md log.
 - **Not changed:**
-  - The embed (`/embed/skilllens`), its `postMessage` events and the i18n text "Next: YoCV can show this
-    credential…". The button lives on the host page. A real P2E host that is not part of the journey has no
+  - The embed's `postMessage` events and the i18n text "Next: YoCV can show this
+    credential…". The button lives on the host page. (The fix round below adds one optional `journey=demo` parameter
+    to the embed.) A real P2E host that is not part of the journey has no
     button, so the embed's text stays as it is.
+
+## Fix round after the end-to-end test (0003 to 0006)
+
+The four apps were run end to end, Ziqi to YoCV and back. All three fixes apply only with `journey=demo`; without it
+the page is unchanged.
+
+- **Plan card: 3 steps against PathFinder's 4.** PathFinder's plan ends with the weekly WhatsApp / SMS check-in; the
+  SkillLens card showed only the shared `plan-001`'s 3 steps. The card now adds row 4, worded as PathFinder shows it:
+  "Check-in · WhatsApp / SMS", "Weekly check-in on WhatsApp or SMS", and PathFinder's line about missed check-ins.
+  (`CHECK_IN` in `lib/journey.ts`.)
+- **"Halima Y." where the others say "Halima Yusuf".** The header and the embed's sample banner now use her full name
+  from the shared data (`firstName` + `lastName`, `JOURNEY_NAME`). The host passes `journey=demo` to the embed for
+  this; `lib/shared.ts` now reads `firstName` and `lastName`.
+- **Credential dated 2026-12-20.** The shared `cred-002` has `issuedOn` 2026-12-20, a future date next to YoCV's
+  "November 2026". The credential card now shows the day it is assessed and recorded, formatted like the rest of
+  SkillLens (e.g. "28 Nov 2026"), before and after the YoID write (`credentialDate()` in `lib/journey.ts`). The shared
+  JSON is not edited.
+- 4 new tests in `lib/journey.test.ts` (17 there, 116 in all) and a PROGRESS.md row.
+- Checked (D6): **Continue to YoCV** is Yoma blue `#4cade9` with purple `#41204b` text. "Back to the listing" in the
+  header is a text link, not a button.
 
 ## New setting
 
@@ -60,7 +86,7 @@ git am /path/to/patches/skilllens/*.patch
 
 ```bash
 npm ci
-npm run check              # lint, types, 112 tests, offline eval, build
+npm run check              # lint, types, 116 tests, offline eval, build
 npm run setup              # if you have no .env.local yet (sets PASS_SIGNING_SECRET; without it the dev server
                            # rejects the credential write with 409, because each route has its own random key)
 NEXT_PUBLIC_YOCV_URL=http://localhost:4174 npm run dev -- -p 3001

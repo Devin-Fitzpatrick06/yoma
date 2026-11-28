@@ -1,7 +1,7 @@
 From ad69bd20a1c5ac8efd82207c132d7ef6d9027757 Mon Sep 17 00:00:00 2001
 From: Claude <noreply@anthropic.com>
 Date: Sat, 28 Nov 2026 02:43:58 +0000
-Subject: [PATCH 1/2] feat: connected journey on /demo/p2e (journey contract
+Subject: [PATCH 1/6] feat: connected journey on /demo/p2e (journey contract
  v1, Phase 3)
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8

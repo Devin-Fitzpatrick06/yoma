@@ -1,0 +1,194 @@
+From 38c141f1598f82bffa641e93d0e843133f98a623 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 03:37:21 +0000
+Subject: [PATCH 4/7] fix(yocv): cred-002 uses the contract title, Solar PV
+ Installation Basics
+
+The persona's credential cred-002 was "Solar PV Basics: practical
+challenge passed". The journey contract, SkillLens and the arriving card
+say "Solar PV Installation Basics: practical challenge passed". The
+end-to-end test showed both titles on one journey.
+
+- server/card/personas.json: the contract title.
+- tests/cv-record.test.cjs asserts the new title (failed first).
+- scripts/export-handover.js uses it; handover prompts and cost
+  estimate regenerated with npm run handover.
+- README, demo script, Phase 4 slides, Talent Finder brief and mock-up
+  use it. The spec records that the mismatch is fixed. The testing log
+  keeps its earlier entry as run.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ README.md                                                 | 2 +-
+ docs/new-ideas/talent-finder-brief.md                     | 2 +-
+ .../specs/2026-11-28-yocv-connected-journey-design.md     | 2 +-
+ handover/cost-estimate.md                                 | 8 ++++----
+ handover/prompts/yocv-cv-bullets.md                       | 2 +-
+ mockups/talent-finder/profile.html                        | 2 +-
+ presentation/demo-script.md                               | 2 +-
+ presentation/phase4-slides.md                             | 2 +-
+ scripts/export-handover.js                                | 2 +-
+ server/card/personas.json                                 | 2 +-
+ tests/cv-record.test.cjs                                  | 2 +-
+ 11 files changed, 14 insertions(+), 14 deletions(-)
+
+diff --git a/README.md b/README.md
+index 604766d..6f2c399 100644
+--- a/README.md
++++ b/README.md
+@@ -115,7 +115,7 @@ YoCV, Halima's four steps. Halima Yusuf, 20, fixes phones at her aunt's stall in
+ 
+ The app opens signed in as Halima on the Overview. Open CV.
+ 
+-1. **Confirmed from Yoma.** Her record is already read: five completions and five credentials. **Solar PV Basics: practical challenge passed** carries the tag **Skill Credential, from SkillLens**, the handoff from Phase 3. Choose **Solar installation assistant** and click **Continue to your work**.
++1. **Confirmed from Yoma.** Her record is already read: five completions and five credentials. **Solar PV Installation Basics: practical challenge passed** carries the tag **Skill Credential, from SkillLens**, the handoff from Phase 3. Choose **Solar installation assistant** and click **Continue to your work**.
+ 2. **Your work.** Answer the six questions for **Phone repair and sales** at Kaduna Central Market. What she did: *I fix phones and sell phone accessories at my aunt's stall in the market.* For whom: **customers**. How often: **daily**, since November 2024. The number: **about 20 customers a week**. What was better: *Customers come back to me when their phone breaks again.* Who could confirm it: **a person I can name**. Check the contact line, which the account prefills, and click **Continue to review**.
+ 3. **Review.** Each suggested line sits next to her words, with her number highlighted. Accept, edit or leave out every line and every skill; an edit runs the same checks. Photovoltaic Systems and Digital Literacy carry **Confirmed from Yoma**; Mobile Device Troubleshooting, which she added herself on Yoma, carries **Self-stated**. Accept the profile line and click **Continue to your CV**.
+ 4. **Your CV.** Click **Print or save as PDF**, then **Download evidence record (HTML)**. The record keeps her answers, `stated by Halima, not checked` after each number she typed, every suggestion and refusal, and the provider and model. Below the CV, **Learning opportunities on Yoma for this role** lists opportunities fetched live for the role.
+diff --git a/docs/new-ideas/talent-finder-brief.md b/docs/new-ideas/talent-finder-brief.md
+index 5ff2937..de71846 100644
+--- a/docs/new-ideas/talent-finder-brief.md
++++ b/docs/new-ideas/talent-finder-brief.md
+@@ -51,7 +51,7 @@ The screens follow the team's shared mock data, so GenU sees the same person and
+ 
+ - **Partner:** Sunrise Solar Ltd, a fictional employer on Yoma.
+ - **Search:** young women 18 to 24, digital skills (the Yoma skill Digital Literacy), Kaduna State, Nigeria. **214 matches.**
+-- **A12:** Halima, 20, the team's shared person. On partner screens she is only "A12, phone repair and sales, Kaduna State". Her profile shows five credentials confirmed from Yoma (Digital Literacy Essentials, Working Safely at Height and Customer Service Basics from Passport to Earning; Community Tree Planting Day from Kaduna Green Youth Network; and the **Skill Credential** from SkillLens, Solar PV Basics: practical challenge passed). Nothing is vouched. Her phone repair and sales work, 2 years, is self-declared with a reference letter.
++- **A12:** Halima, 20, the team's shared person. On partner screens she is only "A12, phone repair and sales, Kaduna State". Her profile shows five credentials confirmed from Yoma (Digital Literacy Essentials, Working Safely at Height and Customer Service Basics from Passport to Earning; Community Tree Planting Day from Kaduna Green Youth Network; and the **Skill Credential** from SkillLens, Solar PV Installation Basics: practical challenge passed). Nothing is vouched. Her phone repair and sales work, 2 years, is self-declared with a reference letter.
+ - **Notice:** about `opp-job-001`, **Solar Installation Assistant (Trainee)** at Sunrise Solar Ltd, Kaduna, ₦85,000 a month, Monday to Saturday. Sunrise Solar made the listing with RoleMap.
+ - **Halima's reply:** Share my CV sends her YoCV CV check link. Apply sends the **Job Application** (`app-001`), the same handoff YoCV makes in Phase 4.
+ - The other codes on the results screen (A07, A19, A31, A44, A58) are made-up sample profiles for the same search.
+diff --git a/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md b/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
+index eef0666..83bff09 100644
+--- a/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
++++ b/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
+@@ -28,7 +28,7 @@ At the top of Step 1, only in journey mode and online:
+ 
+ `cred-002` in Step 1 and the Passport tab keeps its tag **Skill Credential, from SkillLens**.
+ 
+-The persona's own credential title in `server/card/personas.json` is still "Solar PV Basics: practical challenge passed". The card uses the contract's item title. The team should pick one.
++The persona's own credential title in `server/card/personas.json` is the contract's title too, "Solar PV Installation Basics: practical challenge passed", the same as SkillLens. It was "Solar PV Basics: practical challenge passed" until the end-to-end test of 2026-11-28 found the mismatch.
+ 
+ ## 4. The YoID thread
+ 
+diff --git a/handover/cost-estimate.md b/handover/cost-estimate.md
+index cb6039d..9e7e2ae 100644
+--- a/handover/cost-estimate.md
++++ b/handover/cost-estimate.md
+@@ -12,7 +12,7 @@ Generated by `node scripts/export-handover.js` from the real prompt. Change the
+ 
+ | Part | Estimate |
+ | --- | --- |
+-| Input: system prompt, one entry, skill list, output schema | about 764 tokens (3,053 characters at 4 a token) |
++| Input: system prompt, one entry, skill list, output schema | about 767 tokens (3,066 characters at 4 a token) |
+ | Output you see: two lines and their skills as JSON | about 150 tokens |
+ | Thinking, effort `low` | assumed 0 to 1,000 tokens, billed as output |
+ | Worst case for one call | 4,096 output tokens, the adapter cap |
+@@ -23,9 +23,9 @@ List prices per million tokens as of 2026-11-25: Opus 5.5 $4 in and $20 out, Son
+ 
+ | Model | Per CV | Per CV, worst case | 1,000 CVs a month | 10,000 CVs a month | 100,000 CVs a month |
+ | --- | --- | --- | --- | --- | --- |
+-| Claude Opus 5.5 (`claude-opus-5-5`), the adapter default | $0.02 to $0.08 | $0.25 | $78 | $782 | $7,817 |
+-| Claude Sonnet 5.5 (`claude-sonnet-5-5`) | $0.0091 to $0.04 | $0.13 | $39 | $391 | $3,908 |
+-| Claude Haiku 5.5 (`claude-haiku-5-5`) | $0.0005 to $0.0020 | $0.0064 | $2 | $20 | $195 |
++| Claude Opus 5.5 (`claude-opus-5-5`), the adapter default | $0.02 to $0.08 | $0.25 | $78 | $782 | $7,820 |
++| Claude Sonnet 5.5 (`claude-sonnet-5-5`) | $0.0091 to $0.04 | $0.13 | $39 | $391 | $3,910 |
++| Claude Haiku 5.5 (`claude-haiku-5-5`) | $0.0005 to $0.0020 | $0.0064 | $2 | $20 | $196 |
+ | Local open model (Ollama) (`qwen3.5:9b`), no token cost; hardware and power instead | $0 to $0 | $0 | $0 | $0 | $0 |
+ 
+ ## Assumptions to confirm
+diff --git a/handover/prompts/yocv-cv-bullets.md b/handover/prompts/yocv-cv-bullets.md
+index b442acf..5acd673 100644
+--- a/handover/prompts/yocv-cv-bullets.md
++++ b/handover/prompts/yocv-cv-bullets.md
+@@ -46,7 +46,7 @@ number: about 20 customers a week
+ outcome: Customers come back to me when their phone breaks again.
+ <<<END>>>
+ 
+-Learning on Yoma (context only, do not mention): Solar PV Basics: practical challenge passed; Working Safely at Height
++Learning on Yoma (context only, do not mention): Solar PV Installation Basics: practical challenge passed; Working Safely at Height
+ 
+ Skill list (choose only from these names):
+ - Photovoltaic Systems
+diff --git a/mockups/talent-finder/profile.html b/mockups/talent-finder/profile.html
+index 454c825..4665896 100644
+--- a/mockups/talent-finder/profile.html
++++ b/mockups/talent-finder/profile.html
+@@ -31,7 +31,7 @@
+   <p class="muted" style="margin-top:12px">Grouped the way the YoCV employer check groups a CV. Each skill shows its strongest source.</p>
+ 
+   <section class="group yoma"><h2>Confirmed from Yoma</h2><p class="gnote">Yoma has a record of these: learning completed and credentials issued by the organisations named. All five show as Verified on Yo-ID.</p>
+-    <ul><li>Digital Literacy Essentials. Credential issued by Passport to Earning, May 2026.</li><li>Solar PV Basics: practical challenge passed. Credential issued by SkillLens (mocked), November 2026. <span class="tag neutral">Skill Credential, from SkillLens</span></li><li>Working Safely at Height. Credential issued by Passport to Earning, October 2026.</li><li>Community Tree Planting Day. Credential issued by Kaduna Green Youth Network, November 2026, verified after an AI review of the proof.</li><li>Customer Service Basics. Credential issued by Passport to Earning, March 2026.</li></ul>
++    <ul><li>Digital Literacy Essentials. Credential issued by Passport to Earning, May 2026.</li><li>Solar PV Installation Basics: practical challenge passed. Credential issued by SkillLens (mocked), November 2026. <span class="tag neutral">Skill Credential, from SkillLens</span></li><li>Working Safely at Height. Credential issued by Passport to Earning, October 2026.</li><li>Community Tree Planting Day. Credential issued by Kaduna Green Youth Network, November 2026, verified after an AI review of the proof.</li><li>Customer Service Basics. Credential issued by Passport to Earning, March 2026.</li></ul>
+     <h3>Skills</h3><ul><li>Digital Literacy (Confirmed from Yoma)</li><li>Customer Service (Confirmed from Yoma)</li><li>Working at Heights (Confirmed from Yoma)</li><li>Workplace Safety (Confirmed from Yoma)</li><li>Photovoltaic Systems (Confirmed from Yoma)</li><li>Solar Panels (Confirmed from Yoma)</li><li>Community Outreach (Confirmed from Yoma)</li></ul>
+   </section>
+ 
+diff --git a/presentation/demo-script.md b/presentation/demo-script.md
+index 9fa25f2..69e0683 100644
+--- a/presentation/demo-script.md
++++ b/presentation/demo-script.md
+@@ -34,7 +34,7 @@ OPENAI_STRUCTURED_OUTPUT=json_object
+ 
+ **Say:** "This is Halima's Yo-ID. She saved the solar trainee job in Phase 1, followed her Learning Plan in Phase 2 and passed the SkillLens challenge in Phase 3. Yoma's own dashboard promises a CV built from her record; here it is."
+ 
+-**Do:** click **Open CV**. Step 1, **Confirmed from Yoma**, shows her record, already read: five completions from Passport to Earning and Kaduna Green Youth Network, and five credentials. Point at **Solar PV Basics: practical challenge passed**, tagged **Skill Credential, from SkillLens**. Leave everything ticked. Choose **Solar installation assistant**.
++**Do:** click **Open CV**. Step 1, **Confirmed from Yoma**, shows her record, already read: five completions from Passport to Earning and Kaduna Green Youth Network, and five credentials. Point at **Solar PV Installation Basics: practical challenge passed**, tagged **Skill Credential, from SkillLens**. Leave everything ticked. Choose **Solar installation assistant**.
+ 
+ **Say:** "This is the Skill Credential Charisse just showed, arriving from SkillLens. The CV is built from what Yoma records. Nothing in the record can be edited here."
+ 
+diff --git a/presentation/phase4-slides.md b/presentation/phase4-slides.md
+index e72f270..3506c33 100644
+--- a/presentation/phase4-slides.md
++++ b/presentation/phase4-slides.md
+@@ -23,7 +23,7 @@ For Jongmin's "What We Changed" slide. Each row is tied to a feedback point. The
+ 
+ **In the story:** Halima builds a CV from her verified credentials and her self-declared phone repair work, makes a QR check, and applies to the Solar Installation Assistant (Trainee) job at Sunrise Solar Ltd that she saved in Phase 1.
+ 
+-**What arrives from Phase 3 (SkillLens):** the **Skill Credential** `cred-002`, "Solar PV Basics: practical challenge passed". Step 1 and the Passport tab show it tagged "Skill Credential, from SkillLens", and the CV lists it under **Confirmed from Yoma**.
++**What arrives from Phase 3 (SkillLens):** the **Skill Credential** `cred-002`, "Solar PV Installation Basics: practical challenge passed". Step 1 and the Passport tab show it tagged "Skill Credential, from SkillLens", and the CV lists it under **Confirmed from Yoma**.
+ 
+ **What Phase 4 hands on:** the **Job Application** `app-001` to `opp-job-001`, the Saved Opportunity from Phase 1. Step 4 ends with **Apply to Solar Installation Assistant (Trainee)**, which sends the CV and its check link (a mock-up: nothing is sent). The listing and the handoff names sit in one file, `data/journey.json`. In the connected journey the card **Back to Ziqi · Phase 1** then links back to the same Ziqi listing, which shows the Job Application received.
+ 
+diff --git a/scripts/export-handover.js b/scripts/export-handover.js
+index 5ac7810..ab92369 100644
+--- a/scripts/export-handover.js
++++ b/scripts/export-handover.js
+@@ -19,7 +19,7 @@ function cvSample(){
+   const e=fixture.entry;
+   const fields={title:e.title,what:e.what,forWhom:e.forWhom,frequency:e.frequency,months:e.months,number:e.number,outcome:e.outcome};
+   const {fields:masked}=core.maskNames(fields,{role:fixture.role,verbs:RULES.verbs,known:[]});
+-  return buildCvMessages({role:fixture.role,entry:masked,menuNames:MENU,learningTitles:['Solar PV Basics: practical challenge passed','Working Safely at Height']});
++  return buildCvMessages({role:fixture.role,entry:masked,menuNames:MENU,learningTitles:['Solar PV Installation Basics: practical challenge passed','Working Safely at Height']});
+ }
+ 
+ // Every sample follows the team's shared person, Halima (shared mock data, 2026-11-25).
+diff --git a/server/card/personas.json b/server/card/personas.json
+index 5dd907b..10f6b3c 100644
+--- a/server/card/personas.json
++++ b/server/card/personas.json
+@@ -164,7 +164,7 @@
+         "status": "Issued",
+         "issuer": "SkillLens",
+         "issuerLogoURL": null,
+-        "title": "Solar PV Basics: practical challenge passed",
++        "title": "Solar PV Installation Basics: practical challenge passed",
+         "dateIssued": "2026-11-03T11:20:00+00:00",
+         "attributes": [
+           {"name": "Opportunity_Skills", "nameDisplay": "Skills", "valueDisplay": "Photovoltaic Systems, Solar Panels", "group": null, "subGroup": null, "sortOrder": null, "itemsDisplay": [{"name": "Photovoltaic Systems"}, {"name": "Solar Panels"}]}
+diff --git a/tests/cv-record.test.cjs b/tests/cv-record.test.cjs
+index a04e99c..7a230b8 100644
+--- a/tests/cv-record.test.cjs
++++ b/tests/cv-record.test.cjs
+@@ -106,7 +106,7 @@ test('readCvRecord reads Halima as the shared mock data has her',async()=>{
+   assert.ok(r.completions.every(c=>c.opportunityId===null),'fictional, so no Yoma opportunity id');
+   assert.deepEqual(r.credentials.map(c=>c.walletId),['cred-005','cred-001','cred-004','cred-003','cred-002']);
+   const skill=r.credentials.find(c=>c.walletId==='cred-002');
+-  assert.equal(skill.title,'Solar PV Basics: practical challenge passed'); assert.equal(skill.issuer,'SkillLens');
++  assert.equal(skill.title,'Solar PV Installation Basics: practical challenge passed','the contract and SkillLens title'); assert.equal(skill.issuer,'SkillLens');
+   assert.equal(skill.completionId,null,'the Skill Credential stands on its own, not on a course');
+   assert.deepEqual(skill.skills,['Photovoltaic Systems','Solar Panels']);
+   assert.equal(r.credentials.find(c=>c.walletId==='cred-003').completionId,r.completions[3].evidenceId);
+-- 
+2.43.0
+

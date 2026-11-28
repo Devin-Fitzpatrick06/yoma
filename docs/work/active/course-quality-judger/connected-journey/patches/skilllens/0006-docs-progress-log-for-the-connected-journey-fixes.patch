@@ -1,0 +1,26 @@
+From d3dfdd07768944ede2064802819b2ae0d0bd7e1f Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 03:36:27 +0000
+Subject: [PATCH 6/6] docs: progress log for the connected journey fixes
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ docs/PROGRESS.md | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/docs/PROGRESS.md b/docs/PROGRESS.md
+index cbf683d..5f8e6a5 100644
+--- a/docs/PROGRESS.md
++++ b/docs/PROGRESS.md
+@@ -190,6 +190,7 @@ Then open `http://localhost:3000/demo/p2e` in the browser's phone view. `npm run
+ 
+ | Date | Step | What changed |
+ | --- | --- | --- |
++| 2026-11-28 | Connected journey: fixes from the end-to-end test | With `journey=demo` only: the Learning Plan card ends with PathFinder's weekly check-in as row 4 ("Check-in · WhatsApp / SMS", "Weekly check-in on WhatsApp or SMS"), so it matches PathFinder's 4-step plan; the header and the embed's banner say "Halima Yusuf", as the other prototypes do; the credential card shows the day it is recorded (e.g. "28 Nov 2026"), not the shared data's future `issuedOn` 2026-12-20 (the shared JSON is unchanged). 4 new tests (`lib/journey.test.ts`) |
+ | 2026-11-28 | Connected journey (journey contract v1) | `/demo/p2e?journey=demo` takes PathFinder's link (`course=opp-course-001` → Solar PV, `yoid=yoid-ng-7f3a0123` → Halima), shows the arriving card, the four-step YoID strip and "Back to the listing", and after `cred-002` is recorded the leaving card with "Continue to YoCV" (same tab, every parameter passed on plus `credential=cred-002`; `NEXT_PUBLIC_YOCV_URL`, default `http://localhost:4174`). Without `journey=demo` nothing changes. 13 new tests (`lib/journey.test.ts`) |
+ | 2026-11-25 | Shared mock data, Yoma design, YoID thread, handover | Follows the BBS x GenU shared learner Halima Y. (data/shared, v1.1): Solar PV Installation Basics course, the shared challenge chal-001 word for word, Learning Plan plan-001 in from PathFinder, Skill Credential cred-002 out to YoCV. A mocked YoID thread records each handoff item; cred-002 is written only for a pass the server scored, after the learner's tap. All colours and fonts now come from Yoma's tokens (app/yoma-tokens.css, Nunito and Open Sans). HANDOVER.md: what is live, rule-based and mocked; what to provide; limitations; next steps |
+ | 2026-11-25 | YoID credential design and end-screen preview | Designed (not built) how a passed challenge becomes a skill credential in the learner's YoID wallet through Yoma's existing completion and credential pipeline (INTEGRATION.md section 8, Claude Doc); the saved screen shows a labelled design preview with consent, the credential card and its three stages; pass rule: every part Good or Strong at Level 2 (lib/credential.ts) |
+-- 
+2.43.0
+

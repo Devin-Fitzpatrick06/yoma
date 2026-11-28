@@ -1,0 +1,52 @@
+From 3fc1f376455265a715a117e143bdd9374139dfa6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 03:42:41 +0000
+Subject: [PATCH 4/4] docs: journey persona fix and test counts (107 unit, 24
+ browser)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ README.md       | 2 +-
+ docs/HANDOFF.md | 1 +
+ docs/TESTING.md | 2 +-
+ 3 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/README.md b/README.md
+index e3c0bff..2d16702 100644
+--- a/README.md
++++ b/README.md
+@@ -161,7 +161,7 @@ The **Behind the scenes** panel shows:
+ ## Tests
+ 
+ ```bash
+-npm test                    # 106 unit and API tests, no installs, about 5 seconds
++npm test                    # 107 unit and API tests, no installs, about 5 seconds
+ ```
+ 
+ Browser scenarios (24 of them) run the real server against a mock Yoma API and a mock Azure, in Chromium:
+diff --git a/docs/HANDOFF.md b/docs/HANDOFF.md
+index 5fe528a..0973bf1 100644
+--- a/docs/HANDOFF.md
++++ b/docs/HANDOFF.md
+@@ -147,3 +147,4 @@ Branch `connected-journey`, made by a teammate on the Ziqi side and sent as `git
+ - **Across platforms:** each plan step shows its platform (P2E, Yoma, imaGen), and the plan ends with the weekly WhatsApp / SMS check-in.
+ - **Settings:** `.env.example` now sets `NEXT_PROTOTYPE_URL=http://localhost:3001/demo/p2e` for the local journey demo; `SKILLLENS_URL` works too. Leave both empty for the pilot.
+ - **Tests:** 106 unit (new `test/journey.test.mjs`), 24 browser scenarios.
++- **Fix after the four-app end-to-end test:** in the journey, "Test as" is **Halima** (Halima Yusuf, 20, Kaduna, phone repair) from the shared mock data, not Amina, and the Yoma profile panel shows her and the 3 credentials she holds before the plan. The Halima button is hidden outside the journey. Tests: 107 unit, 24 browser scenarios (the journey scenario checks the persona and the panel).
+diff --git a/docs/TESTING.md b/docs/TESTING.md
+index 456cf45..f8da37b 100644
+--- a/docs/TESTING.md
++++ b/docs/TESTING.md
+@@ -4,7 +4,7 @@ Last run: 28 November 2026, Node 22, Chromium (Playwright).
+ 
+ | Suite | Command | Result |
+ |---|---|---|
+-| Unit and API tests | `npm test` | **106 / 106 pass** (about 5 s) |
++| Unit and API tests | `npm test` | **107 / 107 pass** (about 5 s) |
+ | Browser scenarios | `npm run e2e` | **24 / 24 pass** |
+ | Live check, real Yoma API | `node sync.mjs` + the app | **Done 14 Nov 2026**: 5,171 real listings. Results and fixes [below](#live-check-real-yoma-14-november-2026) |
+ | Live check, real Azure OpenAI | see [Live check](#live-check-run-this-before-the-demo) | **Not run yet.** Needs the team's Azure keys |
+-- 
+2.43.0
+

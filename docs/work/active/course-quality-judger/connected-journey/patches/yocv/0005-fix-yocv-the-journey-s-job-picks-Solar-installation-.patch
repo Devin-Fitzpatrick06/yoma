@@ -1,0 +1,190 @@
+From 78625c664c9663ea9db763d7f00451fd2b189ecc Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 03:39:07 +0000
+Subject: [PATCH 5/7] fix(yocv): the journey's job picks Solar installation
+ assistant in Step 1
+
+Opened from the connected journey with listing=opp-job-001, Step 1
+picked Market seller, the role for Halima's trade, though the journey's
+job is the solar trainee post. Now it picks the role that job maps to.
+
+- data/journey.json: the listing names its role, Solar installation
+  assistant.
+- core.js: journeyRole gives that role when the link's listing is the
+  journey's listing and the role is on the menu, else ''.
+- app.js: applyRecord picks the journey role first, then the trade's.
+  She can still change it. Without journey=demo, or with another
+  listing, nothing changes.
+- Tests first: core test in tests/cv-connected-journey.test.cjs, and the
+  shell tests in tests/yoid-flows.test.cjs check the option selected
+  with and without the journey (the boot helper takes the role menu).
+- Spec section 2 records it.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ app.js                                              |  5 +++--
+ core.js                                             |  9 ++++++++-
+ data/journey.json                                   |  1 +
+ .../2026-11-28-yocv-connected-journey-design.md     |  1 +
+ tests/cv-connected-journey.test.cjs                 | 13 ++++++++++++-
+ tests/yoid-flows.test.cjs                           | 13 +++++++++----
+ 6 files changed, 34 insertions(+), 8 deletions(-)
+
+diff --git a/app.js b/app.js
+index 83b4eaf..f154da4 100644
+--- a/app.js
++++ b/app.js
+@@ -448,7 +448,8 @@ async function loadMenu(role){
+  if(state.step===0&&state.role===role)render();
+ }
+ /* The record the shell read (or null on sign out): every item ticked, the contact line prefilled from the Yoma
+-   profile, the role picked from the persona's trade when none is chosen yet. */
++   profile, the role picked when none is chosen yet: in the connected journey the role the journey's job maps to,
++   otherwise the one for the persona's trade. */
+ function applyRecord(record,selector,sessionId){
+  Object.assign(state,{sessionId:sessionId??null,selector:selector??null,record:record??null});
+  if(!record){state.include={completions:[],credentials:[],selfAttested:[]};sync();return;}
+@@ -457,7 +458,7 @@ function applyRecord(record,selector,sessionId){
+   contact:{...state.contact,name:u.displayName??'',phone:u.phoneNumber??'',town:u.city??''}});
+  for(const f of ui.forms)if(f.confirm==='completion'&&!state.include.completions.includes(f.completionId))f.completionId='';
+  const persona=cfg.accounts.personas.find(p=>p.id===selector?.persona),match=cfg.roles.find(r=>r.tradeId&&r.tradeId===persona?.trade);
+- if(!state.role&&match)state.role=match.name;
++ if(!state.role)state.role=C.journeyRole(api?.journey,cfg.journey,cfg.roles)||match?.name||'';
+  sync();
+ }
+ function useRecord(record,selector,sessionId){applyRecord(record,selector,sessionId);ui.error='';render();loadMenu(state.role);}
+diff --git a/core.js b/core.js
+index 900e9b6..5262dd5 100644
+--- a/core.js
++++ b/core.js
+@@ -307,6 +307,13 @@
+     const q='journey=demo&from=yocv&yoid='+encodeURIComponent(trim(params.yoid)||trim(yoid))+'&application='+encodeURIComponent(trim(application));
+     return base+sep+q+frag;
+   }
++  // The target role for the journey's job: when the link's listing is the journey's listing (opp-job-001), the role it
++  // maps to (Solar installation assistant), if it is on the role menu. Otherwise '' and the role comes from the trade.
++  function journeyRole(params,journey,roles){
++    const l=journey?.listing,want=trim(l?.role);
++    if(!params||!want||trim(params.listing)!==trim(l.id))return '';
++    return (roles||[]).some(r=>r?.name===want)?want:'';
++  }
+   // The four-step thread for the app at phase n: before n recorded, n in progress until its own action is done, after n next.
+   const journeyThread=(names,phase,done)=>(names||[]).map((name,i)=>({name:String(name),state:i+1<phase||(i+1===phase&&done)?'recorded':i+1===phase?'in-progress':'next'}));
+   // The mocked Yo-ID lines, oldest first. dateOf turns an ISO time into the date the page prints.
+@@ -454,6 +461,6 @@
+     });
+     return {entries,skills:[],generation:{mode:'sample-offline',provider:'browser-local',model:null,durationMs:0}};
+   }
+-  const api={MONTHS,WEEKDAYS,escapeHTML,shortQuote,contactsIn,numbersIn,allowedNumbers,properNouns,maskNames,restoreNames,checkCvText,monthLabel,monthsBetween,templateBullet,profileLine,buildCv,renderCvHtml,buildCvText,buildCvRecord,cvFingerprint,renderRecordHtml,newCvState,withdrawnCheck,canApply,applied,handoffOf,JOURNEY_KEYS,journeyParams,journeyReturn,journeyBackHref,journeyThread,yoidItems,reviewPayload,decide,readyForCv,profileInput,offlineReview};
++  const api={MONTHS,WEEKDAYS,escapeHTML,shortQuote,contactsIn,numbersIn,allowedNumbers,properNouns,maskNames,restoreNames,checkCvText,monthLabel,monthsBetween,templateBullet,profileLine,buildCv,renderCvHtml,buildCvText,buildCvRecord,cvFingerprint,renderRecordHtml,newCvState,withdrawnCheck,canApply,applied,handoffOf,JOURNEY_KEYS,journeyParams,journeyReturn,journeyBackHref,journeyRole,journeyThread,yoidItems,reviewPayload,decide,readyForCv,profileInput,offlineReview};
+   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.YoCV=api;
+ })(typeof globalThis!=='undefined'?globalThis:this);
+diff --git a/data/journey.json b/data/journey.json
+index 6272605..9e2085d 100644
+--- a/data/journey.json
++++ b/data/journey.json
+@@ -15,6 +15,7 @@
+     "organisation": "Sunrise Solar Ltd",
+     "place": "Kaduna",
+     "asks": "Trainee role, ₦85,000 a month, Monday to Saturday.",
++    "role": "Solar installation assistant",
+     "sample": true
+   },
+   "outgoing": {
+diff --git a/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md b/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
+index 83bff09..11f1127 100644
+--- a/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
++++ b/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
+@@ -16,6 +16,7 @@ SkillLens opens YoCV with:
+ - With `journey=demo`, YoCV reads the nine contract params (`journey`, `from`, `yoid`, `listing`, `goal`, `plan`, `course`, `credential`, `return`). Each value is trimmed; an empty one, or one over 64 characters (2048 for `return`), is dropped.
+ - The params leave the address, as `?as=` does, and stay in `sessionStorage` under `yocv.journey` for the tab. Hash routes and a reload keep them. A new tab without them has no journey.
+ - Arriving on no route opens `#/cv`, so the first screen is the arriving card.
++- With `listing=opp-job-001`, the journey's job, Step 1 picks the target role it maps to, **Solar installation assistant** (`role` on the listing in `data/journey.json`), instead of the role for her trade (Market seller). She can still change it. Another listing, or no journey, keeps the role for her trade.
+ - Without `journey=demo` nothing changes: no card, no thread, no extra key.
+ 
+ ## 3. The arriving card
+diff --git a/tests/cv-connected-journey.test.cjs b/tests/cv-connected-journey.test.cjs
+index 9c80eef..9e161c2 100644
+--- a/tests/cv-connected-journey.test.cjs
++++ b/tests/cv-connected-journey.test.cjs
+@@ -4,7 +4,7 @@
+ const {test}=require('node:test');
+ const assert=require('node:assert/strict');
+ const fs=require('node:fs'),path=require('node:path');
+-const {JOURNEY_KEYS,journeyParams,journeyReturn,journeyBackHref,journeyThread}=require('../core.js');
++const {JOURNEY_KEYS,journeyParams,journeyReturn,journeyBackHref,journeyThread,journeyRole}=require('../core.js');
+ const copy=require('../cv-copy.js').en;
+ const JOURNEY=require('../data/journey.json');
+ const read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
+@@ -113,3 +113,14 @@ test('journeyParams also reads back the object the shell kept, and checks it aga
+   assert.equal(journeyParams({from:'skilllens'}),null,'no journey=demo, no journey');
+   assert.deepEqual(journeyParams({journey:'demo',from:{x:1},yoid:'yoid-ng-7f3a0123'}),{journey:'demo',yoid:'yoid-ng-7f3a0123'},'only strings');
+ });
++
++test('the journey\'s job picks its target role, Solar installation assistant, from the listing param',()=>{
++  const roles=Object.keys(require('../data/role-skills.json')).map(name=>({name}));
++  assert.equal(JOURNEY.listing.role,'Solar installation assistant','the role opp-job-001 maps to');
++  assert.ok(roles.some(r=>r.name===JOURNEY.listing.role),'the role is on the menu');
++  assert.equal(journeyRole(journeyParams(LINK),JOURNEY,roles),'Solar installation assistant');
++  assert.equal(journeyRole(null,JOURNEY,roles),'','no journey, no role');
++  assert.equal(journeyRole(journeyParams('?journey=demo&listing=opp-job-999'),JOURNEY,roles),'','another listing, no role');
++  assert.equal(journeyRole(journeyParams('?journey=demo&from=skilllens'),JOURNEY,roles),'','no listing param, no role');
++  assert.equal(journeyRole(journeyParams(LINK),JOURNEY,[{name:'Market seller'}]),'','a role not on the menu is not picked');
++});
+diff --git a/tests/yoid-flows.test.cjs b/tests/yoid-flows.test.cjs
+index 2acf1a3..f3dd0d1 100644
+--- a/tests/yoid-flows.test.cjs
++++ b/tests/yoid-flows.test.cjs
+@@ -71,10 +71,10 @@ function stubApp(){
+ }
+ /* Boot the shell: online or with no server, at a hash, with the real app.js or the stub. The record read can be held
+    back (net.hold) and released later (net.release()). */
+-async function boot({online=true,hash='',app='real',search='',stored={},journey=false}={}){
++async function boot({online=true,hash='',app='real',search='',stored={},journey=false,roles=[]}={}){
+   const dom=makeDom(),storage=new Map(Object.entries(stored)),history=[],fetches=[];
+   const net={online,hold:false,release:null};
+-  const cfg={copy,rules,roles:[],accounts:{source:'sample',personas},mode:{mode:'sample',provider:'local',model:null},...(journey?{journey:JOURNEY}:{})};
++  const cfg={copy,rules,roles,accounts:{source:'sample',personas},mode:{mode:'sample',provider:'local',model:null},...(journey?{journey:JOURNEY}:{})};
+   const ctx={
+     document:dom.document,
+     sessionStorage:{getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},
+@@ -270,8 +270,10 @@ test('Switch account keeps keyboard focus inside the drawer on open and on close
+ const RETURN='http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000301';
+ const LINK='?as=halima&journey=demo&from=skilllens&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&plan=plan-001'
+   +'&course=opp-course-001&credential=cred-002&return='+encodeURIComponent(RETURN);
++// The role menu as GET /api/cv/config serves it, for the tests that look at the role picked.
++const ROLES=require('../server/cv/menu.js').roleList(require('../data/role-skills.json'));
+ test('the SkillLens link signs Halima in, keeps the journey params for the tab and opens the CV with the arriving card',async()=>{
+-  const s=await boot({search:LINK,journey:true});
++  const s=await boot({search:LINK,journey:true,roles:ROLES});
+   assert.equal(s.YoID.person().id,'halima');
+   const kept=JSON.parse(s.storage.get('yocv.journey'));
+   assert.deepEqual(kept,{journey:'demo',from:'skilllens',yoid:'yoid-ng-7f3a0123',listing:'opp-job-001',goal:'job',plan:'plan-001',course:'opp-course-001',credential:'cred-002',return:RETURN});
+@@ -284,6 +286,8 @@ test('the SkillLens link signs Halima in, keeps the journey params for the tab a
+   assert.ok(v.indexOf('journey-card')<v.indexOf('step-title'),'the card is at the start of the CV flow');
+   assert.ok(v.includes('Skill Credential, from SkillLens'),'cred-002 carries its handoff tag');
+   assert.deepEqual([...v.matchAll(/journey-step (\S+)"/g)].map(m=>m[1]),['recorded','recorded','recorded','in-progress']);
++  assert.ok(v.includes('<option value="Solar installation assistant" selected>'),'the journey\'s job picks its target role');
++  assert.ok(!v.includes('<option value="Market seller" selected>'),'not her trade\'s role');
+ });
+ test('a hash route or a reload in the same tab keeps the journey from sessionStorage',async()=>{
+   const first=await boot({search:LINK,journey:true});
+@@ -294,12 +298,13 @@ test('a hash route or a reload in the same tab keeps the journey from sessionSto
+ });
+ test('without journey=demo nothing changes: no card, no thread, nothing more in sessionStorage',async()=>{
+   for(const search of ['','?as=halima','?as=halima&from=skilllens&credential=cred-002&return='+encodeURIComponent(RETURN)]){
+-    const s=await boot({search,hash:'#/cv',journey:true});
++    const s=await boot({search,hash:'#/cv',journey:true,roles:ROLES});
+     assert.equal(s.YoID.journey(),null,search);
+     assert.deepEqual([...s.storage.keys()],['yoid.person'],search);
+     const v=s.cvView();
+     assert.ok(!v.includes('journey-card')&&!v.includes('journey-thread'),search);
+     assert.ok(v.includes('Skill Credential, from SkillLens'),'the handoff tag was there before the journey params, and stays');
++    assert.ok(v.includes('<option value="Market seller" selected>'),'her trade\'s role, as before: '+search);
+   }
+ });
+ test('the journey shows nothing when the server is not reachable',async()=>{
+-- 
+2.43.0
+

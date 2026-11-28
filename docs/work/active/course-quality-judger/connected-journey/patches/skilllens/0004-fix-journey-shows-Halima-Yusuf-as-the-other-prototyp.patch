@@ -1,0 +1,136 @@
+From 68cbe69f6972afad1130d82599ba87ac6e61d46e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 03:34:56 +0000
+Subject: [PATCH 4/6] fix: journey shows "Halima Yusuf", as the other
+ prototypes do
+
+SkillLens showed the shared data's displayName "Halima Y." where
+PathFinder, YoCV and Ziqi show "Halima Yusuf". With journey=demo the host
+page header and the embed's sample banner (the iframe gets journey=demo)
+now use her full name from the shared data (firstName + lastName).
+Without journey=demo both are unchanged.
+
+- lib/journey.ts: JOURNEY_NAME; lib/shared.ts reads firstName/lastName
+- test in lib/journey.test.ts
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ app/demo/p2e/HostDemo.tsx    | 6 +++---
+ app/embed/skilllens/page.tsx | 7 +++++--
+ lib/journey.test.ts          | 9 ++++++++-
+ lib/journey.ts               | 3 +++
+ lib/shared.ts                | 2 +-
+ 5 files changed, 20 insertions(+), 7 deletions(-)
+
+diff --git a/app/demo/p2e/HostDemo.tsx b/app/demo/p2e/HostDemo.tsx
+index 20c46e9..485cf97 100644
+--- a/app/demo/p2e/HostDemo.tsx
++++ b/app/demo/p2e/HostDemo.tsx
+@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
+ import coursesJson from "../../../data/synthetic/courses.json";
+ import { Icon } from "../../../components/Icon";
+ import { HandoffCard, JourneyThread } from "../../../components/Journey";
+-import { ARRIVING, CHECK_IN, LEAVING_TO, OWN, PHASE_N, threadLabel, threadStates, type Journey } from "../../../lib/journey";
++import { ARRIVING, CHECK_IN, JOURNEY_NAME, LEAVING_TO, OWN, PHASE_N, threadLabel, threadStates, type Journey } from "../../../lib/journey";
+ import { challenge, learner, opportunity, partnerName, plan, SOLAR_COURSE } from "../../../lib/shared";
+ import type { PracticeSample } from "../../../lib/schema";
+ import type { HandoffRecord } from "../../../lib/yoid";
+@@ -208,7 +208,7 @@ export default function HostDemo({ journey, yocvHref }: Props) {
+             <span className="icon-circle size-9"><Icon name="cap" className="size-5" /></span>
+             <p className="font-heading text-xl font-extrabold">Courses on Yoma <span className="text-sm font-semibold text-paper/80">(mock-up)</span></p>
+           </div>
+-          <p className="rounded-full bg-paper/15 px-3 py-1 text-sm">{learner.displayName} · sample data</p>
++          <p className="rounded-full bg-paper/15 px-3 py-1 text-sm">{journey ? JOURNEY_NAME : learner.displayName} · sample data</p>
+           {journey?.returnUrl && (
+             <a href={journey.returnUrl} className="text-sm font-semibold underline">Back to the listing</a>
+           )}
+@@ -263,7 +263,7 @@ export default function HostDemo({ journey, yocvHref }: Props) {
+           <iframe
+             key={courseId}
+             title="SkillLens level-up challenge"
+-            src={`/embed/skilllens?course=${courseId}&lang=en${learnerParam ? `&learner=${learnerParam}` : ""}`}
++            src={`/embed/skilllens?course=${courseId}&lang=en${learnerParam ? `&learner=${learnerParam}` : ""}${journey ? "&journey=demo" : ""}`}
+             className={`block w-full border-0 ${wide ? "demo-frame-wide lg:col-span-2" : "min-h-0 flex-1"}`}
+           />
+           {wide && <div className="space-y-4 py-4">{leaving}{threadCard}</div>}
+diff --git a/app/embed/skilllens/page.tsx b/app/embed/skilllens/page.tsx
+index f2f5773..80c4ac4 100644
+--- a/app/embed/skilllens/page.tsx
++++ b/app/embed/skilllens/page.tsx
+@@ -1,17 +1,20 @@
+ import { SkillLens } from "../../../components/SkillLens";
+ import { courses } from "../../../lib/data";
+ import { Lang } from "../../../lib/schema";
++import { JOURNEY_NAME } from "../../../lib/journey";
+ import { learner } from "../../../lib/shared";
+ 
+ // Embeddable route: P2E loads this in an iframe as the last step of a course.
+ // /embed/skilllens?course=solar-pv&lang=en&learner=yp-001
+ // learner: the shared sample learner (Halima, yp-001) for the mocked YoID thread. A real host passes a Yoma sign-in instead.
+-export default async function EmbedPage({ searchParams }: { searchParams: Promise<{ course?: string; lang?: string; learner?: string }> }) {
++// journey=demo: opened from the connected journey's host page, so the learner is named in full, as in the other prototypes.
++export default async function EmbedPage({ searchParams }: { searchParams: Promise<{ course?: string; lang?: string; learner?: string; journey?: string }> }) {
+   const params = await searchParams;
+   const course = courses.find((c) => c.id === params.course);
+   if (!course) return <main className="p-4">Unknown course. Use ?course={courses.map((c) => c.id).join(" or ")}</main>;
+ 
+   const lang = Lang.safeParse(params.lang);
+-  const sample = params.learner === learner.id ? { yoidId: learner.yoidId, displayName: learner.displayName } : null;
++  const journey = params.journey === "demo";
++  const sample = params.learner === learner.id ? { yoidId: learner.yoidId, displayName: journey ? JOURNEY_NAME : learner.displayName } : null;
+   return <SkillLens courseId={course.id} courseTitle={course.title} initialLang={lang.success ? lang.data : "en"} learner={sample} />;
+ }
+diff --git a/lib/journey.test.ts b/lib/journey.test.ts
+index bcc3b2f..41abef1 100644
+--- a/lib/journey.test.ts
++++ b/lib/journey.test.ts
+@@ -1,6 +1,6 @@
+ import { afterEach, describe, expect, it, vi } from "vitest";
+ import { courses } from "./data";
+-import { CHECK_IN, DEFAULT_YOCV_URL, parseJourney, safeReturn, threadLabel, threadStates, yocvLink } from "./journey";
++import { CHECK_IN, DEFAULT_YOCV_URL, JOURNEY_NAME, parseJourney, safeReturn, threadLabel, threadStates, yocvLink } from "./journey";
+ import { learner, plan } from "./shared";
+ 
+ const LISTING = "http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000301";
+@@ -108,3 +108,10 @@ describe("journey contract v1: the Learning Plan card", () => {
+     expect(CHECK_IN.title).toBe("Weekly check-in on WhatsApp or SMS");
+   });
+ });
++
++describe("journey contract v1: the learner's name", () => {
++  it("is Halima's full name, as the other prototypes show it, not the shared displayName", () => {
++    expect(learner.displayName).toBe("Halima Y.");
++    expect(JOURNEY_NAME).toBe("Halima Yusuf");
++  });
++});
+diff --git a/lib/journey.ts b/lib/journey.ts
+index 8528e66..aa88d46 100644
+--- a/lib/journey.ts
++++ b/lib/journey.ts
+@@ -35,6 +35,9 @@ export const CHECK_IN = {
+   why: "Every week PathFinder asks how each step is going, on WhatsApp or by SMS on a basic phone. After two missed check-ins, a facilitator steps in.",
+ } as const;
+ 
++/** The learner's full name, as the other three prototypes show it in the journey ("Halima Yusuf", not "Halima Y."). */
++export const JOURNEY_NAME = [learner.firstName, learner.lastName].filter(Boolean).join(" ") || learner.displayName;
++
+ /** Shared course id → SkillLens course id. Only the plan step SkillLens tests. */
+ export const COURSE_MAP: Record<string, string> = { "opp-course-001": "solar-pv" };
+ /** Shared YoID → the SkillLens sample learner (Halima, yp-001). */
+diff --git a/lib/shared.ts b/lib/shared.ts
+index 1c918f3..2bf3265 100644
+--- a/lib/shared.ts
++++ b/lib/shared.ts
+@@ -7,7 +7,7 @@ import json from "../data/shared/shared-mock-data.json";
+ const Shared = z.object({
+   meta: z.object({ version: z.string(), warning: z.string(), handoffs: z.record(z.string(), z.string()) }),
+   skills: z.record(z.string(), z.string()),
+-  youngPerson: z.object({ id: z.string(), yoidId: z.string(), displayName: z.string(), age: z.number(), languages: z.array(z.string()) }),
++  youngPerson: z.object({ id: z.string(), yoidId: z.string(), firstName: z.string().optional(), lastName: z.string().optional(), displayName: z.string(), age: z.number(), languages: z.array(z.string()) }),
+   partners: z.array(z.object({ id: z.string(), name: z.string() })),
+   opportunities: z.array(z.object({ id: z.string(), type: z.string(), title: z.string(), org: z.string() }).passthrough()),
+   learningPlan: z.object({
+-- 
+2.43.0
+
