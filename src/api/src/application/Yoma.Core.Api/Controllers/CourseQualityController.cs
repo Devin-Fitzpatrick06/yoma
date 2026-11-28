@@ -262,6 +262,21 @@ namespace Yoma.Core.Api.Controllers
 
       return StatusCode((int)HttpStatusCode.OK, result);
     }
+
+    [SwaggerOperation(Summary = "Check the health of up to 200 links from any platform, storing nothing; works whether or not course quality is on (Admin role required)")]
+    [HttpPost("links/check")]
+    [ProducesResponseType(typeof(LinkHealthReport), (int)HttpStatusCode.OK)]
+    [Authorize(Roles = $"{Constants.Role_Admin}")]
+    public async Task<IActionResult> CheckLinks([FromBody] LinkHealthRequest request, [FromServices] ILinkHealthService linkHealthService)
+    {
+      if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Handling request {requestName}", nameof(CheckLinks));
+
+      var result = await linkHealthService.Check(request, HttpContext.RequestAborted);
+
+      if (_logger.IsEnabled(LogLevel.Information)) _logger.LogInformation("Request {requestName} handled", nameof(CheckLinks));
+
+      return StatusCode((int)HttpStatusCode.OK, result);
+    }
     #endregion Administrative Actions
 
     #region Organization Admin Actions

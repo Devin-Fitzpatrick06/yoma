@@ -122,6 +122,7 @@ namespace Yoma.Core.Domain
       services.AddScoped<ICourseQualityBackgroundService, CourseQualityBackgroundService>();
       services.AddSingleton<ICourseQualityHostResolver, DnsCourseQualityHostResolver>();
       services.AddSingleton<ICourseQualityLinkChecker>(provider => ActivatorUtilities.CreateInstance<CourseQualityLinkChecker>(provider, CourseQualityLinkChecker.CreatePinnedHandler()));
+      services.AddScoped<ILinkHealthService, LinkHealthService>();
 
       // a provider registered later replaces this default
       services.TryAddScoped<ICourseQualityAIProvider, NoOpCourseQualityAIProvider>();
