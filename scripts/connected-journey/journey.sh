@@ -62,8 +62,8 @@ need_dir yocv-prototype YOCV_DIR "${YOCV_DIR:-}"
 command -v node >/dev/null 2>&1 || { echo "Node is not installed. SkillLens needs Node 24."; exit 2; }
 
 # Without its patch an app runs, but shows no journey cards and links nowhere. Warn, do not stop.
-grep -q "SKILLLENS_URL" "$PATHFINDER_DIR/serve.mjs" 2>/dev/null \
-  || echo "Warning: PathFinder looks unpatched (no SKILLLENS_URL in serve.mjs). See README.md, Patches."
+[ -f "$PATHFINDER_DIR/engine/journey.js" ] \
+  || echo "Warning: PathFinder has no engine/journey.js, so its connected-journey patch is not applied. See README.md, Patches."
 [ -f "$SKILLLENS_DIR/lib/journey.ts" ] \
   || echo "Warning: SkillLens has no lib/journey.ts, so its connected-journey patch is not applied. See README.md, Patches."
 grep -q "journeyBackHref" "$YOCV_DIR/core.js" 2>/dev/null \
