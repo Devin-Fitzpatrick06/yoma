@@ -91,6 +91,18 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     /// </summary>
     public decimal CostUsd { get; set; }
 
+    /// <summary>
+    /// Stored runs, history included, whose cost is unknown (a remote model with no configured price). Not in CostUsd, so a
+    /// total shown without this count would understate the spend.
+    /// </summary>
+    public int UnpricedRuns { get; set; }
+
+    /// <summary>
+    /// Stored runs, history included, on a model that was not local. A total can be called free only when this is 0, whatever
+    /// the model configured now.
+    /// </summary>
+    public int RemoteRuns { get; set; }
+
     public long? AverageDurationMs { get; set; }
 
     /// <summary>

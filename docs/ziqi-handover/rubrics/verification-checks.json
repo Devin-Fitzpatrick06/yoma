@@ -75,6 +75,9 @@
     "MaxSourceTextLength": 20000,
     "UserAgent": "YomaCourseQualityBot/1.0 (+https://yoma.world)"
   },
+  "LinkHealth": {
+    "BudgetInSeconds": 240
+  },
   "RegradeDelayInSeconds": 30,
   "LearnerFeedback": {
     "Enabled": false,
@@ -97,6 +100,7 @@
   },
   "PrePublish": {
     "Enabled": false,
-    "LinkTimeoutMilliseconds": 3000
+    "LinkTimeoutMilliseconds": 3000,
+    "UseAI": false
   }
 }

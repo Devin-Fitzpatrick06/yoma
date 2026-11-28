@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Yoma.Core.Domain.CourseQuality.Interfaces;
@@ -15,6 +16,10 @@ namespace Yoma.Core.Domain.CourseQuality.Services
   /// Hosts run in parallel up to <see cref="MaxConcurrentHosts"/>; one host's links run one after another, so the
   /// checker's per-host pacing (CourseQuality:LinkCheck:MinHostIntervalInMilliseconds) spaces them without holding up
   /// other hosts. Nothing is stored.
+  ///
+  /// One request has a time budget (CourseQuality:LinkHealth:BudgetInSeconds): a link not started before it runs out is
+  /// returned as Timeout with a "not checked" reason, so a long list on one slow host still answers before the ingress
+  /// gives up. Only that budget is read from the options; CourseQuality:Enabled is not, because this is a tool.
   /// </summary>
   public sealed partial class LinkHealthService : ILinkHealthService
   {
@@ -24,17 +29,25 @@ namespace Yoma.Core.Domain.CourseQuality.Services
     public const int MaxUrlLength = 2048;
     public const int MaxPlatformLength = 100;
 
+    public const string NotCheckedReason = "Not checked: the check ran out of time. Run these links again.";
+
     private const int RegexTimeoutMilliseconds = 1000;
 
     private readonly ILogger<LinkHealthService> _logger;
     private readonly ICourseQualityLinkChecker _linkChecker;
+    private readonly TimeSpan _budget;
+    private readonly TimeProvider _clock;
     #endregion
 
     #region Constructor
-    public LinkHealthService(ILogger<LinkHealthService> logger, ICourseQualityLinkChecker linkChecker)
+    /// <param name="clock">The system clock unless a test passes its own.</param>
+    public LinkHealthService(ILogger<LinkHealthService> logger, ICourseQualityLinkChecker linkChecker, IOptions<CourseQualityOptions> options, TimeProvider? clock = null)
     {
       _logger = logger ?? throw new ArgumentNullException(nameof(logger));
       _linkChecker = linkChecker ?? throw new ArgumentNullException(nameof(linkChecker));
+      ArgumentNullException.ThrowIfNull(options?.Value, nameof(options));
+      _budget = TimeSpan.FromSeconds(Math.Max(1, options.Value.LinkHealth.BudgetInSeconds));
+      _clock = clock ?? TimeProvider.System;
     }
     #endregion
 
@@ -59,18 +72,35 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         group.Add((i, urls[i], uri));
       }
 
+      var deadline = _clock.GetUtcNow().Add(_budget);
+      var notChecked = 0;
+
       await Parallel.ForEachAsync(byHost.Values, new ParallelOptions { MaxDegreeOfParallelism = MaxConcurrentHosts, CancellationToken = cancellationToken },
         async (group, token) =>
         {
-          foreach (var (index, url, uri) in group) results[index] = await CheckOne(url, uri, token);
+          foreach (var (index, url, uri) in group)
+          {
+            // out of time: answer now rather than after the ingress has given up; a link already started finishes within its own timeout
+            if (_clock.GetUtcNow() >= deadline)
+            {
+              results[index] = new LinkHealthResult { Url = url, Status = LinkHealthStatus.Timeout, Reason = NotCheckedReason };
+              Interlocked.Increment(ref notChecked);
+              continue;
+            }
+
+            results[index] = await CheckOne(url, uri, token);
+          }
         });
+
+      if (notChecked > 0 && _logger.IsEnabled(LogLevel.Warning))
+        _logger.LogWarning("Link health ran out of its {budget} s budget; {count} links were not checked", _budget.TotalSeconds, notChecked);
 
       var report = new LinkHealthReport
       {
         Platform = Platform(request.Platform),
         Checked = urls.Count,
         Results = [.. results.Select(o => o!)],
-        DateChecked = DateTimeOffset.UtcNow
+        DateChecked = _clock.GetUtcNow()
       };
 
       foreach (var status in Enum.GetValues<LinkHealthStatus>()) report.Counts[status] = report.Results.Count(o => o.Status == status);

@@ -71,9 +71,10 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public string? ApiKey { get; set; }
 
     /// <summary>
-    /// Served by the operator's own host: no per-token charge, so the cost is 0.
+    /// Served by the operator's own host: no per-token charge, so the cost is 0. False by default, so a remote paid endpoint
+    /// left at the default is never recorded as free; set it to true only for a model on the operator's own host.
     /// </summary>
-    public bool IsLocal { get; set; } = true;
+    public bool IsLocal { get; set; }
 
     public int TimeoutInSeconds { get; set; } = 300;
 

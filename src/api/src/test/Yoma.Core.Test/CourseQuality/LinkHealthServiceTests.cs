@@ -75,6 +75,18 @@ namespace Yoma.Core.Test.CourseQuality
         }
       }
     }
+
+    /// <summary>
+    /// Moves only when a test moves it, so the time budget is tested without waiting.
+    /// </summary>
+    private sealed class FakeClock : TimeProvider
+    {
+      private long _ticks = new DateTimeOffset(2026, 11, 28, 9, 0, 0, TimeSpan.Zero).UtcTicks;
+
+      public override DateTimeOffset GetUtcNow() => new(Interlocked.Read(ref _ticks), TimeSpan.Zero);
+
+      public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
+    }
     #endregion
 
     #region Helpers
@@ -93,17 +105,19 @@ namespace Yoma.Core.Test.CourseQuality
 
     private static string Fixture(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "CourseQuality", "Fixtures", name));
 
-    private static (LinkHealthService Service, FakeNetwork Network, FakeResolver Resolver) Create(Action<CourseQualityLinkCheckOptions>? configure = null)
+    private static (LinkHealthService Service, FakeNetwork Network, FakeResolver Resolver) Create(Action<CourseQualityLinkCheckOptions>? configure = null,
+      TimeProvider? clock = null, int? budgetInSeconds = null)
     {
       var options = new CourseQualityOptions { Enabled = false }; // a tool: works with course quality off
       options.LinkCheck.MinHostIntervalInMilliseconds = 0;
       configure?.Invoke(options.LinkCheck);
+      if (budgetInSeconds.HasValue) options.LinkHealth.BudgetInSeconds = budgetInSeconds.Value;
 
       var network = new FakeNetwork();
       var resolver = new FakeResolver();
       var checker = new CourseQualityLinkChecker(NullLogger<CourseQualityLinkChecker>.Instance, Options.Create(options), resolver, network);
 
-      return (new LinkHealthService(NullLogger<LinkHealthService>.Instance, checker), network, resolver);
+      return (new LinkHealthService(NullLogger<LinkHealthService>.Instance, checker, Options.Create(options), clock), network, resolver);
     }
 
     private static async Task<LinkHealthResult> CheckOne(string url, Action<FakeNetwork, FakeResolver>? arrange = null, Action<CourseQualityLinkCheckOptions>? configure = null)
@@ -512,6 +526,57 @@ namespace Yoma.Core.Test.CourseQuality
     }
 
     [Fact]
+    public async Task OutOfTime_LinksNotStarted_AreTimeout_NotChecked_AndTheCountsAddUp()
+    {
+      var clock = new FakeClock();
+      var (service, network, _) = Create(clock: clock, budgetInSeconds: 240);
+      var urls = Enumerable.Range(1, 5).Select(i => $"https://slow.example.org/c/{i}").ToList();
+      foreach (var url in urls)
+        network.Pages[url] = _ => { clock.Advance(TimeSpan.FromSeconds(100)); return Task.FromResult(Html(RealPage)); };
+
+      var report = await service.Check(new LinkHealthRequest { Urls = [.. urls, "not a link"] }, CancellationToken.None);
+
+      // started at 0, 100 and 200 s; at 300 s the 240 s budget is spent, so the last two are never requested
+      Assert.Equal(3, network.Requested.Count);
+      Assert.Equal([LinkHealthStatus.Ok, LinkHealthStatus.Ok, LinkHealthStatus.Ok, LinkHealthStatus.Timeout, LinkHealthStatus.Timeout, LinkHealthStatus.Invalid],
+        report.Results.Select(o => o.Status));
+      Assert.All(report.Results.Skip(3).Take(2), o =>
+      {
+        Assert.Equal(LinkHealthService.NotCheckedReason, o.Reason);
+        Assert.Null(o.HttpStatus);
+        Assert.Null(o.DurationMs);
+      });
+      Assert.Equal("Not checked: the check ran out of time. Run these links again.", LinkHealthService.NotCheckedReason);
+      Assert.Equal(urls, report.Results.Take(5).Select(o => o.Url));
+      Assert.Equal(6, report.Checked);
+      Assert.Equal(report.Checked, report.Counts.Values.Sum());
+      Assert.Equal(3, report.Counts[LinkHealthStatus.Ok]);
+      Assert.Equal(2, report.Counts[LinkHealthStatus.Timeout]);
+      Assert.Equal(1, report.Counts[LinkHealthStatus.Invalid]);
+    }
+
+    [Fact]
+    public async Task WithinTheBudget_EveryLinkIsChecked()
+    {
+      var clock = new FakeClock();
+      var (service, network, _) = Create(clock: clock, budgetInSeconds: 240);
+      var urls = Enumerable.Range(1, 4).Select(i => $"https://host{i}.example.org/c").ToList();
+      foreach (var url in urls)
+        network.Pages[url] = _ => { clock.Advance(TimeSpan.FromSeconds(50)); return Task.FromResult(Html(RealPage)); };
+
+      var report = await service.Check(new LinkHealthRequest { Urls = urls }, CancellationToken.None);
+
+      Assert.Equal(4, report.Counts[LinkHealthStatus.Ok]);
+      Assert.Equal(0, report.Counts[LinkHealthStatus.Timeout]);
+    }
+
+    [Fact]
+    public void Budget_DefaultsTo240Seconds()
+    {
+      Assert.Equal(240, new CourseQualityOptions().LinkHealth.BudgetInSeconds);
+    }
+
+    [Fact]
     public async Task CallerCancellation_Throws()
     {
       var (service, network, _) = Create();
@@ -603,12 +668,14 @@ namespace Yoma.Core.Test.CourseQuality
     }
 
     [Fact]
-    public void Service_DependsOnlyOnTheSafeChecker_NotOnTheCourseQualitySwitch()
+    public async Task Service_UsesTheSafeChecker_AndWorksWithTheCourseQualitySwitchOff()
     {
       var parameters = typeof(LinkHealthService).GetConstructors().Single().GetParameters().Select(o => o.ParameterType).ToList();
-
       Assert.Contains(typeof(ICourseQualityLinkChecker), parameters);
-      Assert.DoesNotContain(parameters, o => o.IsGenericType && o.GetGenericTypeDefinition() == typeof(IOptions<>));
+
+      // Create() turns CourseQuality:Enabled off
+      var result = await CheckOne("https://courses.example.org/data-analysis");
+      Assert.Equal(LinkHealthStatus.Ok, result.Status);
     }
     #endregion
   }

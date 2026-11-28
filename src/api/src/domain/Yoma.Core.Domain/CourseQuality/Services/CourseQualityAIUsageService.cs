@@ -60,6 +60,8 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         InputTokens = usages.Sum(o => o.InputTokens),
         OutputTokens = usages.Sum(o => o.OutputTokens),
         CostUsd = usages.Sum(o => o.CostUsd ?? 0m),
+        UnpricedRuns = usages.Count(o => o.CostUsd == null),
+        RemoteRuns = usages.Count(o => !o.IsLocal),
         AverageDurationMs = usages.Count == 0 ? null : (long)Math.Round(usages.Average(o => (double)o.DurationMs)),
         Recent = recent
       };

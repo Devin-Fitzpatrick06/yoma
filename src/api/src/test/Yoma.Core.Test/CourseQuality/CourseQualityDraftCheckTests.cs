@@ -53,7 +53,8 @@ namespace Yoma.Core.Test.CourseQuality
     private readonly CourseQualityOptions _options = new()
     {
       Enabled = true,
-      PrePublish = new CourseQualityPrePublishOptions { Enabled = true, LinkTimeoutMilliseconds = 2000 },
+      // UseAI on, so the provider each test passes is the one the draft calls; the default (off) is covered in "AI in the draft check"
+      PrePublish = new CourseQualityPrePublishOptions { Enabled = true, LinkTimeoutMilliseconds = 2000, UseAI = true },
       VerifyTypes = [OpportunityType.Learning, OpportunityType.Event, OpportunityType.ImpactAction],
       Jobs = new CourseQualityJobOptions { Enabled = true }
     };
@@ -577,6 +578,46 @@ namespace Yoma.Core.Test.CourseQuality
       _links.Verify(o => o.Check(It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
       ai.Verify(o => o.Evaluate(It.IsAny<CourseQualityAIRequest>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
+
+    #region AI in the draft check
+    [Fact]
+    public void UseAI_IsOffByDefault()
+    {
+      Assert.False(new CourseQualityPrePublishOptions().UseAI);
+    }
+
+    [Fact]
+    public async Task UseAIOff_ReadsThePageWithTheKeylessReader_AndNeverCallsTheModel()
+    {
+      _options.PrePublish.UseAI = false;
+      var ai = new Mock<ICourseQualityAIProvider>();
+      ai.SetupGet(o => o.IsEnabled).Returns(true);
+      ai.Setup(o => o.Evaluate(It.IsAny<CourseQualityAIRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(CourseQualityTestData.Ai());
+
+      var withModel = await Draft(ai.Object).Check(OrganizationId, Request(), CancellationToken.None);
+      var withReader = await Draft(Reader()).Check(OrganizationId, Request(), CancellationToken.None);
+
+      ai.Verify(o => o.Evaluate(It.IsAny<CourseQualityAIRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+      Assert.Equal(withReader.PredictedStatus, withModel.PredictedStatus);
+      Assert.Equal(withReader.Score, withModel.Score);
+      Assert.Equal(withReader.Checks.Select(o => (o.Criterion, o.Score)), withModel.Checks.Select(o => (o.Criterion, o.Score)));
+    }
+
+    [Fact]
+    public async Task UseAIOn_CallsTheConfiguredProvider()
+    {
+      _options.PrePublish.UseAI = true;
+      var ai = new Mock<ICourseQualityAIProvider>();
+      ai.SetupGet(o => o.IsEnabled).Returns(true);
+      ai.Setup(o => o.Evaluate(It.IsAny<CourseQualityAIRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(CourseQualityTestData.Ai());
+
+      var result = await Draft(ai.Object).Check(OrganizationId, Request(), CancellationToken.None);
+
+      ai.Verify(o => o.Evaluate(It.IsAny<CourseQualityAIRequest>(), It.IsAny<CancellationToken>()), Times.Once);
+      Assert.Equal(CourseQualityStatus.Verified, result.PredictedStatus);
+    }
+
+    #endregion
 
     [Fact]
     public async Task ATimedOutLink_IsCachedBriefly()

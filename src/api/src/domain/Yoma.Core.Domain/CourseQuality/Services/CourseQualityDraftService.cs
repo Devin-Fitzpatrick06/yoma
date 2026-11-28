@@ -62,7 +62,9 @@ namespace Yoma.Core.Domain.CourseQuality.Services
       _timeIntervalService = timeIntervalService ?? throw new ArgumentNullException(nameof(timeIntervalService));
       _engagementTypeService = engagementTypeService ?? throw new ArgumentNullException(nameof(engagementTypeService));
       _linkChecker = linkChecker ?? throw new ArgumentNullException(nameof(linkChecker));
-      _aiProvider = aiProvider ?? throw new ArgumentNullException(nameof(aiProvider));
+      ArgumentNullException.ThrowIfNull(aiProvider, nameof(aiProvider));
+      // CourseQuality:PrePublish:UseAI off (the default): the keyless reader, never the configured model, which can take minutes and is not metered here
+      _aiProvider = _options.PrePublish.UseAI || aiProvider is CourseQualitySourcePageReader ? aiProvider : new CourseQualitySourcePageReader(options);
       _suggester = suggesters?.FirstOrDefault(o => o.IsEnabled);
     }
     #endregion
@@ -276,7 +278,7 @@ namespace Yoma.Core.Domain.CourseQuality.Services
         SourcePageTruncated = link.SourcePageTruncated
       };
 
-      var key = $"page:{CourseQualityDraftCache.Hash(request.Title, request.Description, request.Type.ToString(), request.Provider, request.OrganizationName,
+      var key = $"page:{(_options.PrePublish.UseAI ? "ai" : "reader")}:{CourseQualityDraftCache.Hash(request.Title, request.Description, request.Type.ToString(), request.Provider, request.OrganizationName,
         request.URL, request.DateStart.ToString("O", CultureInfo.InvariantCulture), request.DateEnd?.ToString("O", CultureInfo.InvariantCulture),
         request.CommitmentHours?.ToString(CultureInfo.InvariantCulture), link.Outcome.ToString(), link.FinalUrl, link.SourcePageText,
         System.Text.Json.JsonSerializer.Serialize(link.SourcePageSignals), link.SourcePageTruncated.ToString())}";

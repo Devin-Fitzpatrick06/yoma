@@ -122,6 +122,12 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public CourseQualityLinkCheckOptions LinkCheck { get; set; } = new();
 
     /// <summary>
+    /// The admin link health check (POST /courseQuality/links/check), section CourseQuality:LinkHealth. A tool: it runs whether or not
+    /// <see cref="Enabled"/> is on.
+    /// </summary>
+    public CourseQualityLinkHealthOptions LinkHealth { get; set; } = new();
+
+    /// <summary>
     /// How long after a change (an assessment, a reviewer decision, a survey answer) the catalogue is regraded. Changes in between share
     /// the one run, so a full assessment pass costs a handful of regrades, not one per course.
     /// </summary>
@@ -175,6 +181,13 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     /// The draft's link check gives up after this long and reports "could not confirm", never a failure, while the partner is typing.
     /// </summary>
     public int LinkTimeoutMilliseconds { get; set; } = 3000;
+
+    /// <summary>
+    /// Off by default: the draft check reads the page with the keyless source-page reader only, so it answers within the form's
+    /// timeout and costs nothing. On, it calls the configured AI provider (AI:Provider) on every pause in typing. That call's usage
+    /// is not stored (nothing about a draft is), and a CPU-only local model can take minutes, longer than the form waits.
+    /// </summary>
+    public bool UseAI { get; set; }
   }
 
   /// <summary>
@@ -235,6 +248,16 @@ namespace Yoma.Core.Domain.CourseQuality.Models
     public int Weight { get; set; }
 
     public bool HardGate { get; set; }
+  }
+
+  public class CourseQualityLinkHealthOptions
+  {
+    /// <summary>
+    /// The longest one request may spend starting checks. Links not started by then come back as Timeout ("not checked"), so the
+    /// response arrives before the ingress (300 s) or the web (10 min) gives up. A link already started finishes within
+    /// LinkCheck:TimeoutInSeconds, so keep this plus that below the ingress timeout.
+    /// </summary>
+    public int BudgetInSeconds { get; set; } = 240;
   }
 
   public class CourseQualityLinkCheckOptions

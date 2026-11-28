@@ -33,8 +33,7 @@ namespace Yoma.Core.Infrastructure.OpenAICompatible.Client
       if (!_options.IsConfigured)
         throw new InvalidOperationException($"'{CourseQualityAIOptions.Section}:{nameof(CourseQualityAIOptions.OpenAICompatible)}' base URL and model are not configured");
 
-      // a base URL without a trailing slash would lose its last segment ("/v1") when combined
-      _endpoint = new Uri(new Uri(_options.BaseUri!.AbsoluteUri.TrimEnd('/') + "/"), "chat/completions");
+      _endpoint = Endpoint(_options.BaseUri!);
 
       _httpClient = handler == null
         ? new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false })
@@ -46,6 +45,18 @@ namespace Yoma.Core.Infrastructure.OpenAICompatible.Client
     #endregion
 
     #region Public Members
+    /// <summary>
+    /// {BaseUrl}/chat/completions. The path is built on the base URL's path alone, so a query some hosts need (for example
+    /// "?api-version=...") is kept after "/chat/completions" instead of swallowing it; a fragment is never sent, so it is dropped.
+    /// The base URL's path is kept whether or not it ends in a slash ("/v1" is not lost).
+    /// </summary>
+    public static Uri Endpoint(Uri baseUri)
+    {
+      ArgumentNullException.ThrowIfNull(baseUri, nameof(baseUri));
+
+      return new Uri(baseUri.GetLeftPart(UriPartial.Path).TrimEnd('/') + "/chat/completions" + baseUri.Query);
+    }
+
     public async Task<OpenAICompatibleCompletion> Create(OpenAICompatibleChatRequest request, CancellationToken cancellationToken)
     {
       ArgumentNullException.ThrowIfNull(request, nameof(request));

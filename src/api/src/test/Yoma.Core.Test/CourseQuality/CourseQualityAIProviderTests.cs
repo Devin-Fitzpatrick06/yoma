@@ -121,6 +121,7 @@ namespace Yoma.Core.Test.CourseQuality
       var options = new CourseQualityAIOptions { Provider = AIProviderKind.OpenAICompatible };
       options.OpenAICompatible.BaseUrl = BaseUrl;
       options.OpenAICompatible.Model = Model;
+      options.OpenAICompatible.IsLocal = true;
       configure?.Invoke(options.OpenAICompatible);
       return options;
     }
@@ -213,7 +214,18 @@ namespace Yoma.Core.Test.CourseQuality
 
       Assert.DoesNotContain(services, o => o.ServiceType == typeof(IAnthropicMessageClient));
       Assert.IsType<CourseQualityProviderFallback>(Selected(services, out var endpoint));
-      Assert.Equal(new CourseQualityAIEndpoint(AIProviderKind.OpenAICompatible, Model, "localhost:11434", true, true), endpoint);
+      // IsLocal is not set, so the endpoint is not taken to be free
+      Assert.Equal(new CourseQualityAIEndpoint(AIProviderKind.OpenAICompatible, Model, "localhost:11434", false, true), endpoint);
+
+      var (local, _) = Host(new()
+      {
+        ["AI:Provider"] = "OpenAICompatible",
+        ["AI:OpenAICompatible:BaseUrl"] = BaseUrl,
+        ["AI:OpenAICompatible:Model"] = Model,
+        ["AI:OpenAICompatible:IsLocal"] = "true"
+      });
+      Selected(local, out var localEndpoint);
+      Assert.True(localEndpoint.IsLocal);
 
       using var provider = services.BuildServiceProvider();
       using var scope = provider.CreateScope();
@@ -245,11 +257,19 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.Equal(AIProviderKind.Anthropic, options.Provider);
       Assert.False(options.OpenAICompatible.IsConfigured);
       Assert.False(options.OpenAICompatible.HasApiKey);
-      Assert.True(options.OpenAICompatible.IsLocal);
+      Assert.False(options.OpenAICompatible.IsLocal);
       Assert.Equal(300, options.OpenAICompatible.TimeoutInSeconds);
       Assert.Equal(1024, options.OpenAICompatible.MaxTokens);
       Assert.Equal(6000, options.OpenAICompatible.MaxPageChars);
       Assert.Empty(options.Prices);
+    }
+
+    [Fact]
+    public void AppSettings_LeaveTheDraftCheckWithoutAI()
+    {
+      var options = new ConfigurationBuilder().AddJsonFile(FindAppSettings()).Build().GetSection(CourseQualityOptions.Section).Get<CourseQualityOptions>()!;
+
+      Assert.False(options.PrePublish.UseAI);
     }
 
     [Theory]
@@ -337,6 +357,21 @@ namespace Yoma.Core.Test.CourseQuality
       await CallOpenAI(handler, options: AIOptions(o => o.BaseUrl = baseUrl));
 
       Assert.Equal("http://localhost:11434/v1/chat/completions", handler.Requests.Single().Request.RequestUri!.ToString());
+    }
+
+    [Theory]
+    [InlineData("https://ai.example.gov/openai/v1?api-version=2024-10-01", "https://ai.example.gov/openai/v1/chat/completions?api-version=2024-10-01")]
+    [InlineData("https://ai.example.gov/openai/v1/?api-version=2024-10-01&x=1", "https://ai.example.gov/openai/v1/chat/completions?api-version=2024-10-01&x=1")]
+    [InlineData("http://localhost:11434/v1#section", "http://localhost:11434/v1/chat/completions")]
+    [InlineData("http://localhost:11434", "http://localhost:11434/chat/completions")]
+    public async Task Request_KeepsABaseUrlQuery_AfterThePath_AndDropsAFragment(string baseUrl, string expected)
+    {
+      var handler = FakeHandler.Json(Completion(Reply()));
+
+      await CallOpenAI(handler, options: AIOptions(o => o.BaseUrl = baseUrl));
+
+      Assert.Equal(expected, handler.Requests.Single().Request.RequestUri!.AbsoluteUri);
+      Assert.Equal(expected, OpenAICompatibleChatClient.Endpoint(new Uri(baseUrl)).AbsoluteUri);
     }
 
     [Fact]
@@ -606,6 +641,21 @@ namespace Yoma.Core.Test.CourseQuality
     }
 
     [Fact]
+    public async Task RemoteOpenAICompatible_LeftAtTheDefault_IsNotRecordedAsFree()
+    {
+      Assert.False(new CourseQualityOpenAICompatibleOptions().IsLocal);
+
+      var options = new CourseQualityAIOptions { Provider = AIProviderKind.OpenAICompatible };
+      options.OpenAICompatible.BaseUrl = "https://paid.example.com/v1";
+      options.OpenAICompatible.Model = "gpt-x";
+
+      var usage = (await CallOpenAI(FakeHandler.Json(Completion(Reply())), options: options)).Usage!;
+
+      Assert.False(usage.IsLocal);
+      Assert.Null(usage.CostUsd);
+    }
+
+    [Fact]
     public async Task Anthropic_RecordsUsage_FromTheResponse_WithNoHostAndAPriceOnlyWhenConfigured()
     {
       static AnthropicCourseQualityProvider Provider(CourseQualityAIOptions ai) => new(NullLogger<AnthropicCourseQualityProvider>.Instance,
@@ -741,7 +791,7 @@ namespace Yoma.Core.Test.CourseQuality
 
       var summary = JObject.Parse(JsonConvert.SerializeObject(new CourseQualityAIUsageSummary { Recent = [new CourseQualityAIRun { OpportunityTitle = "t", Usage = Usage() }] }, settings));
       Assert.Equal(
-        new[] { "provider", "model", "endpointHost", "isLocal", "configured", "runs", "answered", "inputTokens", "outputTokens", "costUsd", "averageDurationMs", "recent" }.Order(),
+        new[] { "provider", "model", "endpointHost", "isLocal", "configured", "runs", "answered", "inputTokens", "outputTokens", "costUsd", "unpricedRuns", "remoteRuns", "averageDurationMs", "recent" }.Order(),
         summary.Properties().Select(o => o.Name).Order());
       Assert.Equal(new[] { "assessmentId", "opportunityId", "organizationId", "opportunityTitle", "usage" }.Order(), ((JObject)summary["recent"]![0]!).Properties().Select(o => o.Name).Order());
     }
@@ -788,6 +838,8 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.Equal(3 * 1312, summary.InputTokens);
       Assert.Equal(3 * 201, summary.OutputTokens);
       Assert.Equal(0.0042m, summary.CostUsd);
+      Assert.Equal(1, summary.UnpricedRuns);
+      Assert.Equal(2, summary.RemoteRuns);
       Assert.Equal(14667, summary.AverageDurationMs);
       Assert.Equal(["Newest", "Failed", "Oldest"], summary.Recent.Select(o => o.OpportunityTitle));
       Assert.Equal(rows[2].Id, summary.Recent[0].AssessmentId);
@@ -808,6 +860,21 @@ namespace Yoma.Core.Test.CourseQuality
     }
 
     [Fact]
+    public void Summary_CountsUnpricedAndRemoteRuns_AcrossAllHistory_NotJustTheRecentList()
+    {
+      var rows = Enumerable.Range(0, 25).Select(i => Row(Usage(cost: i < 22 ? null : 0m, dateRun: Now.AddMinutes(i)), Now.AddMinutes(i), $"Run {i}")).ToList();
+
+      // the configured endpoint is local now; the history is not
+      var summary = UsageService(rows, new CourseQualityAIEndpoint(AIProviderKind.OpenAICompatible, Model, "localhost:11434", true, true)).GetSummary();
+
+      Assert.Equal(20, summary.Recent.Count);
+      Assert.Equal(22, summary.UnpricedRuns);
+      Assert.Equal(22, summary.RemoteRuns);
+      Assert.True(summary.IsLocal);
+      Assert.Equal(0m, summary.CostUsd);
+    }
+
+    [Fact]
     public void Summary_WithNoRuns_HasNoAverage_AndNoneIsNotConfigured()
     {
       var summary = UsageService([Row(null, Now)], CourseQualityAIEndpoint.None).GetSummary();
@@ -818,6 +885,8 @@ namespace Yoma.Core.Test.CourseQuality
       Assert.Null(summary.AverageDurationMs);
       Assert.Empty(summary.Recent);
       Assert.Equal(0m, summary.CostUsd);
+      Assert.Equal(0, summary.UnpricedRuns);
+      Assert.Equal(0, summary.RemoteRuns);
     }
     #endregion
 
