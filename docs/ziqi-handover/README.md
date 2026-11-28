@@ -35,17 +35,29 @@ cannot silently drift.
 | Website | `src/web/src/pages/my-yoma/`, `src/web/src/components/MyYoma/` (incl. `JourneyMap/`), `src/web/src/components/CourseQuality/`, `src/web/src/pages/admin/course-quality/`, the partner listing editor `src/web/src/pages/organisations/[id]/opportunities/[opportunityId]/` |
 | Web ↔ API contracts | `src/web/src/api/models/courseQuality.ts`, `src/web/src/api/models/pathway.ts` (the C# models mirror them) |
 | Local demo | `scripts/course-quality-demo/` (`start.sh`, `stop.sh`, `ai-smoke.sh`, seeds, validation sample tools) |
-| Design notes and session handoffs | `docs/work/active/course-quality-judger/` (start with `handoffs/2026-11-27-i4.md`) |
+| Design notes and session handoffs | `docs/work/active/course-quality-judger/` (start with `handoffs/2026-11-28-i5.md`) |
 
-## Status, iteration 5 (2026-11-28, in progress)
+## Status, iteration 5 (2026-11-28)
 
-Live AI end to end on a **free, locally hosted open model**: `scripts/course-quality-demo/start.sh --local-ai` runs
-`qwen2.5:3b` in Ollama, a reviewer runs **Run AI check** and sees model, tokens and cost ($0.00, local), and
-`ai-smoke.sh` proves it from the terminal. The model is swappable through configuration (`AI:Provider`, any
-OpenAI-compatible server, or Anthropic, which stays optional and billed). The demo now imports and audits all four
-types: courses, events, impact actions and jobs. Link health works on any platform (admin page and a standalone CLI).
-No paid AI was used. The integrated run on the local model, review and test pass are still to come; until then the
-figures below are iteration 4's.
+Live AI end to end on a **free, locally hosted open model**, verified on 28 November 2026 without any paid AI:
+
+- **AI through the Yoma backend:** `qwen2.5:3b` in Ollama ran through the Yoma API on 8 courses: all answered, 8,839
+  tokens in, 2,505 out, **$0.00**. Each run's model, tokens, cost, time and outcome are stored and shown on the reviewer
+  card (**Run AI check**) and in the AI usage panel.
+- **Swappable model:** set by configuration (`AI:Provider`: any OpenAI-compatible server, or Anthropic, which stays
+  optional and billed).
+- **Other opportunity types:** live events (17), impact actions (41) and jobs (2,000) are imported and audited.
+- **Link health on any platform:** the admin page and a standalone CLI.
+- **Speed:** 58 to 98 seconds per AI check on an idle 4-core CPU.
+- **Checks:** an independent review found 7 issues; all were fixed and re-checked. API: 1,457 Ziqi tests, all passing
+  except the one sandbox-DNS case. Web: 555 tests, type check and lint clean.
+
+Not yet done:
+
+- A timed `start.sh --local-ai` run on a Mac.
+- Owner reviews (Adrian for the API, Jason for the website).
+
+Details: `docs/work/active/course-quality-judger/handoffs/2026-11-28-i5.md`.
 
 ## Status at handover (2026-11-27)
 

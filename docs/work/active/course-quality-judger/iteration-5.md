@@ -1,6 +1,6 @@
 # Ziqi iteration 5: live AI end to end, swappable model, wider audits, link health
 
-Status: in-progress
+Status: review — built and verified on a free local model; awaiting owner review and a timed run on a Mac
 
 Source: the BBS "Ziqi (Jongmin), priority 1" asks, 2026-11-28. Lead rule: **no paid AI** — everything is built,
 improved and verified on a free, locally hosted open model (Ollama, `qwen2.5:3b`); the Anthropic path stays and is
