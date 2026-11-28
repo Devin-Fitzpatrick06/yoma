@@ -67,6 +67,7 @@ export interface PartnerFixNote {
 }
 
 export interface CourseQualityAssessment {
+  aiUsage?: CourseQualityAIUsage | null; // iteration 5: the AI call behind this assessment, if any
   // drop-off reserved for the pilot: always Collecting for now (iteration 4, W5)
   dropOff?: StepDropOff;
   id: string;
@@ -323,4 +324,82 @@ export interface DraftCheckResult {
   summary: string; // one sentence, e.g. "Two fixes and this course will be verified."
   // "Draft this for me" (W1 phase 2): null unless the AI provider is configured
   suggestions: { field: DraftCheckField; value: string }[] | null;
+}
+
+// ── Iteration 5: live AI with usage and cost, swappable model, link health ───
+// Contract for the BBS "Ziqi priority 1" asks. The C# models mirror these field for field.
+
+/** Which model service ran: Anthropic's API, or any OpenAI-compatible server (Ollama, vLLM, LM Studio, a government host). */
+export type AIProviderKind = "None" | "Anthropic" | "OpenAICompatible";
+
+/** One AI call behind an assessment: what ran, what it used and what it cost. */
+export interface CourseQualityAIUsage {
+  provider: AIProviderKind;
+  model: string;
+  endpointHost: string | null; // e.g. "localhost:11434" for a local model; null for Anthropic
+  isLocal: boolean; // served by the operator's own host: no per-token charge
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number | null; // null when no price is configured for a remote model; 0 for local
+  durationMs: number;
+  dateRun: string;
+  outcome: "Answered" | "Declined" | "Failed" | "Invalid"; // Declined = refusal / cut off; Invalid = reply not in the schema
+}
+
+// CourseQualityAssessment gains: aiUsage?: CourseQualityAIUsage | null  (null when no AI ran)
+
+/** GET /courseQuality/ai/usage (Admin): the configured model and what AI runs have used. */
+export interface CourseQualityAIUsageSummary {
+  provider: AIProviderKind;
+  model: string | null;
+  endpointHost: string | null;
+  isLocal: boolean;
+  configured: boolean; // a provider is set and reachable configuration exists (key or base URL)
+  runs: number;
+  answered: number;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number; // sum of known costs
+  averageDurationMs: number | null;
+  recent: CourseQualityAIRun[]; // newest first, at most 20
+}
+
+export interface CourseQualityAIRun {
+  assessmentId: string;
+  opportunityId: string;
+  opportunityTitle: string;
+  usage: CourseQualityAIUsage;
+}
+
+// POST /courseQuality/links/check (Admin): link health for URLs from any platform (Yoma, YouthHub, 1MiO, …).
+export interface LinkHealthRequest {
+  urls: string[]; // at most 200 per request; duplicates checked once
+  platform?: string | null; // free text label carried into the report, e.g. "YouthHub"
+}
+
+export type LinkHealthStatus =
+  | "Ok" // loaded, looks like a real page
+  | "Redirected" // loaded after redirects to another address
+  | "NotFound" // 404 / 410, or a page that says it is gone
+  | "Broken" // other 4xx/5xx, connection or TLS failure
+  | "Blocked" // bot protection or sign-in wall: could not confirm (not counted as dead)
+  | "Timeout"
+  | "Invalid" // not an http(s) URL
+  | "Refused"; // private, local or otherwise unsafe target: never fetched
+
+export interface LinkHealthResult {
+  url: string;
+  status: LinkHealthStatus;
+  httpStatus: number | null;
+  finalUrl: string | null;
+  durationMs: number | null;
+  reason: string; // plain words
+}
+
+export interface LinkHealthReport {
+  platform: string | null;
+  checked: number;
+  counts: Record<LinkHealthStatus, number>;
+  results: LinkHealthResult[];
+  dateChecked: string;
 }
