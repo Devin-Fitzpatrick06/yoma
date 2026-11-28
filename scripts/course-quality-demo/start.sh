@@ -7,6 +7,12 @@
 #   ./start.sh --refresh    import, assess and grade everything again, even if a saved database exists
 #   ./start.sh --sample N   import everything but assess only N live courses from mixed hosts; nothing is saved
 #   ./start.sh --fixtures   use only the demo pages for the named courses 101 to 108
+# Ziqi's AI check (off unless one of these is given; the start-up checks always run without it, so it never slows them):
+#   --local-ai                  a free open model in Docker (Ollama, CPU only on a Mac), default qwen2.5:3b
+#   --local-ai-model NAME       that model instead, e.g. qwen2.5:1.5b (faster, weaker); implies --local-ai
+#   --local-ai-url URL          the native Ollama app instead of the container, e.g. http://host.docker.internal:11434/v1
+#   --ai-url URL --ai-model NAME  any OpenAI-compatible server, e.g. a government host. A key, if it needs one, is read
+#                               from the environment variable ZIQI_AI_API_KEY and is never written to a file.
 set -euo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -14,6 +20,11 @@ USE_FIXTURES=false
 REFRESH=false
 FULL=false
 SAMPLE=""
+AI_MODE=none # none | local (Ollama in Docker) | native (the Ollama app on this machine) | remote (any OpenAI-compatible host)
+LOCAL_AI_MODEL="qwen2.5:3b"
+AI_URL=""
+AI_MODEL=""
+need_value() { [ -n "${2:-}" ] && [ "${2#--}" = "$2" ] || { echo "$1 needs a value. See the top of start.sh."; exit 2; }; }
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -24,10 +35,37 @@ while [ $# -gt 0 ]; do
       SAMPLE="${2:-}"
       [[ "$SAMPLE" =~ ^[1-9][0-9]*$ ]] || { echo "--sample needs a number of courses, for example --sample 40."; exit 2; }
       shift ;;
-    *) echo "Unknown option: $1. The options are --full, --refresh, --sample N and --fixtures."; exit 2 ;;
+    --local-ai) [ "$AI_MODE" = native ] || AI_MODE=local ;;
+    --local-ai-model) need_value "$1" "${2:-}"; LOCAL_AI_MODEL="$2"; [ "$AI_MODE" = native ] || AI_MODE=local; shift ;;
+    --local-ai-url) need_value "$1" "${2:-}"; AI_URL="$2"; AI_MODE=native; shift ;;
+    --ai-url) need_value "$1" "${2:-}"; AI_URL="$2"; REMOTE_AI=true; shift ;;
+    --ai-model) need_value "$1" "${2:-}"; AI_MODEL="$2"; REMOTE_AI=true; shift ;;
+    *) echo "Unknown option: $1. The options are --full, --refresh, --sample N, --fixtures, --local-ai, --local-ai-model NAME, --local-ai-url URL, --ai-url URL and --ai-model NAME."; exit 2 ;;
   esac
   shift
 done
+
+# ---- Ziqi's AI settings ----
+# Passed to the API container by name only (docker-compose.demo.yml, api, environment). Anything left in this shell from
+# elsewhere is cleared, so only what is chosen here reaches the API.
+unset AI__Provider AI__OpenAICompatible__BaseUrl AI__OpenAICompatible__Model AI__OpenAICompatible__IsLocal \
+  AI__OpenAICompatible__TimeoutInSeconds AI__OpenAICompatible__ApiKey
+if [ "${REMOTE_AI:-false}" = true ]; then
+  [ "$AI_MODE" = none ] || { echo "Choose either the local AI (--local-ai...) or another server (--ai-url and --ai-model), not both."; exit 2; }
+  [ -n "$AI_URL" ] && [ -n "$AI_MODEL" ] || { echo "--ai-url and --ai-model go together, for example --ai-url https://ai.example.gov/v1 --ai-model llama3.1:8b."; exit 2; }
+  AI_MODE=remote
+fi
+case "$AI_MODE" in
+  local) AI_URL="http://ollama:11434/v1"; AI_MODEL="$LOCAL_AI_MODEL" ;;
+  native) AI_MODEL="$LOCAL_AI_MODEL" ;;
+esac
+if [ "$AI_MODE" != none ]; then
+  [[ "$AI_URL" =~ ^https?://[^[:space:]]+$ ]] || { echo "The AI address must start with http:// or https://, for example http://host.docker.internal:11434/v1."; exit 2; }
+  [[ "$AI_MODEL" =~ ^[A-Za-z0-9._:/@-]+$ ]] || { echo "The model name \"$AI_MODEL\" has characters a model name does not use."; exit 2; }
+fi
+# The start-up checks run without the AI; the API is restarted with it once they are done (see "Ziqi's AI" below).
+export AI__Provider=None
+export ZIQI_LOCAL_AI_MODEL="$LOCAL_AI_MODEL"
 
 FROM_SNAPSHOT=false
 [ -f "$SNAPSHOT" ] && [ "$REFRESH" = false ] && [ -z "$SAMPLE" ] && FROM_SNAPSHOT=true
@@ -77,6 +115,36 @@ done
 memory_gb=$(($(docker info --format '{{.MemTotal}}') / 1073741824))
 if [ "$memory_gb" -lt 6 ]; then
   echo "Warning: Docker has about ${memory_gb} GB of memory. Building needs about 6 GB. If it fails, raise it in Docker Desktop, Settings, Resources."
+elif [ "$AI_MODE" = local ] && [ "$memory_gb" -lt 8 ]; then
+  echo "Warning: Docker has about ${memory_gb} GB of memory. The demo with the local AI model needs about 8 GB. Raise it in Docker Desktop, Settings, Resources, or use --local-ai-model qwen2.5:1.5b."
+fi
+
+# Kept across stops (stop.sh removes the demo's other volumes), so a model downloads only once. Empty until --local-ai.
+docker volume create yoma-course-quality-demo-ollama-models >/dev/null
+
+# ---- Local AI ----
+# The model downloads in the background while the API and website build. Only the download itself runs in parallel;
+# the model server is started first, so the two compose calls never create the demo's network at the same time.
+ai_pull_pid=""
+if [ "$AI_MODE" = local ]; then
+  current_step="starting the local AI model server"
+  step "Starting the local AI model server and downloading $AI_MODEL in the background (about 2 GB the first time)"
+  compose up -d ollama >"$LOG_DIR/local-ai.log" 2>&1
+  compose run --rm --no-deps ollama-pull >>"$LOG_DIR/local-ai.log" 2>&1 &
+  ai_pull_pid=$!
+elif [ "$AI_MODE" = native ]; then
+  # The app on this Mac answers on localhost; the API container reaches the same server at host.docker.internal.
+  host_url="$(sed -E 's#//host\.docker\.internal#//localhost#; s#/v1/?$##' <<<"$AI_URL")"
+  if ! curl -fsS --max-time 5 "$host_url/api/tags" >/dev/null 2>&1; then
+    echo "Warning: no Ollama answered at $host_url. Open the Ollama app (or run: ollama serve) before using Ziqi's AI check."
+  elif command -v ollama >/dev/null 2>&1; then
+    step "Making sure the Ollama app has $AI_MODEL (a download the first time)"
+    ollama pull "$AI_MODEL" >"$LOG_DIR/local-ai.log" 2>&1 || echo "Warning: ollama pull $AI_MODEL failed; see .logs/local-ai.log."
+  elif ! curl -fsS --max-time 5 "$host_url/api/tags" | grep -q "\"$AI_MODEL\""; then
+    echo "Warning: the Ollama app does not have $AI_MODEL yet. Run: ollama pull $AI_MODEL"
+  fi
+elif [ "$AI_MODE" = remote ] && [ -z "${ZIQI_AI_API_KEY:-}" ]; then
+  echo "Note: ZIQI_AI_API_KEY is not set, so no key is sent to $AI_URL. Set it in this shell first if that server needs one."
 fi
 
 # ---- Build ----
@@ -203,7 +271,7 @@ fi
 # the demo learners, so "usually go on to" can show, then runs Ziqi's listing checks on the impact actions.
 type_count() { sql -At -c "SELECT count(*) FROM \"Opportunity\".\"Opportunity\" o JOIN \"Opportunity\".\"OpportunityType\" t ON t.\"Id\" = o.\"TypeId\" WHERE t.\"Name\" = '$1'"; }
 snapshot_wanted() { [ -z "$SAMPLE" ] && { [ "$FROM_SNAPSHOT" = true ] || [ "$live_ok" -eq 0 ]; }; }
-tasks_added=false
+added_since_save=""
 task_summary=""
 if [ "$(type_count ImpactAction)" = "0" ]; then
   if [ ! -f "$CACHE_DIR/live-tasks.json" ]; then
@@ -214,12 +282,33 @@ if [ "$(type_count ImpactAction)" = "0" ]; then
   current_step="adding the impact actions"
   step "Adding every live Yoma impact action, and the demo learners' synthetic pathway completions on them"
   in_runner node /demo/seed/generate-tasks-sql.mjs 2>>"$LOG_DIR/seed.log" | sql >"$LOG_DIR/seed-tasks.log" 2>&1
-  tasks_added=true
+  added_since_save="impact actions"
   rm -f "$CACHE_DIR/task-assessment-progress.jsonl"
   current_step="checking the impact actions"
   step "Running Ziqi's listing checks on the impact actions (progress is in .logs/assess-tasks.log)"
   task_summary="$(in_runner node /demo/seed/assess-live.mjs --tasks --no-grade 2>"$LOG_DIR/assess-tasks.log")" \
     || echo "Some impact actions could not be checked; see .logs/assess-tasks.log. The demo carries on."
+fi
+
+# ---- Events ----
+# Live events (17 on 28 November 2026) are added once, like the impact actions: a saved database that already has them keeps them,
+# and an older saved database gets them here. Listing checks only, no grade, as for impact actions.
+event_summary=""
+if [ "$(type_count Event)" = "0" ]; then
+  if [ ! -f "$CACHE_DIR/live-events.json" ]; then
+    current_step="downloading the live event list"
+    step "Downloading the public list of live Yoma events (seconds)"
+    in_runner node /demo/seed/fetch-live-catalogue.mjs --events 2>"$LOG_DIR/fetch-events.log"
+  fi
+  current_step="adding the events"
+  step "Adding every live Yoma event"
+  in_runner node /demo/seed/generate-events-sql.mjs 2>>"$LOG_DIR/seed.log" | sql >"$LOG_DIR/seed-events.log" 2>&1
+  added_since_save="${added_since_save:+$added_since_save and }events"
+  rm -f "$CACHE_DIR/event-assessment-progress.jsonl"
+  current_step="checking the events"
+  step "Running Ziqi's listing checks on the events (progress is in .logs/assess-events.log)"
+  event_summary="$(in_runner node /demo/seed/assess-live.mjs --events --no-grade 2>"$LOG_DIR/assess-events.log")" \
+    || echo "Some events could not be checked; see .logs/assess-events.log. The demo carries on."
 fi
 
 # ---- Jobs ----
@@ -244,14 +333,46 @@ if grep -q '^CourseQuality__Jobs__Enabled=true' "$DEMO_DIR/demo.env" && [ "$(typ
     current_step="saving the demo database"
     step "Saving the demo database with the jobs"
     save_snapshot
-    tasks_added=false
+    added_since_save=""
   fi
 fi
-# Impact actions added to a saved database that already had its jobs: save once more, so the next start includes them.
-if [ "$tasks_added" = true ] && snapshot_wanted; then
+# Impact actions or events added to a saved database that already had its jobs: save once more, so the next start
+# includes them.
+if [ -n "$added_since_save" ] && snapshot_wanted; then
   current_step="saving the demo database"
-  step "Saving the demo database with the impact actions"
+  step "Saving the demo database with the $added_since_save"
   save_snapshot
+fi
+
+# ---- Ziqi's AI ----
+# Every check above ran without the AI, so the start takes the same time with it and the saved database stays the
+# same. Now the API restarts with the chosen model, for "Run AI check" on the reviewer card and ./ai-smoke.sh.
+ai_line="off (no AI). Start with --local-ai for a free local model, or --ai-url URL --ai-model NAME for another server."
+if [ "$AI_MODE" != none ]; then
+  if [ -n "$ai_pull_pid" ]; then
+    current_step="downloading the local AI model"
+    step "Waiting for the $AI_MODEL download to finish (progress is in .logs/local-ai.log)"
+    wait "$ai_pull_pid" || stop_with "The model $AI_MODEL could not be downloaded. See .logs/local-ai.log, check the name on ollama.com/library, and try again."
+  fi
+  export AI__Provider=OpenAICompatible
+  export AI__OpenAICompatible__BaseUrl="$AI_URL"
+  export AI__OpenAICompatible__Model="$AI_MODEL"
+  export AI__OpenAICompatible__TimeoutInSeconds=300
+  if [ "$AI_MODE" = remote ]; then
+    export AI__OpenAICompatible__IsLocal=false
+    # Only into this process's environment, for the API container; never into a file.
+    if [ -n "${ZIQI_AI_API_KEY:-}" ]; then export AI__OpenAICompatible__ApiKey="$ZIQI_AI_API_KEY"; fi
+    ai_line="on: OpenAICompatible, model $AI_MODEL at ${AI_URL%%\?*}. Remote, so the host may bill it; the cost shows only when AI:Prices has this model."
+  else
+    export AI__OpenAICompatible__IsLocal=true
+    where="the demo's Ollama container, CPU only"
+    if [ "$AI_MODE" = native ]; then where="the Ollama app on this machine"; fi
+    ai_line="on: OpenAICompatible, model $AI_MODEL in $where. Local and free: every check costs \$0.00."
+  fi
+  current_step="restarting the API with Ziqi's AI"
+  step "Restarting the API with Ziqi's AI on ($AI_MODEL)"
+  compose up -d api >>"$LOG_DIR/up.log" 2>&1
+  wait_for_url "http://localhost:5050/api/v3/health/live" "The API" 300
 fi
 
 # ---- Website ----
@@ -267,6 +388,7 @@ trap - ERR
 web="http://localhost:3000"
 courses_total="$(type_count Learning)"
 impact_total="$(type_count ImpactAction)"
+events_total="$(type_count Event)"
 jobs_total="$(type_count Job)"
 assessed_total="$(sql -At -c 'SELECT count(*) FROM "CourseQuality"."Assessment" WHERE "IsLatest"')"
 pathway_demo="$(sql -At -F ' ' -c "SELECT count(*), count(DISTINCT \"OpportunityId\") FROM \"Opportunity\".\"MyOpportunity\" WHERE \"CommentVerification\" LIKE 'Demo data: a synthetic pathway completion%'")"
@@ -285,15 +407,22 @@ printf '  Partner, new listing:   %s/organisations/%s/opportunities/create\n' "$
 printf '  Journey map preview:    %s/my-yoma-preview?view=map\n' "$web"
 printf '  Ziqi draft preview:     %s/ziqi-draft-preview\n' "$web"
 printf '  Ziqi admin preview:     %s/ziqi-admin-preview\n' "$web"
+printf '\nZiqi iteration 5:\n'
+printf '  Run AI check:           %s/admin/course-quality  (open a course card in the reviewer queue)\n' "$web"
+printf '  Link health:            %s/admin/course-quality/links\n' "$web"
+printf '  Link health CLI:        node scripts/link-health/check-links.mjs  (any platform, no Yoma needed)\n'
+printf '  AI proof in one go:     %s/ai-smoke.sh  (runs the AI on named course 102, prints tokens and cost)\n' "${DEMO_DIR#"$REPO_ROOT"/}"
+printf '  Ziqi AI:                %s\n' "$ai_line"
 printf '\nLocal test sign-ins, the public seed defaults from src/api/docker-compose.yml:\n'
 printf '  Reviewer and partner: testadminuser@gmail.com  (one account for all three views)\n'
 printf '  Partner only:         testorgadminuser@gmail.com\n'
 printf '  Learner:              testuser@gmail.com\n'
 printf '  Password:             P@ssword12\n'
-printf '\nBy type: %s courses, %s impact actions, %s jobs. %s assessed in all.\n' "$courses_total" "$impact_total" "$jobs_total" "$assessed_total"
+printf '\nBy type: %s courses, %s events, %s impact actions, %s jobs. %s assessed in all.\n' "$courses_total" "$events_total" "$impact_total" "$jobs_total" "$assessed_total"
 read -r pathway_rows pathway_steps <<<"$pathway_demo"
 printf 'Synthetic pathway completions (demo data, labelled): %s on %s impact actions and courses.\n' "${pathway_rows:-0}" "${pathway_steps:-0}"
 [ -n "$live_summary" ] && printf 'Live courses:\n%s\n' "$live_summary"
+[ -n "$event_summary" ] && printf 'Live events (listing checks, no grades):\n%s\n' "$event_summary"
 [ -n "$task_summary" ] && printf 'Live impact actions (listing checks, no grades):\n%s\n' "$task_summary"
 [ -n "$job_summary" ] && printf 'Live jobs:\n%s\n' "$job_summary"
 printf '\nNamed courses:\n%s\n' "$results_table"

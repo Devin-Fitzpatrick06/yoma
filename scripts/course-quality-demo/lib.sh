@@ -10,7 +10,9 @@ SNAPSHOT_INFO="$CACHE_DIR/demo-db.env"
 ORG_ID="c0a7e000-0000-4000-8000-000000000001"
 mkdir -p "$LOG_DIR" "$CACHE_DIR"
 
-compose() { docker compose -f "$DEMO_DIR/docker-compose.demo.yml" --profile setup "$@"; }
+# Both profiles, so a reset or stop also removes the local AI containers (start.sh --local-ai). Naming the services to
+# start keeps the model server off unless it is asked for.
+compose() { docker compose -f "$DEMO_DIR/docker-compose.demo.yml" --profile setup --profile local-ai "$@"; }
 sql() { compose exec -T postgres psql -q -U postgres -d yoma-dev "$@"; }
 in_runner() { compose exec -T runner "$@"; }
 step() { printf '\n[%3dm%02ds] %s\n' $((SECONDS / 60)) $((SECONDS % 60)) "$1"; }
