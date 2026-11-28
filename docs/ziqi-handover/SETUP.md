@@ -25,10 +25,11 @@ What a start does depends on whether a saved demo database exists in `scripts/co
 
 | Start | What happens | Time |
 | --- | --- | --- |
-| Saved database present | Loads it; adds live impact actions and jobs if it has none; re-checks the 8 named demo courses | about 3–5 minutes |
-| No saved database (default) | Imports every live Yoma course, 2,000 live jobs and the live impact actions from the public Yoma API, checks and grades a sample of 40 courses, opens the site | about 8 minutes |
+| Saved database present | Loads it; adds live impact actions, events and jobs if it has none; re-checks the 8 named demo courses | about 3–5 minutes |
+| No saved database (default) | Imports every live Yoma course, 2,000 live jobs, the live impact actions and the live events from the public Yoma API, checks and grades a sample of 40 courses, opens the site | about 8 minutes |
 | `--full` | As above, but checks and grades every live course (about 2,400) and saves the database for fast later starts | about 45 minutes |
 | `--fixtures` | Uses only the local demo pages for the 8 named courses (for unreliable internet) | a few minutes |
+| `--local-ai` (with any of the above) | Also turns on Ziqi's AI check with a free open model in Docker (see "Ziqi AI" below) | adds the first model download, about 2 GB, during the build |
 
 When it prints "Course Quality demo is running", open `http://localhost:3000`. Local test sign-ins (public seed
 defaults from `src/api/docker-compose.yml`, local only), password `P@ssword12`:
@@ -44,6 +45,37 @@ Stop and remove the demo (the saved database in `.cache/` stays):
 ```bash
 scripts/course-quality-demo/stop.sh
 ```
+
+### Ziqi AI in the demo: a free, local open model
+
+The AI is off unless you ask for it. The start-up checks always run without it; with an AI option the API restarts with
+the AI on at the end of the start, and a reviewer runs it on demand (**Run AI check** on a reviewer card, or
+`scripts/course-quality-demo/ai-smoke.sh` from the terminal, which prints the model, tokens, cost, duration and
+outcome).
+
+```bash
+scripts/course-quality-demo/start.sh --local-ai
+```
+
+| Option | What it does |
+| --- | --- |
+| `--local-ai` | Runs Ollama (`ollama/ollama:0.12.3`) in the demo with `qwen2.5:3b`; downloads it once into the Docker volume `yoma-course-quality-demo-ollama-models` (kept by `stop.sh`). Internal only: no port is published. |
+| `--local-ai-model NAME` | Another Ollama model, e.g. `qwen2.5:1.5b` (about twice as fast, weaker answers). |
+| `--local-ai-url URL` | The native Ollama app instead of the container: `--local-ai-url http://host.docker.internal:11434/v1`. |
+| `--ai-url URL --ai-model NAME` | Any OpenAI-compatible server, e.g. a government-hosted model. A key, if needed, comes from the environment variable `ZIQI_AI_API_KEY` and is never written to a file. |
+
+On a Mac, Docker Desktop has **no GPU access**, so the container runs the model on the CPU: roughly 1 to 3 minutes per
+course check with `qwen2.5:3b` (an estimate; `ai-smoke.sh` prints the real time), about half with `qwen2.5:1.5b`. Give
+Docker about 8 GB of memory. The native Ollama app uses the Mac's GPU through Metal and is much faster: install it from
+ollama.com, run `ollama pull qwen2.5:3b`, and start the demo with `--local-ai-url http://host.docker.internal:11434/v1`.
+
+### Link health, on any platform
+
+- In the website: `http://localhost:3000/admin/course-quality/links` (reviewer sign-in). Paste or upload links, run,
+  export a CSV.
+- Without Yoma: `node scripts/link-health/check-links.mjs` reads a .txt, .csv or sitemap and writes a CSV or Markdown
+  report. It needs only Node 24 and no packages; see `scripts/link-health/` for its options.
+- The API endpoint behind the page: `POST /courseQuality/links/check` (Admin), at most 200 links per request.
 
 Click-by-click script: `docs/work/active/course-quality-judger/demo-walkthrough.md`. More detail:
 `scripts/course-quality-demo/README.md`.
@@ -83,12 +115,37 @@ setting the demo uses and is the easiest reference for a working local configura
 
 Keep the web and API pathway switches on together.
 
+### AI configuration (iteration 5)
+
+| Setting | Meaning |
+| --- | --- |
+| `AI:Provider` | `None`, `Anthropic` or `OpenAICompatible`. Default `Anthropic`, which without a key means no AI. |
+| `AI:OpenAICompatible:BaseUrl` | The server's OpenAI-compatible address, e.g. `http://localhost:11434/v1` (Ollama), vLLM, LM Studio or a government endpoint. |
+| `AI:OpenAICompatible:Model` | e.g. `qwen2.5:3b`. |
+| `AI:OpenAICompatible:ApiKey` | Optional. Environment or secret store only, never a file in git. |
+| `AI:OpenAICompatible:IsLocal` | `true` for a model on the operator's own host: each run's cost is recorded as 0. |
+| `AI:OpenAICompatible:TimeoutInSeconds`, `MaxTokens`, `MaxPageChars` | Limits per call. The demo uses a 300-second timeout for CPU models. |
+| `AI:Prices:<model>:InputPerMillionUsd`, `OutputPerMillionUsd` | Prices for a remote model. Unknown model: the cost is recorded as unknown, never guessed. |
+| `Anthropic:*` | Unchanged: `ApiKey`, `Model`, `Effort`, `MaxTokens`, `TimeoutInSeconds`, `MaxRetries`. |
+
+Whichever provider runs, Ziqi sends the same system prompt and output schema (`prompts/`), wraps page text as untrusted
+data, and lets the AI only lower a result. Each run's provider, model, tokens, cost, duration and outcome are stored
+with the assessment (`aiUsage`) and summed at `GET /courseQuality/ai/usage` (Admin).
+
+As environment variables, `:` becomes `__`, e.g. `AI__Provider=OpenAICompatible`,
+`AI__OpenAICompatible__BaseUrl=http://localhost:11434/v1`. A development API on your machine can use a native Ollama
+directly: `ollama pull qwen2.5:3b`, then set those two and `AI__OpenAICompatible__Model=qwen2.5:3b`,
+`AI__OpenAICompatible__IsLocal=true`.
+
 ### Keys and secrets
 
 - **Nothing secret is committed.** `Anthropic:ApiKey` is empty in `appsettings.json`; with no key, Ziqi runs its
   keyless page reader and the AI is simply not used.
-- To turn the AI on, set the key only through the environment, for example `Anthropic__ApiKey`, or your deployment's
-  secret store (Yoma's deployments keep secrets SOPS-encrypted under `helm/**/secrets.yaml`). Never in a file in git.
+- **A local open model needs no key** and costs nothing (see "Ziqi AI in the demo" above).
+- A paid or hosted model's key goes only through the environment, for example `Anthropic__ApiKey` or
+  `AI__OpenAICompatible__ApiKey` (the demo reads it from `ZIQI_AI_API_KEY` at start and passes it to the API container
+  only at runtime), or your deployment's secret store (Yoma's deployments keep secrets SOPS-encrypted under
+  `helm/**/secrets.yaml`). Never in a file in git.
 - `scripts/course-quality-demo/demo.env` holds only local placeholders and the public defaults already in Yoma's
   `src/api/docker-compose.yml` (local Keycloak client secrets, local database password). They work only against the
   local containers. `NEXTAUTH_SECRET` is generated fresh on every demo start.

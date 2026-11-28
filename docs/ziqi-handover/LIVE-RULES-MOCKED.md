@@ -7,7 +7,7 @@ kind of data.
 
 | What | Detail |
 | --- | --- |
-| The catalogue | Every live Yoma course (about 2,400), up to 2,000 live jobs and the live impact actions (about 40), imported from the public Yoma search API (`api.yoma.world`) when the demo starts. A snapshot: it does not update while the demo runs. |
+| The catalogue | Every live Yoma course (about 2,400), up to 2,000 live jobs, the live impact actions (about 40) and the live events (17 on 28 November 2026), imported from the public Yoma search API (`api.yoma.world`) when the demo starts. A snapshot: it does not update while the demo runs. |
 | Link checks | Ziqi opens each listing's link for real: redirects, status, final address, with a safe checker that refuses private and local addresses and pins the address it resolved. |
 | Page reading | The course page that loads is read for real: dates, duration, cost, syllabus, structured data, webinar wording. Some providers block automated readers or show a sign-in shell; those pages go to a reviewer instead of being guessed. |
 | The partner draft check | Runs the same checks on what the partner has typed, including a real (short-timeout) link check. |
@@ -28,12 +28,16 @@ Everything that decides a result is rules, not AI. The rules are in `rubrics/`.
 | Outcomes and "usually go on to" | Counted from completion records. Hidden below 20 completers, and a next step is named only when at least 5 youth took it. Never a cause or a multiplier. |
 | Fix notes and the draft check's fixes | Generated from the failed checks, in partner wording. |
 
-## AI (optional, off in the demo)
+## AI (optional; in the demo a free local open model)
 
 | What | Detail |
 | --- | --- |
-| Course page check | With an Anthropic API key configured, Ziqi also asks the model to compare the listing with its page and to find the cost and format. The prompt and schema are in `prompts/`. The AI can only **lower** a result: the fixed checks decide what the page proves, and a confident AI answer cannot verify a course the rules hold back. |
-| Without a key (the demo, and the default) | The keyless page reader runs instead; results are capped below "confident" and more courses go to a reviewer. |
+| Course page check | With an AI configured, Ziqi also asks the model to compare the listing with its page and to find the cost and format. The prompt and schema are in `prompts/`, the same for every provider. The AI can only **lower** a result: the fixed checks decide what the page proves, and a confident AI answer cannot verify a course the rules hold back. |
+| In the demo: a local open model, free | `start.sh --local-ai` runs `qwen2.5:3b` in Ollama on the presenter's machine (OpenAI-compatible API). No data leaves the machine and nothing is billed: each run records cost $0.00. A reviewer runs it on demand (**Run AI check**); the start-up checks run without it. |
+| Any OpenAI-compatible server | The same setting points Ziqi at vLLM, LM Studio or a government-hosted model (`--ai-url`, `--ai-model`). Cost is recorded only when a price is configured for that model, otherwise "unknown", never guessed. |
+| Anthropic (optional, billed) | Still supported (`AI:Provider=Anthropic` with a key). It is billed per token by Anthropic. In this work it was tested with fakes only and never called for real. |
+| Usage and cost per run | Every AI run stores provider, model, endpoint host, local or not, tokens in and out, cost, duration and outcome (answered, declined, failed, invalid) with the assessment. The reviewer card shows them; `GET /courseQuality/ai/usage` sums them. |
+| Without an AI (the default) | The keyless page reader runs instead; results are capped below "confident" and more courses go to a reviewer. |
 | "Draft this for me" (partner panel) | Not implemented yet: the panel shows "Available when AI is configured". The interface (`ICourseQualityDraftSuggester`) is in place with no implementation registered. |
 
 ## Synthetic or mocked (demo only, always labelled)

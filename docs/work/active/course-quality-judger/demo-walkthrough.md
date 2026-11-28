@@ -10,7 +10,8 @@ A click-by-click script for the five steps in `iteration-4.md` ("Demo walkthroug
 ## Before you present
 
 1. Start the demo with `scripts/course-quality-demo/start.sh` and wait for the summary. Check that it prints:
-   - **By type**: courses, impact actions and jobs, each more than 0;
+   - **By type**: courses, events, impact actions and jobs, each more than 0;
+   - **Ziqi AI: on**, with the model and "Local and free", if you will show step 6 (start with `--local-ai`);
    - **Synthetic pathway completions (demo data, labelled)**: more than 0;
    - the Ziqi iteration 4 links: My Yoma, YoID, partner new listing, journey map preview, Ziqi draft and admin previews.
 2. Use one browser window per role, or a private window for each, so sign-ins do not overlap.
@@ -106,6 +107,23 @@ If a live screen is not ready, each step has a preview page that runs on fixture
    - Say: "Drop-off needs real youth and at least 20 of them per step. We reserved the place for it and we collect from
      now on; we do not invent it."
 
+## 6. Ziqi AI and link health (3 minutes)
+
+Needs a start with `--local-ai` (or `--local-ai-url` for the native Ollama app, which is much faster on a Mac). Run
+`scripts/course-quality-demo/ai-smoke.sh` once before presenting: it warms the model and proves the AI answers.
+
+1. Still signed in as `testadminuser@gmail.com`, open `http://localhost:3000/admin/course-quality` and open a course's
+   reviewer card (for example Digital Marketing Foundations Cohort Course, 102).
+2. Choose **Run AI check**. On a CPU it takes roughly 1 to 3 minutes (`ai-smoke.sh` printed the real time); say so
+   before you click.
+3. Point out the AI section: the model (`qwen2.5:3b`), provider, the "local, free" badge, tokens in and out, the cost
+   **$0.00**, the duration and the outcome.
+   - Say: "This is an open model running on this laptop, through Yoma's own backend. The same setting points it at a
+     government-hosted model, or at Anthropic. Every run records its tokens and cost. The AI can only lower a result."
+4. Open `http://localhost:3000/admin/course-quality/links`. Paste a few links from any platform (Yoma, YouthHub, 1MiO),
+   run the check, and export the CSV.
+   - Say: "The same check runs without Yoma: `node scripts/link-health/check-links.mjs` with a list or a sitemap."
+
 ## The honest caveats (say them)
 
 - **Demo data is labelled.** The live listings (2,419 courses, 41 impact actions, the live jobs) are real public Yoma
@@ -119,5 +137,10 @@ If a live screen is not ready, each step has a preview page that runs on fixture
   `demo.env`. Impact action checks (`CourseQuality:VerifyTypes` with ImpactAction) are demo only too.
 - **Impact actions are checked, not graded.** Ziqi checks their listings; a grade waits until "good" is defined for
   them.
+- **The local AI is a small model.** `qwen2.5:3b` is free and private but weaker than a large hosted model; its answers
+  can only lower a result, never verify a course the rules hold back. Anthropic stays available as a setting; it is
+  billed and was tested with fakes only in this work.
+- **Events are checked, not graded,** like impact actions. 10 of the 17 live events have no link, so they fail the link
+  check: that is live data.
 - **Badges and grades are provisional.** The thresholds are placeholders until the project lead sets them.
 - **Credentials:** nothing new is issued. The milestone credential waits for Yoma's schemas v5.

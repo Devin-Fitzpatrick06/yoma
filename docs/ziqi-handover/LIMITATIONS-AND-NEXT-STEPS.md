@@ -20,12 +20,22 @@
    pages always contain "no longer available" text). Pay and experience come from listing text in the demo, because
    the public API does not return the feeds' custom fields.
 7. **Events and impact actions get listing checks only, no grade.** Entrepreneurship and Other opportunities are not
-   checked.
+   checked. 10 of the 17 live events have no link, so they fail the link check (live data, not a fault).
 
 ### Product and engineering
 
-8. **AI is optional and off by default.** Without a key the keyless reader caps confidence, so more courses go to a
-   reviewer. "Draft this for me" is not implemented (no `ICourseQualityDraftSuggester`). There is no dedicated
+8. **AI is optional and off by default.** Without an AI the keyless reader caps confidence, so more courses go to a
+   reviewer.
+   - **The demo's local model is small.** `qwen2.5:3b` (or `qwen2.5:1.5b`) is free and private but makes more mistakes
+     than a large hosted model: it can miss costs, misread formats or answer outside the schema (recorded as
+     "Invalid"). The AI can only lower a result, so a weak answer sends a course to a reviewer rather than verifying it.
+     Its answers have not been compared with the hand-rated sample.
+   - **CPU speed.** Docker Desktop on a Mac has no GPU, so a check takes roughly 1 to 3 minutes on the CPU (an
+     estimate; `ai-smoke.sh` prints the real time). Fine for one check on demand, too slow for the whole catalogue; the
+     native Ollama app (Metal) or a GPU server is the way to run it at scale.
+   - **Anthropic was verified with fakes only.** The Anthropic provider and its usage and cost capture are covered by
+     tests with fake responses; no real, billed call was made in this work. Its price table must be checked before
+     relying on its cost figures. "Draft this for me" is not implemented (no `ICourseQualityDraftSuggester`). There is no dedicated
    prompt-injection test; the defences are untrusted-data delimiters and the rule that the AI can only lower a result.
 9. **Pathways are rules and configuration.** Six career goals with matching patterns; some stage picks are weak (for
    example a creative-writing course under "Get confident online"). Goals, stages and patterns need tuning with the
@@ -58,7 +68,9 @@
 5. **Pilot with real youth** with `Pathway:Enabled` on for a small group: drop-off and outcome data start
    accumulating; turn on `Pathway:DropOffAvailable` and raise the Outcomes and DropOff weights only once groups pass
    the minimum sizes.
-6. **Turn on the AI** with a key held in the deployment's secret store; implement "Draft this for me" as an
+6. **Turn on the AI**: first a local or government-hosted open model (`AI:Provider=OpenAICompatible`), measured on
+   the validation sample against the keyless reader; Anthropic only if that is not good enough, with a key held in the
+   deployment's secret store; implement "Draft this for me" as an
    `ICourseQualityDraftSuggester` in the Anthropic project.
 7. **Clear the review queue** for non-Alison partners so smaller providers get graded and can earn badges.
 8. **Connect the other BBS concepts** (PathFinder check-ins via RapidPro, YoCV on the YoID public profile, SkillLens
