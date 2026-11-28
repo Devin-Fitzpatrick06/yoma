@@ -170,7 +170,7 @@ The click path:
 
 1. Ziqi: sign in; My Yoma shows her route on Yoma. Open the solar job: the listing shows Ziqi's verdict, "Checked by
    Ziqi: Verified · Grade A" (from its public card; hidden if there is none). Save.
-2. "Plan it with PathFinder" → PathFinder: the plan, with the scam job held back from it.
+2. "Continue to PathFinder" → PathFinder: the plan, with the scam job held back from it.
 3. "Continue to SkillLens" → SkillLens: the challenge, passed on attempt 2, credential recorded.
 4. "Continue to YoCV" → YoCV: the CV with the verified credential, the QR, Apply.
 5. "Back to the listing" → the Ziqi listing shows "Job Application received", with the thread complete.
