@@ -1,0 +1,674 @@
+{
+  "meta": {
+    "name": "BBS x GenU shared mock data",
+    "version": "1.1",
+    "updated": "2026-11-24",
+    "warning": "FICTIONAL SAMPLE DATA. Every person, business, listing, ID and link is made up for prototypes and mock-ups. Not real Yoma, YoID or partner data.",
+    "country": "Nigeria",
+    "currency": "NGN",
+    "today": "2026-12-01",
+    "skillKeys": "Uses PathFinder's skill keys (lib/rules.mjs). Two new keys are added below for the solar job: solar-install and work-at-height.",
+    "handoffs": {
+      "phase1_to_phase2": "Saved Opportunity",
+      "phase2_to_phase3": "Learning Plan",
+      "phase3_to_phase4": "Skill Credential",
+      "phase4_output": "Job Application"
+    }
+  },
+  "skills": {
+    "digital-basics": "Using a phone & computer",
+    "online-safety": "Staying safe online",
+    "job-search": "Finding & applying for jobs",
+    "comms": "Clear communication",
+    "customer": "Serving customers",
+    "spreadsheets": "Spreadsheets & data entry",
+    "social-media": "Social media marketing",
+    "cv": "Writing a CV",
+    "interview": "Interview skills",
+    "teamwork": "Working in a team",
+    "bookkeeping": "Basic bookkeeping",
+    "pricing": "Pricing & selling",
+    "phone-repair": "Phone & electronics repair",
+    "market-trading": "Market trading & stock",
+    "agri-practice": "Modern farming practices",
+    "solar-install": "Solar panel installation (NEW KEY)",
+    "work-at-height": "Working safely at height (NEW KEY)"
+  },
+  "youngPerson": {
+    "id": "yp-001",
+    "yoidId": "yoid-ng-7f3a0123",
+    "firstName": "Halima",
+    "lastName": "Yusuf",
+    "displayName": "Halima Y.",
+    "anonCode": "A12",
+    "age": 20,
+    "ageBand": "18-24",
+    "gender": "female",
+    "state": "kaduna",
+    "lga": "Kaduna North",
+    "languages": [
+      "ha",
+      "en"
+    ],
+    "phone": {
+      "type": "smartphone",
+      "dataBudget": "low",
+      "whatsapp": true
+    },
+    "informalWork": "I fix phones and sell phone accessories at my aunt's stall in Kaduna Central Market.",
+    "informalSkills": [
+      "phone-repair",
+      "market-trading",
+      "pricing",
+      "customer"
+    ],
+    "goal": "job",
+    "goalText": "Get a paid job in solar or electronics",
+    "sector": "digital",
+    "hoursPerWeek": 10,
+    "consents": {
+      "shareProfileWithEmployers": true,
+      "talentFinderNotifications": true
+    },
+    "note": "Adult on purpose: under-18s need guardian consent and should not appear in employer-facing pools."
+  },
+  "partners": [
+    {
+      "id": "org-sunrise",
+      "name": "Sunrise Solar Ltd",
+      "type": "employer",
+      "size": "small business, 6 staff",
+      "state": "kaduna",
+      "contact": "Musa Abdullahi (owner)",
+      "partnerBadge": null
+    },
+    {
+      "id": "org-p2e",
+      "name": "Passport to Earning (sample courses)",
+      "type": "learning provider",
+      "partnerBadge": "gold"
+    },
+    {
+      "id": "org-greenyouth",
+      "name": "Kaduna Green Youth Network",
+      "type": "impact partner",
+      "state": "kaduna",
+      "partnerBadge": "silver"
+    },
+    {
+      "id": "org-arewahub",
+      "name": "Arewa Tech Hub",
+      "type": "events partner",
+      "state": "kaduna",
+      "partnerBadge": null
+    },
+    {
+      "id": "org-fasttrack",
+      "name": "FastTrack Solar Agents",
+      "type": "employer",
+      "state": "kaduna",
+      "partnerBadge": null,
+      "note": "Bad actor for scam-filter demos"
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "opp-job-001",
+      "type": "job",
+      "title": "Solar Installation Assistant (Trainee)",
+      "org": "org-sunrise",
+      "state": "kaduna",
+      "location": "Kaduna North",
+      "remote": false,
+      "payMonthlyNGN": 85000,
+      "hours": "Mon to Sat, 8am to 4pm",
+      "mustHave": [
+        "work-at-height",
+        "customer",
+        "teamwork"
+      ],
+      "canLearn": [
+        "solar-install",
+        "digital-basics"
+      ],
+      "removedRequirement": "Diploma in electrical engineering",
+      "description": "Join a team of four installing solar systems in homes and shops. Carry and mount panels, explain systems to customers in Hausa, and learn wiring on the job. No diploma needed.",
+      "deadline": "2027-01-15",
+      "link": "https://example.org/yoma/opp-job-001",
+      "linkStatus": "ok",
+      "zlto": 0,
+      "createdWith": "RoleMap",
+      "journeyRole": "The Saved Opportunity Halima finds in Phase 1 and applies to in Phase 4"
+    },
+    {
+      "id": "opp-course-001",
+      "type": "course",
+      "title": "Solar PV Installation Basics",
+      "org": "org-p2e",
+      "hours": 12,
+      "mode": "online, works offline",
+      "teaches": [
+        "solar-install"
+      ],
+      "language": [
+        "en",
+        "ha"
+      ],
+      "link": "https://example.org/p2e/solar-basics",
+      "linkStatus": "ok",
+      "zlto": 100
+    },
+    {
+      "id": "opp-course-002",
+      "type": "course",
+      "title": "Working Safely at Height",
+      "org": "org-p2e",
+      "hours": 3,
+      "mode": "online",
+      "teaches": [
+        "work-at-height"
+      ],
+      "language": [
+        "en"
+      ],
+      "link": "https://example.org/p2e/height-safety",
+      "linkStatus": "ok",
+      "zlto": 40
+    },
+    {
+      "id": "opp-course-003",
+      "type": "course",
+      "title": "Customer Service Basics",
+      "org": "org-p2e",
+      "hours": 5,
+      "mode": "online",
+      "teaches": [
+        "customer",
+        "comms"
+      ],
+      "language": [
+        "en",
+        "pcm"
+      ],
+      "link": "https://example.org/p2e/customer-basics",
+      "linkStatus": "ok",
+      "zlto": 50
+    },
+    {
+      "id": "opp-course-004",
+      "type": "course",
+      "title": "Digital Literacy Essentials",
+      "org": "org-p2e",
+      "hours": 6,
+      "mode": "online",
+      "teaches": [
+        "digital-basics",
+        "online-safety"
+      ],
+      "language": [
+        "en",
+        "ha",
+        "yo",
+        "pcm"
+      ],
+      "link": "https://example.org/p2e/digital-literacy",
+      "linkStatus": "ok",
+      "zlto": 50
+    },
+    {
+      "id": "opp-course-005",
+      "type": "course",
+      "title": "Advanced Electrical Wiring",
+      "org": "org-arewahub",
+      "hours": 40,
+      "mode": "in person",
+      "teaches": [
+        "solar-install"
+      ],
+      "link": "https://example.org/old/wiring-course",
+      "linkStatus": "dead (404)",
+      "zlto": 0,
+      "demoRole": "Dead link and low quality grade for Ziqi's audit and link health check"
+    },
+    {
+      "id": "opp-event-001",
+      "type": "event",
+      "title": "Kaduna Youth Green Jobs Fair",
+      "org": "org-arewahub",
+      "date": "2026-12-12",
+      "location": "Arewa Tech Hub, Kaduna",
+      "link": "https://example.org/events/green-jobs-fair",
+      "linkStatus": "ok",
+      "zlto": 20
+    },
+    {
+      "id": "opp-impact-001",
+      "type": "impact action",
+      "title": "Community Tree Planting Day",
+      "org": "org-greenyouth",
+      "date": "2026-11-29",
+      "location": "Rigasa, Kaduna",
+      "geo": {
+        "lat": 10.5167,
+        "lng": 7.3833
+      },
+      "proofRequired": [
+        "photo",
+        "geolocation"
+      ],
+      "zlto": 80,
+      "teaches": [
+        "teamwork",
+        "agri-practice"
+      ]
+    },
+    {
+      "id": "opp-job-002",
+      "type": "job",
+      "title": "Solar Sales Agent (pay ₦5,000 registration fee)",
+      "org": "org-fasttrack",
+      "state": "kaduna",
+      "link": "https://example.org/fasttrack",
+      "linkStatus": "ok",
+      "scam": true,
+      "demoRole": "Pay-to-apply listing that PathFinder and Ziqi must filter out"
+    }
+  ],
+  "ziqiAudits": [
+    {
+      "opportunityId": "opp-course-001",
+      "grade": "A",
+      "confidence": 0.91,
+      "scores": {
+        "clarity": 5,
+        "relevance": 5,
+        "accessibility": 4,
+        "safety": 5
+      },
+      "linkCheck": "ok",
+      "partnerBadge": "gold"
+    },
+    {
+      "opportunityId": "opp-job-001",
+      "grade": "A-",
+      "confidence": 0.86,
+      "scores": {
+        "clarity": 5,
+        "relevance": 4,
+        "accessibility": 4,
+        "safety": 5
+      },
+      "linkCheck": "ok",
+      "partnerBadge": null
+    },
+    {
+      "opportunityId": "opp-event-001",
+      "grade": "B",
+      "confidence": 0.78,
+      "scores": {
+        "clarity": 4,
+        "relevance": 4,
+        "accessibility": 3,
+        "safety": 5
+      },
+      "linkCheck": "ok"
+    },
+    {
+      "opportunityId": "opp-course-005",
+      "grade": "D",
+      "confidence": 0.64,
+      "scores": {
+        "clarity": 2,
+        "relevance": 3,
+        "accessibility": 1,
+        "safety": 4
+      },
+      "linkCheck": "dead (404)",
+      "reviewQueue": true
+    },
+    {
+      "opportunityId": "opp-job-002",
+      "grade": "F",
+      "confidence": 0.95,
+      "flags": [
+        "asks for a fee"
+      ],
+      "linkCheck": "ok",
+      "reviewQueue": true
+    }
+  ],
+  "learningPlan": {
+    "id": "plan-001",
+    "youngPersonId": "yp-001",
+    "createdBy": "PathFinder",
+    "createdOn": "2026-12-01",
+    "size": 3,
+    "target": "opp-job-001",
+    "steps": [
+      {
+        "kind": "start",
+        "opportunityId": "opp-course-002",
+        "why": "A 3-hour course covers the job's safety must-have."
+      },
+      {
+        "kind": "learn",
+        "opportunityId": "opp-course-001",
+        "why": "Your phone repair work is a head start on wiring."
+      },
+      {
+        "kind": "apply",
+        "opportunityIds": [
+          "opp-job-001"
+        ],
+        "why": "Your saved job, once both courses are done."
+      }
+    ],
+    "filteredOut": [
+      {
+        "opportunityId": "opp-job-002",
+        "reason": "Asks for a fee or payment"
+      },
+      {
+        "opportunityId": "opp-course-005",
+        "reason": "Application link broken"
+      }
+    ],
+    "savedTo": "Yoma account (mocked YoID write)"
+  },
+  "skillChallenge": {
+    "id": "chal-001",
+    "createdBy": "SkillLens",
+    "afterCourse": "opp-course-001",
+    "skill": "solar-install",
+    "language": "en",
+    "minutes": 10,
+    "task": "A customer's solar light stopped charging. List three things you would check, in order.",
+    "attempts": [
+      {
+        "n": 1,
+        "answerType": "text",
+        "result": "not yet",
+        "feedback": "Good first check. Add how you would test the panel's output."
+      },
+      {
+        "n": 2,
+        "answerType": "photo of handwritten notes",
+        "result": "passed",
+        "feedback": "Clear order: connections, panel output with a multimeter, then battery."
+      }
+    ],
+    "issues": "cred-002"
+  },
+  "credentials": [
+    {
+      "id": "cred-001",
+      "yoidId": "yoid-ng-7f3a0123",
+      "title": "Digital Literacy Essentials",
+      "issuer": "org-p2e",
+      "skills": [
+        "digital-basics",
+        "online-safety"
+      ],
+      "issuedOn": "2026-06-10",
+      "status": "verified"
+    },
+    {
+      "id": "cred-002",
+      "yoidId": "yoid-ng-7f3a0123",
+      "title": "Solar PV Installation Basics: practical challenge passed",
+      "issuer": "SkillLens (designed)",
+      "skills": [
+        "solar-install"
+      ],
+      "issuedOn": "2026-12-20",
+      "status": "verified (mocked)"
+    },
+    {
+      "id": "cred-003",
+      "yoidId": "yoid-ng-7f3a0123",
+      "title": "Working Safely at Height",
+      "issuer": "org-p2e",
+      "skills": [
+        "work-at-height"
+      ],
+      "issuedOn": "2026-12-05",
+      "status": "verified"
+    },
+    {
+      "id": "cred-004",
+      "yoidId": "yoid-ng-7f3a0123",
+      "title": "Community Tree Planting Day",
+      "issuer": "org-greenyouth",
+      "skills": [
+        "teamwork",
+        "agri-practice"
+      ],
+      "issuedOn": "2026-11-30",
+      "status": "verified after proof review"
+    },
+    {
+      "id": "cred-005",
+      "yoidId": "yoid-ng-7f3a0123",
+      "title": "Customer Service Basics",
+      "issuer": "org-p2e",
+      "skills": [
+        "customer",
+        "comms"
+      ],
+      "issuedOn": "2026-09-02",
+      "status": "verified"
+    },
+    {
+      "id": "cred-006",
+      "yoidId": "yoid-ng-7f3a0123",
+      "title": "Phone repair and accessories sales, Kaduna Central Market (2 years)",
+      "issuer": "self",
+      "skills": [
+        "phone-repair",
+        "market-trading",
+        "pricing"
+      ],
+      "status": "self-declared, with reference letter from stall owner"
+    }
+  ],
+  "cv": {
+    "id": "cv-001",
+    "createdBy": "YoCV",
+    "youngPersonId": "yp-001",
+    "targetRole": "Solar Installation Assistant",
+    "summary": "Hands-on electronics repairer with two years serving customers at a busy market stall, now trained in solar PV basics and safe work at height.",
+    "verified": [
+      "cred-001",
+      "cred-002",
+      "cred-003",
+      "cred-004",
+      "cred-005"
+    ],
+    "selfDeclared": [
+      "cred-006"
+    ],
+    "qr": {
+      "url": "https://verify.example.org/yoid/7f3a0123",
+      "showsTo": "Anyone who scans: name, verified credentials, issue dates. No phone number or address."
+    }
+  },
+  "application": {
+    "id": "app-001",
+    "youngPersonId": "yp-001",
+    "opportunityId": "opp-job-001",
+    "cvId": "cv-001",
+    "submittedOn": "2027-01-05",
+    "status": "submitted",
+    "verifiedByEmployerQR": true
+  },
+  "newIdeas": {
+    "proofReview": {
+      "opportunityId": "opp-impact-001",
+      "reviewerQueueToday": 42,
+      "submissions": [
+        {
+          "id": "proof-001",
+          "youngPersonId": "yp-001",
+          "type": "photo + geolocation",
+          "takenAt": "2026-11-29T10:14",
+          "geoDistanceKm": 0.3,
+          "confidence": 0.93,
+          "flags": [],
+          "decision": "auto-approve"
+        },
+        {
+          "id": "proof-002",
+          "submitter": "anon B41",
+          "type": "photo + geolocation",
+          "geoDistanceKm": 0.4,
+          "confidence": 0.34,
+          "flags": [
+            "same photo already submitted by another user"
+          ],
+          "decision": "send to reviewer"
+        },
+        {
+          "id": "proof-003",
+          "submitter": "anon D19",
+          "type": "photo",
+          "geoDistanceKm": null,
+          "confidence": 0.12,
+          "flags": [
+            "no location",
+            "likely AI-generated image"
+          ],
+          "decision": "send to reviewer"
+        },
+        {
+          "id": "proof-004",
+          "submitter": "anon K02",
+          "type": "certificate (PDF)",
+          "confidence": 0.71,
+          "flags": [
+            "issuer name does not match partner list"
+          ],
+          "decision": "send to reviewer"
+        }
+      ]
+    },
+    "coAuthor": {
+      "partnerId": "org-arewahub",
+      "input": "Green jobs fair at our hub on 12 Dec, solar and recycling companies coming, free, bring your CV",
+      "draft": {
+        "opportunityId": "opp-event-001",
+        "title": "Kaduna Youth Green Jobs Fair",
+        "description": "Meet solar and recycling employers hiring in Kaduna. Bring a printed or phone CV, ask about trainee roles, and join a 20-minute CV clinic. Free entry, open to ages 18 to 35.",
+        "suggestedSkills": [
+          "job-search",
+          "cv",
+          "comms"
+        ],
+        "missingInfo": [
+          "Start and end time",
+          "Is there step-free access?"
+        ]
+      }
+    },
+    "talentFinder": {
+      "partnerId": "org-greenyouth",
+      "query": {
+        "gender": "female",
+        "ageBand": "18-24",
+        "state": "kaduna",
+        "skills": [
+          "digital-basics"
+        ],
+        "verifiedOnly": true
+      },
+      "resultCount": 214,
+      "partnerSees": "counts only, then sends an opt-in notification",
+      "breakdown": {
+        "byLga": {
+          "Kaduna North": 61,
+          "Kaduna South": 48,
+          "Chikun": 39,
+          "Zaria": 66
+        },
+        "alsoVerified": {
+          "social-media": 52,
+          "spreadsheets": 37,
+          "customer": 90
+        }
+      },
+      "includesYoungPerson": "yp-001",
+      "notification": "New on Yoma: Kaduna Green Youth Network has a digital volunteer role that fits your skills. Tap to see it. You choose whether to share your profile."
+    },
+    "roleMap": {
+      "employerId": "org-sunrise",
+      "input": "I need a helper to carry solar panels and talk to customers in Hausa.",
+      "tasks": [
+        {
+          "task": "Mount panels on roofs",
+          "skill": "work-at-height",
+          "need": "must have"
+        },
+        {
+          "task": "Talk to customers",
+          "skill": "customer",
+          "need": "must have"
+        },
+        {
+          "task": "Work in a team of four",
+          "skill": "teamwork",
+          "need": "must have"
+        },
+        {
+          "task": "Wire the inverter",
+          "skill": "solar-install",
+          "need": "can learn",
+          "course": "opp-course-001"
+        },
+        {
+          "task": "Log jobs and payments on a phone",
+          "skill": "digital-basics",
+          "need": "can learn",
+          "course": "opp-course-004"
+        }
+      ],
+      "removedRequirement": "Diploma in electrical engineering",
+      "matches": {
+        "withinKm": 15,
+        "count": 38,
+        "countBeforeRemovingDiploma": 9,
+        "employerSees": "counts only, no names or profiles until a young person opts in",
+        "allHaveMustHaves": true,
+        "alsoHaveCanLearnSkill": {
+          "solar-install": 11,
+          "digital-basics": 29
+        },
+        "byDistanceKm": {
+          "0-5": 12,
+          "5-10": 15,
+          "10-15": 11
+        },
+        "byLanguage": {
+          "ha": 38,
+          "en": 21,
+          "pcm": 9
+        },
+        "includesYoungPerson": "yp-001"
+      },
+      "prePublishCheck": {
+        "by": "Ziqi",
+        "grade": "A-"
+      },
+      "fitsYomaUseCase": "AI-assisted opportunity management (co-author for partners), Yoma roadmap v7 score 28/30; RoleMap is its job-listing mode",
+      "output": "opp-job-001"
+    }
+  },
+  "usage": {
+    "Phase 1 Ziqi": "Audits every item in opportunities (grades in ziqiAudits). Halima discovers opp-job-001 and saves it: the Saved Opportunity. Dead link: opp-course-005. Scam: opp-job-002.",
+    "Phase 2 PathFinder": "Takes youngPerson + the Saved Opportunity and produces learningPlan: the Learning Plan.",
+    "Phase 3 SkillLens": "Runs skillChallenge after opp-course-001 and issues cred-002: the Skill Credential.",
+    "Phase 4 YoCV": "Builds cv from credentials (verified vs self-declared), shows the QR, and submits application to opp-job-001: the Job Application.",
+    "New idea: AI proof review": "newIdeas.proofReview for opp-impact-001; Halima's proof-001 is approved and becomes cred-004.",
+    "New idea: AI co-author": "newIdeas.coAuthor turns Arewa Tech Hub's one-line note into opp-event-001.",
+    "New idea: Talent Finder": "newIdeas.talentFinder; the partner sees counts only (214), Halima is one of them, then an opt-in notification.",
+    "New idea: RoleMap": "newIdeas.roleMap; Sunrise Solar creates opp-job-001, sees 38 matches as counts only (Halima is one), Ziqi checks the listing before it goes live."
+  }
+}
