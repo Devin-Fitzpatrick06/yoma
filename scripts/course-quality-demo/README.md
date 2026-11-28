@@ -63,6 +63,31 @@ If the venue's internet is unreliable, use only the local demo pages for the nam
 scripts/course-quality-demo/start.sh --fixtures
 ```
 
+## Connected journey (`--journey`)
+
+```bash
+scripts/course-quality-demo/start.sh --journey
+```
+
+Ziqi joins the four-prototype journey (Ziqi → PathFinder → SkillLens → YoCV → back to the listing) with the same
+fictional person and listings the other three use: the shared mock data v1.1, copied into `journey/` (see
+`journey/README.md`). After the catalogue is in, `start.sh --journey`:
+
+- adds the 5 sample organisations and 9 sample listings under the contract's Yoma ids
+  (`seed/generate-journey-sql.mjs`; the mapping is in `docs/work/active/course-quality-judger/journey-contract.md`).
+  Each links to a fictional page at `http://demo-fixtures.localtest.me/journey/<shared id>`. `opp-course-005`'s page
+  returns 404 on purpose, and `opp-job-002`'s asks for a ₦5,000 registration fee;
+- creates Halima's local sign-in, `halima.yusuf@example.org` / `P@ssword12` (`seed/journey-user.sh`), and her Yoma
+  account in Kaduna, Nigeria. Like the other demo users she has no saved preferences and no My Yoma profile, so she
+  answers My Yoma's questions in the demo. The solar job starts unsaved on every start: she saves it in the demo;
+- runs Ziqi's checks on the 9 listings and grades them (`seed/assess-journey.mjs`), and prints each one's outcome;
+- builds the website with the journey switches `NEXT_PUBLIC_JOURNEY_ENABLED=true`, `NEXT_PUBLIC_JOURNEY_LISTING_ID`,
+  `NEXT_PUBLIC_JOURNEY_YOID` and `NEXT_PUBLIC_PATHFINDER_URL` (`PATHFINDER_URL` in the shell, default
+  `http://localhost:4173`). Without `--journey` they are off.
+
+The saved database never holds the journey: it is added again on every `--journey` start. PathFinder, SkillLens and
+YoCV start with `scripts/connected-journey/journey.sh` (see its README.md), which also prints the five-step click path.
+
 ## What browsing shows
 
 Courses appear as compact learner cards, coloured by category family, with verified courses first

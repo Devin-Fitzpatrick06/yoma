@@ -7,6 +7,10 @@
 #   ./start.sh --refresh    import, assess and grade everything again, even if a saved database exists
 #   ./start.sh --sample N   import everything but assess only N live courses from mixed hosts; nothing is saved
 #   ./start.sh --fixtures   use only the demo pages for the named courses 101 to 108
+#   ./start.sh --journey    also the connected four-prototype journey: the shared mock data's listings, Halima's sign-in,
+#                           Ziqi's checks on them, and the website's journey switches. PATHFINDER_URL (default
+#                           http://localhost:4173) is where "Plan it with PathFinder" links. The other three prototypes
+#                           start with scripts/connected-journey/journey.sh.
 # Ziqi's AI check (off unless one of these is given; the start-up checks always run without it, so it never slows them):
 #   --local-ai                  a free open model in Docker (Ollama, CPU only on a Mac), default qwen2.5:3b
 #   --local-ai-model NAME       that model instead, e.g. qwen2.5:1.5b (faster, weaker); implies --local-ai
@@ -17,6 +21,7 @@ set -euo pipefail
 
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 USE_FIXTURES=false
+JOURNEY=false
 REFRESH=false
 FULL=false
 SAMPLE=""
@@ -29,6 +34,7 @@ need_value() { [ -n "${2:-}" ] && [ "${2#--}" = "$2" ] || { echo "$1 needs a val
 while [ $# -gt 0 ]; do
   case "$1" in
     --fixtures) USE_FIXTURES=true ;;
+    --journey) JOURNEY=true ;;
     --refresh) REFRESH=true ;;
     --full) FULL=true ;;
     --sample)
@@ -40,7 +46,7 @@ while [ $# -gt 0 ]; do
     --local-ai-url) need_value "$1" "${2:-}"; AI_URL="$2"; AI_MODE=native; shift ;;
     --ai-url) need_value "$1" "${2:-}"; AI_URL="$2"; REMOTE_AI=true; shift ;;
     --ai-model) need_value "$1" "${2:-}"; AI_MODEL="$2"; REMOTE_AI=true; shift ;;
-    *) echo "Unknown option: $1. The options are --full, --refresh, --sample N, --fixtures, --local-ai, --local-ai-model NAME, --local-ai-url URL, --ai-url URL and --ai-model NAME."; exit 2 ;;
+    *) echo "Unknown option: $1. The options are --full, --refresh, --sample N, --fixtures, --journey, --local-ai, --local-ai-model NAME, --local-ai-url URL, --ai-url URL and --ai-model NAME."; exit 2 ;;
   esac
   shift
 done
@@ -71,6 +77,20 @@ if [[ "$AI_MODE" =~ ^(native|remote)$ ]] && [[ "$AI_URL" =~ ^(https?://)(localho
   AI_URL="$container_ai_url"
 fi
 # The start-up checks run without the AI; the API is restarted with it once they are done (see "Ziqi's AI" below).
+
+# ---- Connected journey switches ----
+# Build-time values for the website (docker-compose.demo.yml, web, build args), like the other NEXT_PUBLIC_ switches.
+# Always set here, so a value left in this shell from elsewhere never reaches the build.
+JOURNEY_LISTING_ID="c0a7e000-0000-4000-8000-000000000301" # the Yoma listing for the shared opp-job-001
+JOURNEY_YOID="yoid-ng-7f3a0123"                           # Halima's YoID in the shared mock data
+if [ "$JOURNEY" = true ]; then
+  PATHFINDER_URL="${PATHFINDER_URL:-http://localhost:4173}"
+  [[ "$PATHFINDER_URL" =~ ^https?://[^[:space:]]+$ ]] || { echo "PATHFINDER_URL must start with http:// or https://, for example http://localhost:4173."; exit 2; }
+  export NEXT_PUBLIC_JOURNEY_ENABLED=true NEXT_PUBLIC_JOURNEY_LISTING_ID="$JOURNEY_LISTING_ID" NEXT_PUBLIC_JOURNEY_YOID="$JOURNEY_YOID"
+  export NEXT_PUBLIC_PATHFINDER_URL="${PATHFINDER_URL%/}"
+else
+  export NEXT_PUBLIC_JOURNEY_ENABLED=false NEXT_PUBLIC_JOURNEY_LISTING_ID="" NEXT_PUBLIC_JOURNEY_YOID="" NEXT_PUBLIC_PATHFINDER_URL=""
+fi
 export AI__Provider=None
 export ZIQI_LOCAL_AI_MODEL="$LOCAL_AI_MODEL"
 
@@ -162,7 +182,11 @@ awk '{ print } /^ENV NEXT_PUBLIC_GA_MEASUREMENT_ID=/ {
   print "ARG NEXT_PUBLIC_COURSE_QUALITY_DEMO"; print "ENV NEXT_PUBLIC_COURSE_QUALITY_DEMO=${NEXT_PUBLIC_COURSE_QUALITY_DEMO}"
   print "ARG NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID"; print "ENV NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID=${NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID}"
   print "ARG NEXT_PUBLIC_PATHWAY_ENABLED"; print "ENV NEXT_PUBLIC_PATHWAY_ENABLED=${NEXT_PUBLIC_PATHWAY_ENABLED}"
-  print "ARG NEXT_PUBLIC_PREPUBLISH_ENABLED"; print "ENV NEXT_PUBLIC_PREPUBLISH_ENABLED=${NEXT_PUBLIC_PREPUBLISH_ENABLED}" }' \
+  print "ARG NEXT_PUBLIC_PREPUBLISH_ENABLED"; print "ENV NEXT_PUBLIC_PREPUBLISH_ENABLED=${NEXT_PUBLIC_PREPUBLISH_ENABLED}"
+  print "ARG NEXT_PUBLIC_JOURNEY_ENABLED"; print "ENV NEXT_PUBLIC_JOURNEY_ENABLED=${NEXT_PUBLIC_JOURNEY_ENABLED}"
+  print "ARG NEXT_PUBLIC_JOURNEY_LISTING_ID"; print "ENV NEXT_PUBLIC_JOURNEY_LISTING_ID=${NEXT_PUBLIC_JOURNEY_LISTING_ID}"
+  print "ARG NEXT_PUBLIC_JOURNEY_YOID"; print "ENV NEXT_PUBLIC_JOURNEY_YOID=${NEXT_PUBLIC_JOURNEY_YOID}"
+  print "ARG NEXT_PUBLIC_PATHFINDER_URL"; print "ENV NEXT_PUBLIC_PATHFINDER_URL=${NEXT_PUBLIC_PATHFINDER_URL}" }' \
   "$REPO_ROOT/src/web/Dockerfile" >"$CACHE_DIR/web.Dockerfile"
 grep -q NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID "$CACHE_DIR/web.Dockerfile" \
   || stop_with "src/web/Dockerfile changed shape, so the demo could not add its build settings. See README.md, Troubleshooting."
@@ -351,6 +375,23 @@ if [ -n "$added_since_save" ] && snapshot_wanted; then
   save_snapshot
 fi
 
+# ---- Connected journey ----
+# After every save above, so the saved database never holds the journey: it is added again on each --journey start, and
+# Halima's save of the solar job is cleared each time. See journey/README.md.
+journey_summary=""
+journey_ok=0
+if [ "$JOURNEY" = true ]; then
+  current_step="adding the connected journey"
+  step "Adding the connected journey's 9 listings and 5 organisations (shared mock data v1.1, fictional), and Halima's account"
+  in_runner node /demo/seed/generate-journey-sql.mjs 2>>"$LOG_DIR/seed.log" | sql >"$LOG_DIR/seed-journey.log" 2>&1
+  current_step="creating Halima's sign-in"
+  step "Creating Halima's local sign-in"
+  compose run --rm --no-deps -v "$DEMO_DIR/seed:/seed:ro" --entrypoint /bin/sh keycloak-users /seed/journey-user.sh >>"$LOG_DIR/users.log" 2>&1
+  current_step="checking the journey listings"
+  step "Running Ziqi's checks on the 9 journey listings, then grading (progress is in .logs/assess-journey.log)"
+  journey_summary="$(in_runner node /demo/seed/assess-journey.mjs 2>"$LOG_DIR/assess-journey.log")" || journey_ok=$?
+fi
+
 # ---- Ziqi's AI ----
 # Every check above ran without the AI, so the start takes the same time with it and the saved database stays the
 # same. Now the API restarts with the chosen model, for "Run AI check" on the reviewer card and ./ai-smoke.sh.
@@ -435,6 +476,17 @@ printf 'Synthetic pathway completions (demo data, labelled): %s on %s impact act
 printf '\nNamed courses:\n%s\n' "$results_table"
 if [ "$all_as_expected" -ne 0 ]; then
   printf '\nSome named courses did not reach their demo state. Check them before presenting.\n'
+fi
+if [ "$JOURNEY" = true ]; then
+  printf '\nConnected journey (fictional shared mock data v1.1; every screen says mock-up or sample data):\n'
+  printf '  Start here, the solar job:  %s/opportunities/%s\n' "$web" "$JOURNEY_LISTING_ID"
+  printf '  Halima'"'"'s sign-in:          halima.yusuf@example.org  /  P@ssword12  (local only)\n'
+  printf '  Next, PathFinder:           %s/\n' "$NEXT_PUBLIC_PATHFINDER_URL"
+  printf '  Then SkillLens:             %s/demo/p2e\n' "${SKILLLENS_URL:-http://localhost:3001}"
+  printf '  Then YoCV:                  %s/\n' "${YOCV_URL:-http://localhost:4174}"
+  printf '  Start those three with:     scripts/connected-journey/journey.sh  (see its README.md)\n'
+  printf '  Ziqi on the journey listings:\n%s\n' "$journey_summary"
+  [ "$journey_ok" -eq 0 ] || printf '  Some journey listings did not reach their demo state; see .logs/assess-journey.log.\n'
 fi
 printf '\nWalkthrough: %s/README.md\n' "${DEMO_DIR#"$REPO_ROOT"/}"
 printf 'Ziqi iteration 4 walkthrough: docs/work/active/course-quality-judger/demo-walkthrough.md\n'

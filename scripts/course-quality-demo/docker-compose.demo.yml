@@ -124,12 +124,22 @@ services:
         NEXT_PUBLIC_COURSE_QUALITY_DEMO_ORG_ID: c0a7e000-0000-4000-8000-000000000001
         NEXT_PUBLIC_PATHWAY_ENABLED: "true"
         NEXT_PUBLIC_PREPUBLISH_ENABLED: "true"
+        # The connected four-prototype journey: on with start.sh --journey only, which sets these in its environment.
+        NEXT_PUBLIC_JOURNEY_ENABLED: ${NEXT_PUBLIC_JOURNEY_ENABLED:-false}
+        NEXT_PUBLIC_JOURNEY_LISTING_ID: ${NEXT_PUBLIC_JOURNEY_LISTING_ID:-}
+        NEXT_PUBLIC_JOURNEY_YOID: ${NEXT_PUBLIC_JOURNEY_YOID:-}
+        NEXT_PUBLIC_PATHFINDER_URL: ${NEXT_PUBLIC_PATHFINDER_URL:-}
     network_mode: service:gateway
     env_file: demo.env
     environment:
       DEMO_BASE_DATE: ${DEMO_BASE_DATE:-}
       # New on every start, so a browser's sign-in from an earlier demo is simply ignored.
       NEXTAUTH_SECRET: ${DEMO_NEXTAUTH_SECRET:-}
+      # The same journey switches for the server side, as demo.env does for the other NEXT_PUBLIC_ switches.
+      NEXT_PUBLIC_JOURNEY_ENABLED: ${NEXT_PUBLIC_JOURNEY_ENABLED:-false}
+      NEXT_PUBLIC_JOURNEY_LISTING_ID: ${NEXT_PUBLIC_JOURNEY_LISTING_ID:-}
+      NEXT_PUBLIC_JOURNEY_YOID: ${NEXT_PUBLIC_JOURNEY_YOID:-}
+      NEXT_PUBLIC_PATHFINDER_URL: ${NEXT_PUBLIC_PATHFINDER_URL:-}
     volumes:
       - .:/demo:ro
     depends_on:
