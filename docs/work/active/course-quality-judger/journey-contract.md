@@ -122,3 +122,27 @@ Organisations:
 | `org-fasttrack` | `…000000000015` |
 
 The demo sign-in for Halima is `halima.yusuf@example.org`, password `P@ssword12` (local Keycloak only, fictional).
+
+## Ziqi's actual grades
+
+Ziqi grades courses and jobs A to D and does not grade a listing it holds back, so the shared file's `A-` and `F` (and
+`D` for the dead-link course) are not what Ziqi shows. Measured on 2026-11-28 on the sandbox demo database (2,015
+graded courses), with Ziqi's rule-based checks, as `start.sh --journey` runs them (`seed/assess-journey.mjs`):
+
+| Shared id | Shared file says | Ziqi shows |
+| --- | --- | --- |
+| `opp-job-001` | A- | Verified, job grade **A** (score 92) |
+| `opp-job-002` | F, "asks for a fee" | **Held back** (Needs review), no grade: "The listing asks applicants to pay a fee or deposit" |
+| `opp-course-001` | A, gold partner | Verified, **A** "Top pick" |
+| `opp-course-002`, `003` | none | Verified, C |
+| `opp-course-004` | none | Verified, B |
+| `opp-course-005` | D, dead link | **Not verified**, no grade: "The course link returned page not found (404)" |
+| `opp-event-001` | B | Verified (events get the listing checks only, no grade) |
+| `opp-impact-001` | none | Verified (listing checks only, no grade) |
+
+- Course grades are relative to the catalogue, so a demo database with fewer graded courses can move 002 to 004 by a
+  band. The A for `opp-course-001` and `opp-job-001` held on this database.
+- With Ziqi's AI on (`qwen2.5:3b` on a CPU), the model sent courses 001 to 003 to review ("the dates on the course page
+  differ"), which they do not: the pages show no dates. `start.sh` runs these checks without the AI, so the demo shows
+  the results above.
+- The other prototypes should show these, not the shared file's grades (connected-journey.md, open question 2).
