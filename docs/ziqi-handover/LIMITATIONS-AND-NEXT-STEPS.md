@@ -33,6 +33,14 @@
    - **CPU speed.** Docker Desktop on a Mac has no GPU, so a check takes roughly 1 to 3 minutes on the CPU (an
      estimate; `ai-smoke.sh` prints the real time). Fine for one check on demand, too slow for the whole catalogue; the
      native Ollama app (Metal) or a GPU server is the way to run it at scale.
+   - **"Run AI check" must finish inside the ingress timeout.** The deployment's ingress closes a request after 300 s
+     (`proxy-read-timeout` in `helm/`, not changed in this work), while the web waits up to 10 minutes. In production
+     keep `AI:OpenAICompatible:TimeoutInSeconds` plus the page fetch (`CourseQuality:LinkCheck:TimeoutInSeconds`, 15 s)
+     below 300 s, for example 240 s, or a slow model's answer arrives after the ingress has already answered 504. The
+     demo's 300 s works only because the demo has no ingress. The link health check has its own budget
+     (`CourseQuality:LinkHealth:BudgetInSeconds`, 240 s): links not started in time come back as "Not checked".
+   - **The partner draft check does not use the AI by default** (`CourseQuality:PrePublish:UseAI`, off): a CPU model
+     is far slower than the form waits, and a draft check's AI usage is not recorded.
    - **Anthropic was verified with fakes only.** The Anthropic provider and its usage and cost capture are covered by
      tests with fake responses; no real, billed call was made in this work. Its price table must be checked before
      relying on its cost figures. "Draft this for me" is not implemented (no `ICourseQualityDraftSuggester`). There is no dedicated

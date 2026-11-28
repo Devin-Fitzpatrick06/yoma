@@ -30,7 +30,7 @@ AI:Provider = None | Anthropic | OpenAICompatible      (default: Anthropic, whic
 AI:OpenAICompatible:BaseUrl  e.g. http://localhost:11434/v1   (Ollama, vLLM, LM Studio, a government endpoint)
 AI:OpenAICompatible:Model    e.g. qwen2.5:3b
 AI:OpenAICompatible:ApiKey   optional, environment only
-AI:OpenAICompatible:IsLocal  true → cost 0
+AI:OpenAICompatible:IsLocal  true → cost 0 (default false, so a remote endpoint is never recorded as free)
 AI:OpenAICompatible:TimeoutInSeconds, MaxTokens, MaxPageChars
 AI:Prices:<model>:InputPerMillionUsd / OutputPerMillionUsd   (remote models; unknown → cost null, never guessed)
 ```

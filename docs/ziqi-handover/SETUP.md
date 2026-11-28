@@ -75,7 +75,9 @@ ollama.com, run `ollama pull qwen2.5:3b`, and start the demo with `--local-ai-ur
   export a CSV.
 - Without Yoma: `node scripts/link-health/check-links.mjs` reads a .txt, .csv or sitemap and writes a CSV or Markdown
   report. It needs only Node 24 and no packages; see `scripts/link-health/` for its options.
-- The API endpoint behind the page: `POST /courseQuality/links/check` (Admin), at most 200 links per request.
+- The API endpoint behind the page: `POST /courseQuality/links/check` (Admin), at most 200 links per request. One request
+  spends at most `CourseQuality:LinkHealth:BudgetInSeconds` (default 240) starting checks; links not started by then come
+  back as `Timeout` with "Not checked: the check ran out of time. Run these links again."
 
 Click-by-click script: `docs/work/active/course-quality-judger/demo-walkthrough.md`. More detail:
 `scripts/course-quality-demo/README.md`.
@@ -107,6 +109,7 @@ setting the demo uses and is the easiest reference for a working local configura
 | `CourseQuality:Jobs:Enabled` | API | Job checks and A–D job grades |
 | `CourseQuality:LearnerFeedback:Enabled` | API | "Did you take it?" feedback |
 | `CourseQuality:PrePublish:Enabled` | API | The partner draft check endpoint |
+| `CourseQuality:PrePublish:UseAI` | API | The configured AI (`AI:Provider`) in the partner draft check. Off: the draft check reads the page with the keyless reader only. Keep it off with a CPU-only local model, which takes minutes while the form waits 45 s, and note that a draft check's AI usage is not recorded |
 | `Pathway:Enabled` | API | Every `/pathway` endpoint (My Yoma, badges, outcomes, steps); 404 when off |
 | `Pathway:DropOffAvailable` | API | Showing drop-off once the pilot has data (keep off until then) |
 | `NEXT_PUBLIC_PATHWAY_ENABLED` | Web (build time) | My Yoma tab, first-visit redirect, YoID card, badge chips, pathway health |
@@ -120,10 +123,10 @@ Keep the web and API pathway switches on together.
 | Setting | Meaning |
 | --- | --- |
 | `AI:Provider` | `None`, `Anthropic` or `OpenAICompatible`. Default `Anthropic`, which without a key means no AI. |
-| `AI:OpenAICompatible:BaseUrl` | The server's OpenAI-compatible address, e.g. `http://localhost:11434/v1` (Ollama), vLLM, LM Studio or a government endpoint. |
+| `AI:OpenAICompatible:BaseUrl` | The server's OpenAI-compatible address, e.g. `http://localhost:11434/v1` (Ollama), vLLM, LM Studio or a government endpoint. Ziqi posts to `<BaseUrl>/chat/completions`; a query in the base URL (e.g. `?api-version=...`) is kept after that path. |
 | `AI:OpenAICompatible:Model` | e.g. `qwen2.5:3b`. |
 | `AI:OpenAICompatible:ApiKey` | Optional. Environment or secret store only, never a file in git. |
-| `AI:OpenAICompatible:IsLocal` | `true` for a model on the operator's own host: each run's cost is recorded as 0. |
+| `AI:OpenAICompatible:IsLocal` | Default `false`. Set `true` only for a model on the operator's own host: each run's cost is then recorded as 0. Left `false`, a remote run's cost comes from `AI:Prices`, or is recorded as unknown. |
 | `AI:OpenAICompatible:TimeoutInSeconds`, `MaxTokens`, `MaxPageChars` | Limits per call. The demo uses a 300-second timeout for CPU models. |
 | `AI:Prices:<model>:InputPerMillionUsd`, `OutputPerMillionUsd` | Prices for a remote model. Unknown model: the cost is recorded as unknown, never guessed. |
 | `Anthropic:*` | Unchanged: `ApiKey`, `Model`, `Effort`, `MaxTokens`, `TimeoutInSeconds`, `MaxRetries`. |

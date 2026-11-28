@@ -10,7 +10,7 @@ kind of data.
 | The catalogue | Every live Yoma course (about 2,400), up to 2,000 live jobs, the live impact actions (about 40) and the live events (17 on 28 November 2026), imported from the public Yoma search API (`api.yoma.world`) when the demo starts. A snapshot: it does not update while the demo runs. |
 | Link checks | Ziqi opens each listing's link for real: redirects, status, final address, with a safe checker that refuses private and local addresses and pins the address it resolved. |
 | Page reading | The course page that loads is read for real: dates, duration, cost, syllabus, structured data, webinar wording. Some providers block automated readers or show a sign-in shell; those pages go to a reviewer instead of being guessed. |
-| The partner draft check | Runs the same checks on what the partner has typed, including a real (short-timeout) link check. |
+| The partner draft check | Runs the same checks on what the partner has typed, including a real (short-timeout) link check. Reads the page with the keyless reader, not the AI, unless `CourseQuality:PrePublish:UseAI` is on (off by default: a local CPU model is too slow for a form, and a draft check's AI usage is not recorded). |
 | In production (not deployed) | Completions, YoID credentials and Yoma preferences would be real youth data. In the demo they belong to the demo accounts. |
 
 ## Rule-based (deterministic code and configuration)
