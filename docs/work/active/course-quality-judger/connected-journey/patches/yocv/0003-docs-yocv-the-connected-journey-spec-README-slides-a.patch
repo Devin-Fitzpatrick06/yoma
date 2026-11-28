@@ -1,0 +1,143 @@
+From 8f4e71bdfca99de0154b36feaa095ce6ab964c9f Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 02:45:04 +0000
+Subject: [PATCH 3/3] docs(yocv): the connected journey spec, README, slides
+ and testing log
+
+The spec sets out YoCV's part of journey contract v1: the port, the
+link in, the two cards, the YoID thread and the look. The README gains
+a connected journey paragraph under Demonstrate it and a row in Real
+versus simulated. The Phase 4 slide text names the link back to Ziqi.
+The testing log records the Playwright run from the SkillLens link to
+the Back to the listing href.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ README.md                                     |  3 +
+ ...026-11-28-yocv-connected-journey-design.md | 55 +++++++++++++++++++
+ docs/testing-log.md                           | 14 +++++
+ presentation/phase4-slides.md                 |  2 +-
+ 4 files changed, 73 insertions(+), 1 deletion(-)
+ create mode 100644 docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
+
+diff --git a/README.md b/README.md
+index 3960d95..604766d 100644
+--- a/README.md
++++ b/README.md
+@@ -122,6 +122,8 @@ The app opens signed in as Halima on the Overview. Open CV.
+ 5. **The employer scans the QR.** Click **Make a QR code for employers**. The QR and a check code print at the foot of the CV. Scan it with a phone, or click **Open the employer view**. The employer page groups every line under **Confirmed from Yoma**, **Vouched for by other people** or **Self-declared**, from the server's own record, and never shows her phone, email or town. Change a line afterwards and the QR is dropped until you make a new one. Spec: `docs/superpowers/specs/2026-11-25-yocv-qr-verify-design.md`.
+ 6. **The Job Application.** Under the QR, **Apply to Solar Installation Assistant (Trainee)** sends the CV and its check link to Sunrise Solar Ltd, the job she saved in Phase 1 (`opp-job-001`). It is a mock-up and says so. **On your Yo-ID** then lists the CV check and the Job Application under her YoID, `yoid-ng-7f3a0123`. **Withdraw this check** ends the check early, and the employer page then says it was withdrawn.
+ 
++**In the connected journey.** SkillLens (Phase 3) opens YoCV with `?as=halima&journey=demo&from=skilllens&...&credential=cred-002&return=<the Ziqi listing>`. YoCV keeps those params for the tab, opens the CV tab and shows the card **From SkillLens · Phase 3, Skill Credential** above Step 1, and the YoID thread (`YoID · yoid-ng-7f3a0123 · mock-up`) above every step. After **Send my application**, the card **Back to Ziqi · Phase 1, Job Application** links back to the listing with `journey=demo&from=yocv&yoid=yoid-ng-7f3a0123&application=app-001`, in the same tab. Try it on its own with `http://127.0.0.1:4174/?as=halima&journey=demo&from=skilllens&yoid=yoid-ng-7f3a0123&listing=opp-job-001&credential=cred-002&return=http%3A%2F%2Flocalhost%3A3000%2Fopportunities%2Fc0a7e000-0000-4000-8000-000000000301`. Without `journey=demo` the page is as before. Spec: `docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md`.
++
+ The YoCard and YoVouch demos still use Thandi and the other sample people, with the vouches `npm run seed:demo` adds.
+ 
+ The refused suggestion: with `YOVOUCH_SIM=1`, `/demo/cv-rejected` runs a prepared suggestion that tried "over 50" customers a week through the real checks. It is refused as `invented_number`, and the template wording is shown instead. The page says `Prepared example. Not a live call.`, because a live model will not produce an error on cue.
+@@ -182,6 +184,7 @@ Design and plan: `docs/superpowers/specs/2026-11-22-yoid-shell-design.md` and `d
+ | CV check and its QR | Real, in-repo: `POST /api/cv/verify` builds the check from the server session (learning ticked from the Yoma record, each skill's level from the server, every bullet re-run through the checks, the months from the session entry, no place, five checks per session), signs it with the YoCard ES256 key and stores it under `data/cards/cv-checks/`. `GET /cv-check/<id>` verifies the signature on every load and expires the check after 90 days. It shows what the record said when the check was made; it does not re-read Yoma when scanned. With sample accounts every line it calls confirmed comes from a fictional record, and the page says so. |
+ | Withdrawing a CV check | Real, in-repo: `POST /api/cv/verify/<id>/withdraw` with the secret returned when the check was made (only its SHA-256 hash is stored). The employer page and its JSON then answer 410 and show nothing. Spec `docs/superpowers/specs/2026-11-25-yocv-journey-close-design.md`. |
+ | Apply to the listing | Mock-up. Step 4 ends with **Apply to** a fictional sample listing from `data/journey.json`, to be replaced by the shared Phase 1 listing. Pressing it sends nothing, and the page says so. |
++| Connected journey cards and YoID thread | Mock-up. Shown only with `journey=demo`. The thread's states come from the phase and this page's Apply; nothing is read from or written to a shared store or to Yoma. The back link only navigates to the `return` address (http or https only). |
+ | On your Yo-ID | Mock-up. Step 4 lists the checks made and the application with `Designed, not written to Yoma. Yoma has no YoID write for these yet.` No call to Yoma is made. |
+ | Verification of anything | Only the CV check above, which says who confirmed each line. Accepting a line confirms its wording, not its truth, and a self-declared line stays labelled so. |
+ | YoCard account data | Fictional sample personas by default; a real account via `YOMA_ACCESS_TOKEN` (implemented, not exercised live in this build) |
+diff --git a/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md b/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
+new file mode 100644
+index 0000000..eef0666
+--- /dev/null
++++ b/docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md
+@@ -0,0 +1,55 @@
++# YoCV in the connected journey, design (2026-11-28)
++
++The four BBS prototypes now run as one journey for Halima: Ziqi (Phase 1) → PathFinder (Phase 2) → SkillLens (Phase 3) → YoCV (Phase 4) → back to the Ziqi listing. The teams agreed one "journey contract v1": the same link params, the same handoff card and the same YoID thread in all four apps. This spec is YoCV's part. It follows the contract word for word.
++
++## 1. Port
++
++YoCV's default port moves from 4173 to 4174, because PathFinder uses 4173. `PORT` still overrides it. `YOCV_URL` in the team's start script defaults to `http://localhost:4174`.
++
++## 2. The link in
++
++SkillLens opens YoCV with:
++
++`/?as=halima&journey=demo&from=skilllens&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&plan=plan-001&course=opp-course-001&credential=cred-002&return=<the Ziqi listing, encoded>`
++
++- `?as=` signs Halima in, as before.
++- With `journey=demo`, YoCV reads the nine contract params (`journey`, `from`, `yoid`, `listing`, `goal`, `plan`, `course`, `credential`, `return`). Each value is trimmed; an empty one, or one over 64 characters (2048 for `return`), is dropped.
++- The params leave the address, as `?as=` does, and stay in `sessionStorage` under `yocv.journey` for the tab. Hash routes and a reload keep them. A new tab without them has no journey.
++- Arriving on no route opens `#/cv`, so the first screen is the arriving card.
++- Without `journey=demo` nothing changes: no card, no thread, no extra key.
++
++## 3. The arriving card
++
++At the top of Step 1, only in journey mode and online:
++
++- eyebrow `From SkillLens · Phase 3`
++- title **Skill Credential**, then `Solar PV Installation Basics: practical challenge passed`
++- `✓ Recorded on your YoID (mock-up)`
++
++`cred-002` in Step 1 and the Passport tab keeps its tag **Skill Credential, from SkillLens**.
++
++The persona's own credential title in `server/card/personas.json` is still "Solar PV Basics: practical challenge passed". The card uses the contract's item title. The team should pick one.
++
++## 4. The YoID thread
++
++Above every CV step, in journey mode: the label `YoID · yoid-ng-7f3a0123 · mock-up` and four steps, Saved Opportunity, Learning Plan, Skill Credential, Job Application. For Phase 4 the first three are `recorded` (green tick); Job Application is `in progress` until Apply, then `recorded`. The state comes from the phase and this page's own Apply. There is no shared store.
++
++## 5. The leaving card
++
++After Apply records `app-001`, under the mock-up notice:
++
++- eyebrow `Back to Ziqi · Phase 1`
++- title **Job Application**, then `Application to Solar Installation Assistant (Trainee)`
++- button **Back to the listing**, linking to `<return>?journey=demo&from=yocv&yoid=<yoid>&application=app-001` (with `&` when `return` already has a query, before any `#fragment`), in the same tab
++- `✓ Recorded on your YoID (mock-up)`
++
++Only an absolute `http:` or `https:` return is followed. Anything else hides the button; the card stays.
++
++## 6. Look
++
++White card, purple heading `#41204b`, green recorded text `#387f6a`, blue button `#4cade9`, Nunito headings, Open Sans body, 12 px radius. The blue joins the tokens as `--blue`. The button text is ink, not white, because white on that blue reads at 2.6:1.
++
++## 7. Data and copy
++
++- `data/journey.json` gains a `connected` block: the phase, the thread names and the two cards' items. The existing keys are unchanged.
++- The card and thread strings are in `cv-copy.js`, word for word from the contract.
+diff --git a/docs/testing-log.md b/docs/testing-log.md
+index 163c2a2..dddc749 100644
+--- a/docs/testing-log.md
++++ b/docs/testing-log.md
+@@ -276,3 +276,17 @@ Open issues from this run:
+ 1. **A local model is too slow for the page on this laptop.** Each call took 50 to 110 s, against the provider's fixed 20 s timeout and the page's 30 s deadline, so the page would show the timeout error. The laptop was under load (about 5 tokens a second). For a live demo, use a hosted model (Claude Haiku 5.5 with a key in `.env`), or make the timeout and the reasoning setting configurable in a later task.
+ 2. **A place word masked as a name.** "Market", from the place "Kaduna Central Market", is in `knownWords`, so the plain word "market" in her answer was masked as `[name1]` before the model saw it. It was restored afterwards, so the line was right, but a common word in a place name should not be masked.
+ 3. **First person.** Both model lines keep "my aunt's", against the prompt's "No first person". No check catches it, and the template has it too. This is the known limitation from the shared mock data section, row 6.
++
++# YoCV in the connected journey, 2026-11-28
++
++Branch `connected-journey`, sample mode (no model keys), `PORT=4174 node server.js`, Yoma unreachable from the test machine. Spec `docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md`. Driven with Playwright (Chromium, 1280 x 900, then 360 x 800) from the SkillLens link with `return=http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000301`.
++
++| # | Scenario | Result |
++| --- | --- | --- |
++| 1 | Open the SkillLens link | Pass. Signed in as Halima; the address becomes `/#/cv`; `sessionStorage` holds `yoid.person` and `yocv.journey` with the nine params. |
++| 2 | Arriving card and thread on Step 1 | Pass. `From SkillLens · Phase 3`, **Skill Credential**, `Solar PV Installation Basics: practical challenge passed`, `✓ Recorded on your YoID (mock-up)`. Thread: three recorded, Job Application in progress. `cred-002` tagged **Skill Credential, from SkillLens**. |
++| 3 | Steps 1 to 4 with the phone repair entry, every line accepted, QR made, **Send my application** | Pass. Leaving card `Back to Ziqi · Phase 1`, **Job Application**, `Application to Solar Installation Assistant (Trainee)`, **Back to the listing**. Thread: all four recorded. |
++| 4 | The back link | Pass. `http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000301?journey=demo&from=yocv&yoid=yoid-ng-7f3a0123&application=app-001`, no `target`; a click navigates the same tab, no new tab. |
++| 5 | 360 px | Pass. No sideways scroll; the thread wraps to two columns. |
++| 6 | `/?as=halima#/cv` in a fresh tab | Pass. No card, no thread; the `cred-002` tag is still shown. |
++| 7 | Console | Pass. No page errors. |
+diff --git a/presentation/phase4-slides.md b/presentation/phase4-slides.md
+index e1ded5a..e72f270 100644
+--- a/presentation/phase4-slides.md
++++ b/presentation/phase4-slides.md
+@@ -25,7 +25,7 @@ For Jongmin's "What We Changed" slide. Each row is tied to a feedback point. The
+ 
+ **What arrives from Phase 3 (SkillLens):** the **Skill Credential** `cred-002`, "Solar PV Basics: practical challenge passed". Step 1 and the Passport tab show it tagged "Skill Credential, from SkillLens", and the CV lists it under **Confirmed from Yoma**.
+ 
+-**What Phase 4 hands on:** the **Job Application** `app-001` to `opp-job-001`, the Saved Opportunity from Phase 1. Step 4 ends with **Apply to Solar Installation Assistant (Trainee)**, which sends the CV and its check link (a mock-up: nothing is sent). The listing and the handoff names sit in one file, `data/journey.json`.
++**What Phase 4 hands on:** the **Job Application** `app-001` to `opp-job-001`, the Saved Opportunity from Phase 1. Step 4 ends with **Apply to Solar Installation Assistant (Trainee)**, which sends the CV and its check link (a mock-up: nothing is sent). The listing and the handoff names sit in one file, `data/journey.json`. In the connected journey the card **Back to Ziqi · Phase 1** then links back to the same Ziqi listing, which shows the Job Application received.
+ 
+ **YoID thread:** the CV check and the Job Application are recorded on Halima's YoID, `yoid-ng-7f3a0123`. Step 4 shows this as an **On your Yo-ID** list, a mocked write labelled "Designed, not written to Yoma". She can already withdraw a check: the employer's scan then says it was withdrawn.
+ 
+-- 
+2.43.0
+

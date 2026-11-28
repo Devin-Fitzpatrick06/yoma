@@ -1,0 +1,254 @@
+From 7e174f44c5bf892a3ca64e21ea631ccfc81bca05 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 02:37:42 +0000
+Subject: [PATCH 1/3] feat(yocv): default port 4174, PathFinder keeps 4173
+
+The connected journey runs all four prototypes on one laptop. PathFinder
+and YoCV both defaulted to 4173, so YoCV moves to 4174 (journey contract
+v1, Addresses). PORT still overrides it. The run guides, the handover
+pack and the demo script now open port 4174. Older plans, specs and the
+testing log keep 4173 as the record of what was run then.
+
+npm test (YOCV_LIVE_YOMA=0, Node 22): tests 654, pass 622, fail 0,
+skipped 4, cancelled 28. The 28 cancelled are the provider timeout
+tests in tests/anthropic.test.cjs and tests/providers.test.cjs, which
+cancel the same way on main in this environment.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ .env.example                |  2 +-
+ AGENTS.md                   |  2 +-
+ CLAUDE.md                   |  2 +-
+ README.md                   |  6 +++---
+ handover/README.md          |  4 ++--
+ handover/qr-demo.md         |  4 ++--
+ presentation/demo-script.md | 10 +++++-----
+ server/card/routes.js       |  2 +-
+ server/config.js            |  2 +-
+ tests/config.test.cjs       |  4 ++--
+ tests/yoid-flows.test.cjs   |  2 +-
+ tests/yoid-tabs.test.cjs    |  2 +-
+ 12 files changed, 21 insertions(+), 21 deletions(-)
+
+diff --git a/.env.example b/.env.example
+index a7179ce..383fc10 100644
+--- a/.env.example
++++ b/.env.example
+@@ -40,7 +40,7 @@ YOMA_API_BASE=https://api.yoma.world/api/v3
+ # Set to 0 to skip the two live Yoma API tests in tests/live.test.cjs when offline
+ # (Set it in the shell, not here: tests read process.env only.)
+ # YOCV_LIVE_YOMA=0
+-PORT=4173
++PORT=4174
+ HOST=127.0.0.1
+ 
+ # YoCard: read a real Yoma account instead of the sample personas (stage or production bearer token).
+diff --git a/AGENTS.md b/AGENTS.md
+index 97b1c08..a4a1dae 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -13,7 +13,7 @@ A student prototype for [Yoma](https://yoma.world), not a Yoma or UNICEF project
+ ## Run and test
+ 
+ ```sh
+-npm start            # node server.js on http://127.0.0.1:4173
++npm start            # node server.js on http://127.0.0.1:4174
+ npm test             # node --test tests/*.test.cjs
+ YOCV_LIVE_YOMA=0 npm test   # offline: skips the two live Yoma tests
+ ```
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 98b5492..46addb0 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -3,5 +3,5 @@
+ Read `AGENTS.md` first; it holds the rules for this repository. This file only adds what is specific to Claude Code.
+ 
+ - Prefer `npm test` over running single files when you claim the suite is green; quote the `tests / pass / fail / skipped` lines.
+-- Before saying a page works, open it in the browser preview. `.claude/` is git-ignored, so create `.claude/launch.json` with a `yocv` entry (`node server.js`, port 4173) if it is missing. YoVouch demo pages need `YOVOUCH_SIM=1`.
++- Before saying a page works, open it in the browser preview. `.claude/` is git-ignored, so create `.claude/launch.json` with a `yocv` entry (`node server.js`, port 4174) if it is missing. YoVouch demo pages need `YOVOUCH_SIM=1`.
+ - Commit on a branch and keep `reports/`, `research_notes/`, `.env` and `data/cards/` out of every commit.
+diff --git a/README.md b/README.md
+index 616cc03..3960d95 100644
+--- a/README.md
++++ b/README.md
+@@ -45,7 +45,7 @@ cd yocv-prototype
+ npm start
+ ```
+ 
+-Then open `http://127.0.0.1:4173`. The page opens signed in as Halima Yusuf, the fictional person the team's four prototypes share, on the Yo-ID Overview. Without credentials the server runs in **sample mode**: the generator uses local templates, Yoma data is still live.
++Then open `http://127.0.0.1:4174`. The page opens signed in as Halima Yusuf, the fictional person the team's four prototypes share, on the Yo-ID Overview. Without credentials the server runs in **sample mode**: the generator uses local templates, Yoma data is still live.
+ 
+ To enable **live AI mode**, copy `.env.example` to `.env` and pick the provider with `MODEL_PROVIDER`. Set to `azure`, `anthropic`, `openai` or `local`, it wins, and the server refuses to start without that provider's values. Left empty, the order is Azure if its three values are set, else Anthropic (Claude) if `ANTHROPIC_API_KEY` is set, else the OpenAI-compatible endpoint if `OPENAI_API_KEY` is set, else the local templates (sample mode). So a leftover `OPENAI_API_KEY=ollama` never beats a Claude key. So switching from Azure to a model on the laptop is a one-line change, and the Azure block can stay filled in.
+ 
+@@ -71,7 +71,7 @@ Every variable the code reads (`server/config.js` reads `.env` from the working
+ 
+ | Variable | Default | Used for |
+ | --- | --- | --- |
+-| `PORT` | `4173` | Port the server listens on |
++| `PORT` | `4174` | Port the server listens on (4174 since the connected journey: PathFinder uses 4173) |
+ | `HOST` | `127.0.0.1` | Address the server binds to |
+ | `YOMA_API_BASE` | `https://api.yoma.world/api/v3` | Yoma public API base for skill lookups, opportunity searches and opportunity details; also the API a `YOMA_ACCESS_TOKEN` is sent to |
+ | `YOMA_ACCESS_TOKEN` | empty | YoCard and YoCV: a bearer token switches the account source from sample personas to a real Yoma account. YoCV then also searches that account's wallet for its credentials |
+@@ -97,7 +97,7 @@ Every variable the code reads (`server/config.js` reads `.env` from the working
+ | `YOVOUCH_ORG_KEY_<NAME>` | none (`.env.example` sets `YOVOUCH_ORG_KEY_SAMPLE_SKILLS_TRUST`) | One demo organisation key per variable for the referral page. `<NAME>` is the organisation's name in capitals with `_` for spaces, so `SAMPLE_SKILLS_TRUST` is `Sample Skills Trust`. Every page and line made with it says `Demo organisation key. A real key needs Yoma.` |
+ | `YOCV_SERVICE_SECRET` | empty | Mounts `POST /api/cv/draft`, the YoCV draft webhook for a RapidPro flow. It answers 403 unless the header `x-yocv-service-secret` matches (constant-time compare). Empty: the route is not mounted |
+ 
+-To open a card or scan a CV check from a phone on the same Wi-Fi, set `HOST=0.0.0.0` and `YOCARD_PUBLIC_URL=http://<your LAN IP>:4173` so the link and QR point at an address the phone can reach. Make the CV's QR after the server restarts with these values: a QR made before still points at `127.0.0.1`.
++To open a card or scan a CV check from a phone on the same Wi-Fi, set `HOST=0.0.0.0` and `YOCARD_PUBLIC_URL=http://<your LAN IP>:4174` so the link and QR point at an address the phone can reach. Make the CV's QR after the server restarts with these values: a QR made before still points at `127.0.0.1`.
+ 
+ You can also open `index.html` straight from disk. The app then runs in **sample mode (offline)** on the browser copies of the rules (`cv-rules.js`), the copy (`cv-copy.js`) and the checks (`core.js`). With no server there is no person to sign in as: the greeting reads `Good morning` with no name, and the Overview, Wallet, Passport, Opportunities and Skills tabs show the offline notice. Step 1 needs the server, because the Yoma record, the sample accounts and the role menus come from it. Offline, Step 1 shows `Your Yoma record needs the YoCV server. You can still describe your work and build a CV.` and a plain role field. Steps 2 to 4 run in the browser: Review builds each line from the template and runs the same checks, and proposes no skills. The same fallback applies when the server goes away after the page loaded.
+ 
+diff --git a/handover/README.md b/handover/README.md
+index 7bf62c3..6af1b33 100644
+--- a/handover/README.md
++++ b/handover/README.md
+@@ -28,11 +28,11 @@ cd yocv-prototype
+ npm start
+ ```
+ 
+-Open `http://127.0.0.1:4173`. It opens signed in as Halima Yusuf, the fictional person the four prototypes share (the team's shared mock data). The other six sample people are under Switch account. With no keys it runs in sample mode: CV lines come from templates, and Yoma data is still read live from Yoma's public API.
++Open `http://127.0.0.1:4174`. It opens signed in as Halima Yusuf, the fictional person the four prototypes share (the team's shared mock data). The other six sample people are under Switch account. With no keys it runs in sample mode: CV lines come from templates, and Yoma data is still read live from Yoma's public API.
+ 
+ - **Live AI.** Copy `.env.example` to `.env` and set `MODEL_PROVIDER` with its key. Claude, Azure OpenAI and any OpenAI-compatible endpoint work, a locally hosted model through Ollama included. The [main README](../README.md), section Development Setup, has the three configurations side by side.
+ - **The demo pages.** Run `npm run seed:demo`, then start with `YOVOUCH_SIM=1`. The script is [presentation/demo-script.md](../presentation/demo-script.md).
+-- **Scan the QR from a phone.** Start with `HOST=0.0.0.0` and `YOCARD_PUBLIC_URL=http://<your LAN IP>:4173`, then make the QR. [qr-demo.md](qr-demo.md) walks through it step by step.
++- **Scan the QR from a phone.** Start with `HOST=0.0.0.0` and `YOCARD_PUBLIC_URL=http://<your LAN IP>:4174`, then make the QR. [qr-demo.md](qr-demo.md) walks through it step by step.
+ - **Tests.** `npm test`. Two model tests are skipped without a key. `YOCV_LIVE_YOMA=0 npm test` also skips the two Yoma tests when you are offline.
+ 
+ No keys or secrets are in the repo. `.env` and `data/cards/` (the signing key and stored cards) are git-ignored.
+diff --git a/handover/qr-demo.md b/handover/qr-demo.md
+index 826e070..7dd8b93 100644
+--- a/handover/qr-demo.md
++++ b/handover/qr-demo.md
+@@ -28,9 +28,9 @@ You need Node 20 or later, and a laptop and a phone on the same Wi-Fi. No keys a
+ 2. Find the laptop's address on the Wi-Fi. On a Mac, run `ipconfig getifaddr en0`. On Windows, run `ipconfig` and read the IPv4 address. Below it is `192.168.1.20`.
+ 3. Start the server so the phone can reach it:
+    ```sh
+-   HOST=0.0.0.0 YOCARD_PUBLIC_URL=http://192.168.1.20:4173 YOVOUCH_SIM=1 npm start
++   HOST=0.0.0.0 YOCARD_PUBLIC_URL=http://192.168.1.20:4174 YOVOUCH_SIM=1 npm start
+    ```
+-4. On the laptop, open `http://192.168.1.20:4173/?as=halima#/cv`. Tick her record, choose **Solar installation assistant** and add her work: "Phone repair and sales" at Kaduna Central Market. Accept the lines and skills, then **Continue to your CV**.
++4. On the laptop, open `http://192.168.1.20:4174/?as=halima#/cv`. Tick her record, choose **Solar installation assistant** and add her work: "Phone repair and sales" at Kaduna Central Market. Accept the lines and skills, then **Continue to your CV**.
+ 5. Click **Make a QR code for employers**, then **Show it on my phone**.
+ 6. Scan the QR with the phone's camera and open the link.
+ 7. Back on the laptop, click **Withdraw this check**, then reload the page on the phone.
+diff --git a/presentation/demo-script.md b/presentation/demo-script.md
+index cbecc3a..9fa25f2 100644
+--- a/presentation/demo-script.md
++++ b/presentation/demo-script.md
+@@ -6,8 +6,8 @@ The YoCV demo follows the team's shared mock data (2026-11-25): **Halima Yusuf**
+ 
+ 1. Put `YOVOUCH_SIM=1` in `.env`. The simulators and the `/demo` pages need it, and a gateway secret turns them off.
+ 2. Run `node scripts/seed-demo.js`. YoCV does not need it for Halima; the YoCard and YoVouch demos below do. It publishes Thandi's card and adds her three customer vouches with sample numbers.
+-3. Run `npm start` and open `http://127.0.0.1:4173`. The page opens signed in as Halima on the Yo-ID Overview. If another person is signed in, open the avatar menu, choose **Switch account** and pick **Halima Yusuf**, or open `http://127.0.0.1:4173/?as=halima`. Click **Reset** in the footer so no CV draft is left from a rehearsal. Note the mode label in the footer: **Live AI · <model>** or **Sample mode**. Say which one you are in.
+-4. Open a second tab on `http://127.0.0.1:4173/demo/cv-rejected`, the prepared refused suggestion.
++3. Run `npm start` and open `http://127.0.0.1:4174`. The page opens signed in as Halima on the Yo-ID Overview. If another person is signed in, open the avatar menu, choose **Switch account** and pick **Halima Yusuf**, or open `http://127.0.0.1:4174/?as=halima`. Click **Reset** in the footer so no CV draft is left from a rehearsal. Note the mode label in the footer: **Live AI · <model>** or **Sample mode**. Say which one you are in.
++4. Open a second tab on `http://127.0.0.1:4174/demo/cv-rejected`, the prepared refused suggestion.
+ 5. Keep these `.env` lines ready for the live-model switch. The first choice is Claude: it needs only a key, and `effort` is set low for the 20 s deadline. It has not been run live on the build laptop, so rehearse it as described below. The banner then reads **Live AI · claude-haiku-5-5**.
+ 
+ ```
+@@ -62,7 +62,7 @@ OPENAI_STRUCTURED_OUTPUT=json_object
+ 
+ **Say:** "This is the Job Application, the handoff back to Sunrise Solar, who wrote the job with RoleMap. It is a mock-up, and the page says nothing was sent. In Yoma it would be written to her YoID."
+ 
+-**Optional, 45 seconds: the employer scans the QR.** Click **Make a QR code for employers**, then **Show it on my phone**, and scan it with a phone, or click **Open the employer view**. Needs `HOST=0.0.0.0` and `YOCARD_PUBLIC_URL=http://<laptop LAN IP>:4173` for a real phone scan.
++**Optional, 45 seconds: the employer scans the QR.** Click **Make a QR code for employers**, then **Show it on my phone**, and scan it with a phone, or click **Open the employer view**. Needs `HOST=0.0.0.0` and `YOCARD_PUBLIC_URL=http://<laptop LAN IP>:4174` for a real phone scan.
+ 
+ **Say:** "Sunrise Solar scans this. Green is what Yoma recorded, the Skill Credential included. Grey is her own words, checked against her answers but confirmed by nobody. Her phone number is not on it." If you withdraw the check now, the scan says it was withdrawn.
+ 
+@@ -84,7 +84,7 @@ If the model call fails live (the app shows `provider_timeout` or "The server di
+ 
+ # YoCard — three-minute live demonstration
+ 
+-Before presenting: `npm start`, open `http://127.0.0.1:4173/card.html`. Have a second phone or a second browser window ready for the customer view.
++Before presenting: `npm start`, open `http://127.0.0.1:4174/card.html`. Have a second phone or a second browser window ready for the customer view.
+ 
+ ## 0:00–0:25 — Why a card
+ 
+@@ -135,7 +135,7 @@ Six beats, two phones and a laptop on the same Wi-Fi (spec section 14). Say the
+ 
+ ## Preparation
+ 
+-1. On the laptop, set `HOST=0.0.0.0`, `YOCARD_PUBLIC_URL` to the laptop's LAN address (for example `http://192.168.1.20:4173`) and `YOVOUCH_SIM=1`. Leave `YOVOUCH_GATEWAY_SECRET` unset, or the simulator routes are not mounted.
++1. On the laptop, set `HOST=0.0.0.0`, `YOCARD_PUBLIC_URL` to the laptop's LAN address (for example `http://192.168.1.20:4174`) and `YOVOUCH_SIM=1`. Leave `YOVOUCH_GATEWAY_SECRET` unset, or the simulator routes are not mounted.
+ 2. Run `node scripts/seed-demo.js`. It prints the `/my` link of every prepared card (Thandi, Sipho, Bongani, Amara, Ayo, Bola, Chidi) and the id of the inbox reply. Keep that output open.
+ 3. Run `npm start`.
+ 4. Five minutes before beat 2, run `node scripts/seed-demo.js --old-code`. It writes `data/cards/demo-old-code.svg`, Thandi's QR three steps back, captioned with the time it was made. This run seeds a fresh set of cards and its `demo.json` replaces the first one, so use the `/my` links this run prints from here on. Open the SVG on the laptop. It is never served by the app. A code can live 180 seconds, so the screenshot must be at least three minutes old when it is scanned.
+diff --git a/server/card/routes.js b/server/card/routes.js
+index 97f5b3d..62d37ff 100644
+--- a/server/card/routes.js
++++ b/server/card/routes.js
+@@ -210,7 +210,7 @@ function maskSnapshot(snapshot,now){
+ 
+ function createCardRouter({config,accountSource,provider,store,key,yoma,publicUrl,now=Date.now,random=crypto.randomBytes,readJSONBody=defaultReadJSONBody,maxInFlight=MAX_IN_FLIGHT,outbox=null,transcriber=undefined}={}){
+   if(!accountSource||!store||!key)throw new Error('createCardRouter needs accountSource, store and key');
+-  const base=str(publicUrl||('http://'+(config?.host||'127.0.0.1')+':'+(config?.port||4173))).replace(/\/+$/,'');
++  const base=str(publicUrl||('http://'+(config?.host||'127.0.0.1')+':'+(config?.port||4174))).replace(/\/+$/,'');
+   const system=buildVouchSystem({config,store,key,accountSource,provider,publicUrl:base,now,random,outbox,transcriber});
+   const vouchRouter=createVouchRouter(system);
+   // Retention (spec 9.7): hourly, never holding the process open. Tests call runSweep directly.
+diff --git a/server/config.js b/server/config.js
+index 465e2c0..63a45f2 100644
+--- a/server/config.js
++++ b/server/config.js
+@@ -11,7 +11,7 @@ const DEFAULTS={
+   anthropicModel:'claude-opus-5-5',
+   anthropicBaseUrl:'https://api.anthropic.com',
+   yomaBase:'https://api.yoma.world/api/v3',
+-  port:4173,
++  port:4174,
+   host:'127.0.0.1'
+ };
+ 
+diff --git a/tests/config.test.cjs b/tests/config.test.cjs
+index 972ea7c..ab748bc 100644
+--- a/tests/config.test.cjs
++++ b/tests/config.test.cjs
+@@ -47,7 +47,7 @@ test('loadConfig defaults to local provider with documented defaults',()=>{
+  assert.equal(cfg.openai,null);
+  assert.equal(cfg.anthropic,null);
+  assert.equal(cfg.yomaBase,'https://api.yoma.world/api/v3');
+- assert.equal(cfg.port,4173);
++ assert.equal(cfg.port,4174);
+  assert.equal(cfg.host,'127.0.0.1');
+ });
+ test('loadConfig picks azure when endpoint, key and deployment are present',()=>{
+@@ -101,7 +101,7 @@ test('loadConfig treats blank values as unset',()=>{
+ });
+ test('loadConfig falls back to the default port when PORT is not a number',()=>{
+  const cfg=config.loadConfig({env:{PORT:'abc'},cwd:tmpDir()});
+- assert.equal(cfg.port,4173);
++ assert.equal(cfg.port,4174);
+ });
+ test('loadConfig gives the YoVouch defaults and reads YOVOUCH_SIM',()=>{
+  const cfg=config.loadConfig({env:{},cwd:tmpDir()});
+diff --git a/tests/yoid-flows.test.cjs b/tests/yoid-flows.test.cjs
+index f385e2a..3db5609 100644
+--- a/tests/yoid-flows.test.cjs
++++ b/tests/yoid-flows.test.cjs
+@@ -77,7 +77,7 @@ async function boot({online=true,hash='',app='real'}={}){
+   const ctx={
+     document:dom.document,
+     sessionStorage:{getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},
+-    location:{href:'http://127.0.0.1:4173/'+hash,hash,pathname:'/',search:''},
++    location:{href:'http://127.0.0.1:4174/'+hash,hash,pathname:'/',search:''},
+     history:{replaceState:(s,t,url)=>{history.push(url);if(url.startsWith('#'))ctx.location.hash=url;}},
+     fetch:async(url,opts={})=>{
+       fetches.push({url,opts});
+diff --git a/tests/yoid-tabs.test.cjs b/tests/yoid-tabs.test.cjs
+index 735ee4a..cb93db9 100644
+--- a/tests/yoid-tabs.test.cjs
++++ b/tests/yoid-tabs.test.cjs
+@@ -18,7 +18,7 @@ function loadViews(){
+   const ctx={
+     document:{querySelector:()=>null,querySelectorAll:()=>[],getElementById:()=>null,addEventListener:noop},
+     sessionStorage:{getItem:()=>null,setItem:noop,removeItem:noop},
+-    location:{href:'http://127.0.0.1:4173/',hash:'',pathname:'/',search:''},
++    location:{href:'http://127.0.0.1:4174/',hash:'',pathname:'/',search:''},
+     history:{replaceState:noop},
+     // boot() asks for the config; the promise never settles, so nothing after it runs in the stub.
+     fetch:()=>new Promise(noop),
+-- 
+2.43.0
+

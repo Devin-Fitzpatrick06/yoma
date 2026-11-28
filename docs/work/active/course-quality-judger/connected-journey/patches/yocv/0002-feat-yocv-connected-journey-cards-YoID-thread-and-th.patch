@@ -1,0 +1,539 @@
+From b9ef866571fdbc2281aa3d4c03244599e7f5bc59 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 02:44:24 +0000
+Subject: [PATCH 2/3] feat(yocv): connected journey cards, YoID thread and the
+ link back to Ziqi
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Journey contract v1, Phase 4. SkillLens opens YoCV with ?as=halima and
+journey=demo plus the contract params (from, yoid, listing, goal, plan,
+course, credential, return).
+
+- core.js: journeyParams reads the nine params only when journey=demo,
+  trimmed and length-capped. journeyReturn follows only an absolute
+  http(s) return. journeyBackHref builds <return>?journey=demo&from=yocv
+  &yoid=...&application=app-001, with & when the return has a query and
+  before any fragment. journeyThread gives each step its state.
+- yoid.js: the params leave the address as ?as= does and stay in
+  sessionStorage (yocv.journey) for the tab, so hash routes and a reload
+  keep them. Arriving on no route opens #/cv, where the card is.
+- app.js: in journey mode and online, the arriving card (From SkillLens
+  · Phase 3, Skill Credential) tops Step 1, the YoID thread tops every
+  step, and after Apply the leaving card (Back to Ziqi · Phase 1, Job
+  Application) links back to the listing in the same tab. No http(s)
+  return: the card shows without the button.
+- data/journey.json: a connected block with the phase, the thread names
+  and the two cards' items. The existing keys are unchanged.
+- cv-copy.js: the card and thread copy, word for word from the contract.
+- styles.css: the card and the strip in the contract colours; --blue
+  (#4cade9) joins the tokens. The button text is ink: white on that blue
+  reads at 2.6:1.
+
+Without journey=demo nothing changes: no card, no strip, no extra key.
+cred-002 kept its "Skill Credential, from SkillLens" tag either way.
+
+House tests changed on purpose: restyle.test.cjs lists the new --blue
+token; yoid-shell.test.cjs now allows the journey key beside the person
+key in sessionStorage.
+
+npm test (YOCV_LIVE_YOMA=0, Node 22): tests 671, pass 639, fail 0,
+skipped 4, cancelled 28 (the provider timeout tests, as on main here).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ app.js                              |  32 +++++++-
+ core.js                             |  32 +++++++-
+ cv-copy.js                          |   3 +
+ data/journey.json                   |  24 ++++++
+ styles.css                          |   7 +-
+ tests/cv-connected-journey.test.cjs | 115 ++++++++++++++++++++++++++++
+ tests/restyle.test.cjs              |   2 +-
+ tests/yoid-flows.test.cjs           |  56 ++++++++++++--
+ tests/yoid-shell.test.cjs           |   6 +-
+ yoid.js                             |  25 +++++-
+ 10 files changed, 286 insertions(+), 16 deletions(-)
+ create mode 100644 tests/cv-connected-journey.test.cjs
+
+diff --git a/app.js b/app.js
+index 87a272e..83b4eaf 100644
+--- a/app.js
++++ b/app.js
+@@ -174,7 +174,7 @@ const isoDay=iso=>longDate(iso)||String(iso??'').slice(0,10);
+ function applyHTML(){
+  const l=cfg?.journey?.listing;if(state.offline||!l)return '';
+  const sent=state.application,can=C.canApply(state,copy);
+- const body=sent?`<p class="notice" role="status">${E(fill(copy.applySent,{organisation:sent.organisation}))}</p>`
++ const body=sent?`<p class="notice" role="status">${E(fill(copy.applySent,{organisation:sent.organisation}))}</p>${leavingHTML()}`
+   :`<p class="field-help">${E(can?copy.applySends:copy.applyNeedsQr)}</p><div class="action-row"><button class="primary" data-action="apply" ${can?'':'disabled'}>${E(copy.applyButton)}</button></div>`;
+  return `<section class="claim-card apply print-hide" aria-labelledby="apply-title"><h2 id="apply-title" tabindex="-1">${E(fill(copy.applyHeading,{title:l.title}))}</h2><p>${E(fill(copy.applyLead,{organisation:l.organisation,place:l.place,asks:l.asks}))}</p>${l.sample?`<p class="field-help">${E(copy.applySample)}</p>`:''}${body}</section>`;
+ }
+@@ -184,6 +184,34 @@ function yoidHTML(){
+  const p=cfg?.journey?.person,yoid=p&&p.personaId===state.selector?.persona?`<p class="verify-code">${E(fill(copy.yoidId,{id:p.yoid}))}</p>`:'';
+  return `<section class="claim-card yoid-record print-hide" aria-labelledby="yoid-record-title"><h2 id="yoid-record-title">${E(copy.yoidHeading)}</h2>${yoid}<p class="field-help">${E(copy.yoidNote)}</p><ul>${items.map(li).join('')}</ul></section>`;
+ }
++/* The connected journey (spec 2026-11-28-yocv-connected-journey-design, journey contract v1). Only when the shell was
++   opened with journey=demo, and online: the arriving card at the top of Step 1, the YoID thread above every step, and
++   after Apply the leaving card back to the Ziqi listing, in the same tab. The thread's state comes from the phase and
++   this page's own Apply; nothing is read from or written to a shared store. */
++const journeyOn=()=>Boolean(api?.journey&&cfg?.journey?.connected&&!state.offline);
++const TICK='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l4 4L19 6"/></svg> ';
++const journeyYoid=()=>api.journey.yoid||cfg.journey.person?.yoid||'';
++function journeyCard({id,eyebrow,item,button=''}){
++ return `<section class="journey-card print-hide" aria-labelledby="${id}"><p class="journey-eyebrow">${E(eyebrow)}</p><h2 class="journey-title" id="${id}"><strong>${E(item.name)}</strong> <span class="journey-item">${E(item.title)}</span></h2>${button}<p class="journey-recorded">${E(copy.journeyRecorded)}</p></section>`;
++}
++function arrivingHTML(){
++ if(!journeyOn())return '';
++ const a=cfg.journey.connected.arriving;
++ return journeyCard({id:'journey-arriving-title',eyebrow:fill(copy.journeyFrom,{app:a.from,n:a.phase}),item:a});
++}
++function leavingHTML(){
++ if(!journeyOn()||!state.application)return '';
++ const l=cfg.journey.connected.leaving,href=C.journeyBackHref(api.journey,{application:state.application.id,yoid:journeyYoid()});
++ const button=href?`<a class="journey-button" id="journey-back" href="${E(href)}">${E(copy.journeyBackButton)}</a>`:'';
++ return journeyCard({id:'journey-leaving-title',eyebrow:fill(copy.journeyBack,{app:l.to,n:l.phase}),item:l,button});
++}
++function threadHTML(){
++ if(!journeyOn())return '';
++ const c=cfg.journey.connected,label=fill(copy.threadLabel,{yoid:journeyYoid()});
++ const words={recorded:copy.threadRecorded,'in-progress':copy.threadInProgress,next:copy.threadNext};
++ const li=t=>`<li class="journey-step ${t.state}"><span class="journey-step-name">${E(t.name)}</span><span class="journey-step-state">${t.state==='recorded'?TICK:''}${E(words[t.state])}</span></li>`;
++ return `<section class="journey-thread print-hide" aria-label="${E(label)}"><p class="journey-thread-label">${E(label)}</p><ol>${C.journeyThread(c.thread,c.phase,Boolean(state.application)).map(li).join('')}</ol></section>`;
++}
+ /* The person shows the QR on their own phone to an informal employer, who scans it with theirs (spec 2026-11-27-yocv-phone-show-design). */
+ function showQr(){
+  const v=C.buildCv(state,copy).verify,dlg=document.getElementById('show-qr-dialog');if(!v||!dlg)return;
+@@ -232,7 +260,7 @@ function focusSnapshot(){
+ function focusRestore(f){if(!f)return;try{const el=view.querySelector(f.sel);if(!el||el.disabled)return;el.focus({preventScroll:true});if(f.range)el.setSelectionRange(...f.range);}catch{}}
+ // Every render tells the shell where the draft stands (the Overview CV card, the hero line and the footer mode label).
+ function announce(){document.dispatchEvent(new CustomEvent('yocv:draft',{detail:{...draftStatus(),offline:state.offline}}));}
+-function render(){if(!cfg)return;const f=focusSnapshot();view.innerHTML=[recordStep,workStep,reviewStep,cvStep][state.step]();view.setAttribute('aria-busy',String(ui.busy));focusRestore(f);announce();}
++function render(){if(!cfg)return;const f=focusSnapshot();view.innerHTML=(state.step===0?arrivingHTML():'')+threadHTML()+[recordStep,workStep,reviewStep,cvStep][state.step]();view.setAttribute('aria-busy',String(ui.busy));focusRestore(f);announce();}
+ // A step change writes the hash (#/cv, #/cv/2 to #/cv/4) so Back works; the shell's hashchange then finds the step
+ // already shown. fromHash is the shell calling back for a hash it read, so nothing is written again.
+ function go(step,{fromHash=false}={}){
+diff --git a/core.js b/core.js
+index 381c953..900e9b6 100644
+--- a/core.js
++++ b/core.js
+@@ -279,6 +279,36 @@
+     const h=journey?.incoming;
+     return h&&credential?.walletId&&credential.walletId===h.id?fill(copy.handoffFrom,{name:h.name,from:h.from}):'';
+   }
++  // The connected journey (spec 2026-11-28-yocv-connected-journey-design, journey contract v1). The params SkillLens
++  // sends; ?as=<persona> rides beside them and the shell reads it on its own. Without journey=demo there is no journey.
++  const JOURNEY_KEYS=Object.freeze(['journey','from','yoid','listing','goal','plan','course','credential','return']);
++  const JOURNEY_MAX={return:2048},JOURNEY_MAX_ID=64;
++  // search is an address's query string, or the plain object the shell kept in sessionStorage.
++  function journeyParams(search){
++    if(search==null)return null;
++    const q=new URLSearchParams(typeof search==='object'?Object.entries(search).filter(([,v])=>typeof v==='string'):String(search).replace(/^\?/,''));
++    if(q.get('journey')!=='demo')return null;
++    const out={};
++    for(const k of JOURNEY_KEYS){const v=trim(q.get(k));if(v&&v.length<=(JOURNEY_MAX[k]||JOURNEY_MAX_ID))out[k]=v;}
++    return out;
++  }
++  // Only an absolute http(s) address is followed, as the person typed it; anything else gives '' and no link.
++  function journeyReturn(url){
++    const s=trim(url);
++    if(!/^https?:\/\/[^\s"<>]+$/i.test(s))return '';
++    try{const u=new URL(s);return (u.protocol==='http:'||u.protocol==='https:')&&u.hostname?s:'';}catch{return '';}
++  }
++  // Link 4 of the contract: <return>?journey=demo&from=yocv&yoid=...&application=app-001, with & when the return already
++  // has a query, and before its fragment if it has one. yoid falls back to the shared data's when the link had none.
++  function journeyBackHref(params,{application,yoid}={}){
++    const back=journeyReturn(params?.return);if(!back)return '';
++    const hash=back.indexOf('#'),base=hash<0?back:back.slice(0,hash),frag=hash<0?'':back.slice(hash);
++    const sep=!base.includes('?')?'?':/[?&]$/.test(base)?'':'&';
++    const q='journey=demo&from=yocv&yoid='+encodeURIComponent(trim(params.yoid)||trim(yoid))+'&application='+encodeURIComponent(trim(application));
++    return base+sep+q+frag;
++  }
++  // The four-step thread for the app at phase n: before n recorded, n in progress until its own action is done, after n next.
++  const journeyThread=(names,phase,done)=>(names||[]).map((name,i)=>({name:String(name),state:i+1<phase||(i+1===phase&&done)?'recorded':i+1===phase?'in-progress':'next'}));
+   // The mocked Yo-ID lines, oldest first. dateOf turns an ISO time into the date the page prints.
+   // A live check gets a withdraw button in the list (button) unless it is the one printed on the paper, whose button
+   // sits under its QR. One made before the CV changed is still live on the server, so it keeps its button.
+@@ -424,6 +454,6 @@
+     });
+     return {entries,skills:[],generation:{mode:'sample-offline',provider:'browser-local',model:null,durationMs:0}};
+   }
+-  const api={MONTHS,WEEKDAYS,escapeHTML,shortQuote,contactsIn,numbersIn,allowedNumbers,properNouns,maskNames,restoreNames,checkCvText,monthLabel,monthsBetween,templateBullet,profileLine,buildCv,renderCvHtml,buildCvText,buildCvRecord,cvFingerprint,renderRecordHtml,newCvState,withdrawnCheck,canApply,applied,handoffOf,yoidItems,reviewPayload,decide,readyForCv,profileInput,offlineReview};
++  const api={MONTHS,WEEKDAYS,escapeHTML,shortQuote,contactsIn,numbersIn,allowedNumbers,properNouns,maskNames,restoreNames,checkCvText,monthLabel,monthsBetween,templateBullet,profileLine,buildCv,renderCvHtml,buildCvText,buildCvRecord,cvFingerprint,renderRecordHtml,newCvState,withdrawnCheck,canApply,applied,handoffOf,JOURNEY_KEYS,journeyParams,journeyReturn,journeyBackHref,journeyThread,yoidItems,reviewPayload,decide,readyForCv,profileInput,offlineReview};
+   if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.YoCV=api;
+ })(typeof globalThis!=='undefined'?globalThis:this);
+diff --git a/cv-copy.js b/cv-copy.js
+index 8e43519..657d2fb 100644
+--- a/cv-copy.js
++++ b/cv-copy.js
+@@ -168,6 +168,9 @@
+     yoidHeading:'On your Yo-ID',yoidNote:'Designed, not written to Yoma. Yoma has no YoID write for these yet.',yoidCheck:'CV check {code}, made {made}, open until {until}.',
+     yoidCheckWithdrawn:'CV check {code}, made {made}, withdrawn {date}.',yoidApplication:'{name}: {title} at {organisation}, {date}. Mock-up.',applicationName:'Job Application',
+     yoidId:'Your YoID: {id}',handoffFrom:'{name}, from {from}',
++    // The connected journey (journey contract v1): the handoff cards and the YoID thread, word for word as the contract has them.
++    journeyFrom:'From {app} · Phase {n}',journeyBack:'Back to {app} · Phase {n}',journeyBackButton:'Back to the listing',journeyRecorded:'✓ Recorded on your YoID (mock-up)',
++    threadLabel:'YoID · {yoid} · mock-up',threadRecorded:'recorded',threadInProgress:'in progress',threadNext:'next',
+     errVerify:'The QR code could not be made. Try again in a moment.',errVerifyLine:'A line on the CV no longer matches your answers. Go back to Review.',errVerifyReview:'Finish the review first.',errVerifyMany:'You have made the most QR codes this session allows. Use the last one.',
+     checkTitle:'CV check',checkLead:'{name} shared this check. It shows what the YoCV prototype read from Yoma on {date}.',checkCodeLine:'Check code {code}. It should match the code printed on the CV.',
+     checkConfirmed:'Confirmed from Yoma',checkConfirmedNote:'Yoma has a record of these: learning completed and credentials issued by the organisations named.',
+diff --git a/data/journey.json b/data/journey.json
+index 3280a2c..6272605 100644
+--- a/data/journey.json
++++ b/data/journey.json
+@@ -20,5 +20,29 @@
+   "outgoing": {
+     "name": "Job Application",
+     "id": "app-001"
++  },
++  "connected": {
++    "note": "Journey contract v1 (2026-11-28): what the handoff cards and the YoID thread show when YoCV is opened with journey=demo. Phase 4 of four.",
++    "phase": 4,
++    "thread": [
++      "Saved Opportunity",
++      "Learning Plan",
++      "Skill Credential",
++      "Job Application"
++    ],
++    "arriving": {
++      "from": "SkillLens",
++      "phase": 3,
++      "name": "Skill Credential",
++      "id": "cred-002",
++      "title": "Solar PV Installation Basics: practical challenge passed"
++    },
++    "leaving": {
++      "to": "Ziqi",
++      "phase": 1,
++      "name": "Job Application",
++      "id": "app-001",
++      "title": "Application to Solar Installation Assistant (Trainee)"
++    }
+   }
+ }
+diff --git a/styles.css b/styles.css
+index 9210c76..ba59438 100644
+--- a/styles.css
++++ b/styles.css
+@@ -1,5 +1,5 @@
+ /* YoCV and YoCard token sheet and shared components. card.css extends this and defines no tokens; the YoCV page is the Yo-ID shell, whose rules sit under body.yocv-app. */
+-:root{--ink:#020304;--muted:#545859;--line:#dce0e5;--page:#f3f6fa;--panel:#ffffff;--accent:#41204b;--accent-shade:#54365d;--accent-tint:#e7d4ed;--accent-soft:#c3a2cd;--green:#387f6a;--recorded:#2b6a57;--recorded-tint:#e6f5f3;--orange:#f9ab3e;--orange-tint:#fdeed8;--gold:#d48414;--awaiting:#8a5a00;--awaiting-tint:#fdeed8;--stated-tint:#f3f6fa;--blue-tint:#edf6fd;--blue-dark:#2487c5;--type-learning:#007cb4;--type-yoid:#a3195b;--type-default:#5a6675;--error:#b3261e;--error-tint:#ffe9ea;--shadow:0 2px 15px -3px rgba(0,0,0,.07),0 10px 20px -2px rgba(0,0,0,.04);font-family:"Open Sans",system-ui,sans-serif;font-size:16px;line-height:1.5;color:var(--ink);background:var(--page)}
++:root{--ink:#020304;--muted:#545859;--line:#dce0e5;--page:#f3f6fa;--panel:#ffffff;--accent:#41204b;--accent-shade:#54365d;--accent-tint:#e7d4ed;--accent-soft:#c3a2cd;--green:#387f6a;--recorded:#2b6a57;--recorded-tint:#e6f5f3;--orange:#f9ab3e;--orange-tint:#fdeed8;--gold:#d48414;--awaiting:#8a5a00;--awaiting-tint:#fdeed8;--stated-tint:#f3f6fa;--blue-tint:#edf6fd;--blue:#4cade9;--blue-dark:#2487c5;--type-learning:#007cb4;--type-yoid:#a3195b;--type-default:#5a6675;--error:#b3261e;--error-tint:#ffe9ea;--shadow:0 2px 15px -3px rgba(0,0,0,.07),0 10px 20px -2px rgba(0,0,0,.04);font-family:"Open Sans",system-ui,sans-serif;font-size:16px;line-height:1.5;color:var(--ink);background:var(--page)}
+ /* Resets */
+ *{box-sizing:border-box}body{margin:0}h1,h2,h3,h4,p{margin:0}button,input,textarea{font:inherit}a{color:var(--accent)}h1,h2,h3,.brand,.cv-name,.wordmark,.pill,.breadcrumb,.section-title,.card-title,.drawer-row,.drawer-name,.avatar-face,.top-links a{font-family:"Nunito",system-ui,sans-serif}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}.hero :focus-visible,.dialog-top :focus-visible{outline-color:var(--panel)}body.yocv-app .topbar :focus-visible,.drawer-band :focus-visible{outline-color:var(--panel)}main:focus{outline:none}
+ /* Type scale */
+@@ -70,3 +70,8 @@ body.yocv-app .opportunities{background:none;padding:0;border-radius:0}body.yocv
+ @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+ @media print{html,body,main,#view{background:#ffffff!important}@page{margin:18mm}body{background:#ffffff}body.yocv-app{padding-top:0}body.yocv-app .topbar,body.yocv-app .hero,body.yocv-app #tabs,body.yocv-app #tab-view,body.yocv-app .app-footer,body.yocv-app .step-pills,body.yocv-app .step-title,.topbar,.app-footer,.form-footer,.evidence-record,#toast,dialog,.skip-link,.review-heading,.print-hide,.step-line,.lead,.export-actions,.sample-preview,.opportunities,.action-row,.primary,.secondary,.text-button,.back-link{display:none!important}main,.page{display:block;padding:0;margin:0;min-height:0;max-width:none}.cv-paper{border:0;border-radius:0;padding:0}.cv-entry{break-inside:avoid}}
+ #show-qr-body{text-align:center}.show-qr-img{display:block;width:min(80vw,320px);height:auto;aspect-ratio:1;margin:0 auto 12px;background:#ffffff;padding:12px;border-radius:12px;border:1px solid var(--line)}.show-qr-code{font-size:20px}
++/* The connected journey (journey contract v1): the handoff card and the YoID thread in Yoma's colours, the same in all four prototypes. Card white (--panel), heading purple (--accent, #41204b), recorded green (--green, #387f6a), button blue (--blue, #4cade9). The button text is ink, not white: white on that blue reads at 2.6:1. */
++.journey-card{background:var(--panel);border-radius:12px;box-shadow:var(--shadow);padding:16px;margin:0 0 16px;font-family:"Open Sans",system-ui,sans-serif;border-top:4px solid var(--accent)}.journey-eyebrow{font-size:14px;font-weight:600;color:var(--muted);margin-bottom:4px}.journey-title{font-family:"Nunito",system-ui,sans-serif;font-size:20px;color:var(--accent);margin:0 0 8px;overflow-wrap:anywhere}.journey-title strong{font-weight:900;display:block}.journey-item{display:block;font-family:"Open Sans",system-ui,sans-serif;font-size:16px;font-weight:600;color:var(--ink)}.journey-recorded{color:var(--green);font-weight:700;margin-top:8px}.claim-card .journey-card{margin:16px 0 0}.journey-card .journey-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 20px;margin-top:8px;border-radius:8px;background:var(--blue);color:var(--ink);font-family:"Nunito",system-ui,sans-serif;font-weight:800;text-decoration:none}.journey-card .journey-button:hover{background:var(--blue-dark);color:var(--panel)}
++.journey-thread{background:var(--panel);border-radius:12px;box-shadow:var(--shadow);padding:12px 16px;margin:0 0 16px}.journey-thread-label{font-family:"Nunito",system-ui,sans-serif;font-weight:800;font-size:14px;color:var(--accent);margin-bottom:8px}.journey-thread ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.journey-step{display:flex;flex-direction:column;gap:2px;padding:8px;border-radius:8px;background:var(--page);border-top:3px solid var(--line);font-size:14px}.journey-step-name{font-weight:700;color:var(--ink);overflow-wrap:anywhere}.journey-step-state{font-weight:600}.journey-step.recorded{border-top-color:var(--green)}.journey-step.recorded .journey-step-state{color:var(--green)}.journey-step.in-progress{border-top-color:var(--accent);background:var(--accent-tint)}.journey-step.in-progress .journey-step-state{color:var(--accent)}.journey-step.next .journey-step-name,.journey-step.next .journey-step-state{color:var(--muted)}
++body.yocv-app #view a.journey-button{color:var(--ink)}body.yocv-app #view a.journey-button:hover{color:var(--panel)}
++@media(max-width:640px){.journey-thread ol{grid-template-columns:1fr 1fr}}
+diff --git a/tests/cv-connected-journey.test.cjs b/tests/cv-connected-journey.test.cjs
+new file mode 100644
+index 0000000..9c80eef
+--- /dev/null
++++ b/tests/cv-connected-journey.test.cjs
+@@ -0,0 +1,115 @@
++'use strict';
++// The connected journey (spec docs/superpowers/specs/2026-11-28-yocv-connected-journey-design.md, journey contract v1):
++// the link params SkillLens sends, the link back to the Ziqi listing after Apply, and the four-step YoID thread.
++const {test}=require('node:test');
++const assert=require('node:assert/strict');
++const fs=require('node:fs'),path=require('node:path');
++const {JOURNEY_KEYS,journeyParams,journeyReturn,journeyBackHref,journeyThread}=require('../core.js');
++const copy=require('../cv-copy.js').en;
++const JOURNEY=require('../data/journey.json');
++const read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
++const RETURN='http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000301';
++// Link 3 of the contract, SkillLens -> YoCV, as SkillLens builds it.
++const LINK='?as=halima&journey=demo&from=skilllens&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&plan=plan-001'
++  +'&course=opp-course-001&credential=cred-002&return='+encodeURIComponent(RETURN);
++
++test('the contract params are the nine the contract lists, as=persona is not one of them',()=>{
++  assert.deepEqual(JOURNEY_KEYS,['journey','from','yoid','listing','goal','plan','course','credential','return']);
++});
++
++test('journeyParams reads the SkillLens link, with or without the leading ?',()=>{
++  const want={journey:'demo',from:'skilllens',yoid:'yoid-ng-7f3a0123',listing:'opp-job-001',goal:'job',plan:'plan-001',
++    course:'opp-course-001',credential:'cred-002',return:RETURN};
++  assert.deepEqual(journeyParams(LINK),want);
++  assert.deepEqual(journeyParams(LINK.slice(1)),want);
++});
++
++test('without journey=demo there is no journey, whatever else the address holds',()=>{
++  assert.equal(journeyParams(''),null);
++  assert.equal(journeyParams('?as=halima'),null);
++  assert.equal(journeyParams('?from=skilllens&credential=cred-002&return='+encodeURIComponent(RETURN)),null);
++  assert.equal(journeyParams('?journey=live&from=skilllens'),null);
++  assert.equal(journeyParams(null),null);
++});
++
++test('journeyParams keeps only the contract params it was given, trimmed, and drops empty or oversized ones',()=>{
++  const p=journeyParams('?journey=demo&from=%20skilllens%20&yoid=&other=x&listing='+'a'.repeat(300));
++  assert.deepEqual(p,{journey:'demo',from:'skilllens'});
++  assert.equal(Object.keys(journeyParams('?journey=demo&return='+encodeURIComponent('http://x.test/'+'a'.repeat(1500)))).length,2,'a long return still fits');
++});
++
++test('only an http or https return is followed',()=>{
++  assert.equal(journeyReturn(RETURN),RETURN);
++  assert.equal(journeyReturn('https://ziqi.example/opportunities/1?tab=a'),'https://ziqi.example/opportunities/1?tab=a');
++  for(const bad of ['javascript:alert(1)','data:text/html,hi','/opportunities/1','ftp://x.test/','//evil.test/x','http://','',null,undefined,'http://x.test/a b'])
++    assert.equal(journeyReturn(bad),'',String(bad));
++});
++
++test('the link back to the listing adds the four contract params with ? or &, before any fragment',()=>{
++  const p=journeyParams(LINK),tail='journey=demo&from=yocv&yoid=yoid-ng-7f3a0123&application=app-001';
++  assert.equal(journeyBackHref(p,{application:'app-001'}),RETURN+'?'+tail);
++  assert.equal(journeyBackHref({...p,return:'https://z.test/l?x=1'},{application:'app-001'}),'https://z.test/l?x=1&'+tail);
++  assert.equal(journeyBackHref({...p,return:'https://z.test/l?'},{application:'app-001'}),'https://z.test/l?'+tail);
++  assert.equal(journeyBackHref({...p,return:'https://z.test/l?x=1&'},{application:'app-001'}),'https://z.test/l?x=1&'+tail);
++  assert.equal(journeyBackHref({...p,return:'https://z.test/l#top'},{application:'app-001'}),'https://z.test/l?'+tail+'#top');
++});
++
++test('the yoid comes from the link, else from the shared data, and is encoded',()=>{
++  const p=journeyParams(LINK);
++  const {yoid,...noYoid}=p;
++  assert.ok(yoid);
++  assert.equal(journeyBackHref(noYoid,{application:'app-001',yoid:'yoid-ng-7f3a0123'}),RETURN+'?journey=demo&from=yocv&yoid=yoid-ng-7f3a0123&application=app-001');
++  assert.equal(journeyBackHref({...p,yoid:'a&b c'},{application:'app-001'}),RETURN+'?journey=demo&from=yocv&yoid=a%26b%20c&application=app-001');
++});
++
++test('no return, or one that is not http(s), gives no link, so the button is hidden',()=>{
++  const p=journeyParams(LINK);
++  const {return:_,...noReturn}=p;
++  assert.equal(journeyBackHref(noReturn,{application:'app-001'}),'');
++  assert.equal(journeyBackHref({...p,return:'javascript:alert(1)'},{application:'app-001'}),'');
++  assert.equal(journeyBackHref(null,{application:'app-001'}),'');
++});
++
++test('the YoID thread for Phase 4: three recorded, the Job Application in progress until Apply, then recorded',()=>{
++  const names=JOURNEY.connected.thread;
++  assert.deepEqual(names,['Saved Opportunity','Learning Plan','Skill Credential','Job Application']);
++  assert.deepEqual(journeyThread(names,4,false).map(s=>s.state),['recorded','recorded','recorded','in-progress']);
++  assert.deepEqual(journeyThread(names,4,true).map(s=>s.state),['recorded','recorded','recorded','recorded']);
++  assert.deepEqual(journeyThread(names,2,false).map(s=>s.state),['recorded','in-progress','next','next'],'the same rule for the other phases');
++  assert.deepEqual(journeyThread(names,4,false).map(s=>s.name),names);
++});
++
++test('the shared data names the cards exactly as the contract does',()=>{
++  const c=JOURNEY.connected;
++  assert.equal(c.phase,4);
++  assert.deepEqual(c.arriving,{from:'SkillLens',phase:3,name:'Skill Credential',id:'cred-002',title:'Solar PV Installation Basics: practical challenge passed'});
++  assert.deepEqual(c.leaving,{to:'Ziqi',phase:1,name:'Job Application',id:'app-001',title:'Application to Solar Installation Assistant (Trainee)'});
++  assert.equal(c.arriving.id,JOURNEY.incoming.id);assert.equal(c.leaving.id,JOURNEY.outgoing.id);
++});
++
++test('the card and thread copy is the contract wording',()=>{
++  const fill=(t,v)=>t.replace(/\{(\w+)\}/g,(m,k)=>v[k]);
++  assert.equal(fill(copy.journeyFrom,{app:'SkillLens',n:3}),'From SkillLens · Phase 3');
++  assert.equal(fill(copy.journeyBack,{app:'Ziqi',n:1}),'Back to Ziqi · Phase 1');
++  assert.equal(copy.journeyBackButton,'Back to the listing');
++  assert.equal(copy.journeyRecorded,'✓ Recorded on your YoID (mock-up)');
++  assert.equal(fill(copy.threadLabel,{yoid:'yoid-ng-7f3a0123'}),'YoID · yoid-ng-7f3a0123 · mock-up');
++  assert.deepEqual([copy.threadRecorded,copy.threadInProgress,copy.threadNext],['recorded','in progress','next']);
++});
++
++test('the back link opens in the same tab and the cards use the Yoma colours',()=>{
++  const app=read('app.js'),css=read('styles.css');
++  assert.ok(app.includes('C.journeyBackHref(')&&app.includes('copy.journeyBackButton'),'Step 4 builds the link with the tested builder');
++  const anchor=/<a class="journey-button"[^>]*>/.exec(app);
++  assert.ok(anchor,'the button is a link');
++  assert.ok(!/target=/.test(anchor[0]),'same tab: no target');
++  for(const colour of ['#41204b','#387f6a','#4cade9'])assert.ok(css.toLowerCase().includes(colour),colour);
++  assert.ok(/\.journey-card\{[^}]*border-radius:12px/.test(css),'12 px radius');
++});
++
++test('journeyParams also reads back the object the shell kept, and checks it again',()=>{
++  const p=journeyParams(LINK);
++  assert.deepEqual(journeyParams({...p}),p);
++  assert.equal(journeyParams({from:'skilllens'}),null,'no journey=demo, no journey');
++  assert.deepEqual(journeyParams({journey:'demo',from:{x:1},yoid:'yoid-ng-7f3a0123'}),{journey:'demo',yoid:'yoid-ng-7f3a0123'},'only strings');
++});
+diff --git a/tests/restyle.test.cjs b/tests/restyle.test.cjs
+index ae481c5..5547033 100644
+--- a/tests/restyle.test.cjs
++++ b/tests/restyle.test.cjs
+@@ -8,7 +8,7 @@ const path=require('node:path');
+ const read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
+ const PAGES=['index.html','card.html','app.js','card.js','yoid.js'];
+ const SHEETS=['styles.css','card.css'];
+-const TOKENS=['--ink:#020304','--muted:#545859','--line:#dce0e5','--page:#f3f6fa','--panel:#ffffff','--accent:#41204b','--accent-shade:#54365d','--accent-tint:#e7d4ed','--accent-soft:#c3a2cd','--green:#387f6a','--recorded:#2b6a57','--recorded-tint:#e6f5f3','--orange:#f9ab3e','--orange-tint:#fdeed8','--gold:#d48414','--awaiting:#8a5a00','--awaiting-tint:#fdeed8','--stated-tint:#f3f6fa','--blue-tint:#edf6fd','--blue-dark:#2487c5','--type-learning:#007cb4','--type-yoid:#a3195b','--type-default:#5a6675','--error:#b3261e','--error-tint:#ffe9ea'];
++const TOKENS=['--ink:#020304','--muted:#545859','--line:#dce0e5','--page:#f3f6fa','--panel:#ffffff','--accent:#41204b','--accent-shade:#54365d','--accent-tint:#e7d4ed','--accent-soft:#c3a2cd','--green:#387f6a','--recorded:#2b6a57','--recorded-tint:#e6f5f3','--orange:#f9ab3e','--orange-tint:#fdeed8','--gold:#d48414','--awaiting:#8a5a00','--awaiting-tint:#fdeed8','--stated-tint:#f3f6fa','--blue-tint:#edf6fd','--blue:#4cade9','--blue-dark:#2487c5','--type-learning:#007cb4','--type-yoid:#a3195b','--type-default:#5a6675','--error:#b3261e','--error-tint:#ffe9ea'];
+ const SHADOW='--shadow:0 2px 15px -3px rgba(0,0,0,.07),0 10px 20px -2px rgba(0,0,0,.04)';
+ const RADII=['8px','12px','16px','18px','9999px','50%','0'];
+ const FONT_LINK='https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Open+Sans:wght@400;600;700&display=swap';
+diff --git a/tests/yoid-flows.test.cjs b/tests/yoid-flows.test.cjs
+index 3db5609..2acf1a3 100644
+--- a/tests/yoid-flows.test.cjs
++++ b/tests/yoid-flows.test.cjs
+@@ -16,6 +16,7 @@ const read=f=>fs.readFileSync(path.join(__dirname,'..',f),'utf8');
+ const SRC={yoid:read('yoid.js'),app:read('app.js')};
+ const copy=require('../cv-copy.js').en;
+ const rules=require('../cv-rules.js').RULES;
++const JOURNEY=require('../data/journey.json');
+ const records={};let personas=[];
+ test.before(async()=>{
+   const config={...loadConfig({env:{},cwd:fs.mkdtempSync(path.join(os.tmpdir(),'yoid-flows-'))}),yomaAccessToken:''};
+@@ -70,15 +71,17 @@ function stubApp(){
+ }
+ /* Boot the shell: online or with no server, at a hash, with the real app.js or the stub. The record read can be held
+    back (net.hold) and released later (net.release()). */
+-async function boot({online=true,hash='',app='real'}={}){
+-  const dom=makeDom(),storage=new Map(),history=[],fetches=[];
++async function boot({online=true,hash='',app='real',search='',stored={},journey=false}={}){
++  const dom=makeDom(),storage=new Map(Object.entries(stored)),history=[],fetches=[];
+   const net={online,hold:false,release:null};
+-  const cfg={copy,rules,roles:[],accounts:{source:'sample',personas},mode:{mode:'sample',provider:'local',model:null}};
++  const cfg={copy,rules,roles:[],accounts:{source:'sample',personas},mode:{mode:'sample',provider:'local',model:null},...(journey?{journey:JOURNEY}:{})};
+   const ctx={
+     document:dom.document,
+     sessionStorage:{getItem:k=>storage.has(k)?storage.get(k):null,setItem:(k,v)=>storage.set(k,String(v)),removeItem:k=>storage.delete(k)},
+-    location:{href:'http://127.0.0.1:4174/'+hash,hash,pathname:'/',search:''},
+-    history:{replaceState:(s,t,url)=>{history.push(url);if(url.startsWith('#'))ctx.location.hash=url;}},
++    location:{href:'http://127.0.0.1:4174/'+search+hash,hash,pathname:'/',search},
++    // A path replaces the whole address (the shell strips ?as= and the journey params); a fragment only the hash.
++    history:{replaceState:(s,t,url)=>{history.push(url);if(url.startsWith('#'))ctx.location.hash=url;
++      else if(url.startsWith('/')){const u=new URL(url,'http://127.0.0.1:4174');Object.assign(ctx.location,{href:u.href,search:u.search,hash:u.hash});}}},
+     fetch:async(url,opts={})=>{
+       fetches.push({url,opts});
+       if(!net.online)throw new TypeError('Failed to fetch');
+@@ -261,3 +264,46 @@ test('Switch account keeps keyboard focus inside the drawer on open and on close
+   assert.ok(!s.drawer().includes('account-row'),'the list closed');
+   assert.ok(s.dom.activeElement?.tag?.includes('data-action="switch"'),'focus back on the Switch account pill, got '+s.dom.activeElement?.tag);
+ });
++
++/* The connected journey (spec 2026-11-28-yocv-connected-journey-design, journey contract v1): SkillLens opens YoCV
++   with ?as=halima and the contract params. */
++const RETURN='http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000301';
++const LINK='?as=halima&journey=demo&from=skilllens&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&plan=plan-001'
++  +'&course=opp-course-001&credential=cred-002&return='+encodeURIComponent(RETURN);
++test('the SkillLens link signs Halima in, keeps the journey params for the tab and opens the CV with the arriving card',async()=>{
++  const s=await boot({search:LINK,journey:true});
++  assert.equal(s.YoID.person().id,'halima');
++  const kept=JSON.parse(s.storage.get('yocv.journey'));
++  assert.deepEqual(kept,{journey:'demo',from:'skilllens',yoid:'yoid-ng-7f3a0123',listing:'opp-job-001',goal:'job',plan:'plan-001',course:'opp-course-001',credential:'cred-002',return:RETURN});
++  assert.deepEqual(s.YoID.journey(),kept);
++  assert.equal(s.ctx.location.search,'','the params leave the address, as ?as= does');
++  assert.equal(s.ctx.location.hash,'#/cv','arriving on no route opens the CV tab');
++  const v=s.cvView();
++  for(const text of ['From SkillLens · Phase 3','Skill Credential','Solar PV Installation Basics: practical challenge passed','✓ Recorded on your YoID (mock-up)','YoID · yoid-ng-7f3a0123 · mock-up'])
++    assert.ok(v.includes(text),text);
++  assert.ok(v.indexOf('journey-card')<v.indexOf('step-title'),'the card is at the start of the CV flow');
++  assert.ok(v.includes('Skill Credential, from SkillLens'),'cred-002 carries its handoff tag');
++  assert.deepEqual([...v.matchAll(/journey-step (\S+)"/g)].map(m=>m[1]),['recorded','recorded','recorded','in-progress']);
++});
++test('a hash route or a reload in the same tab keeps the journey from sessionStorage',async()=>{
++  const first=await boot({search:LINK,journey:true});
++  const s=await boot({hash:'#/cv',stored:Object.fromEntries(first.storage),journey:true});
++  assert.equal(s.YoID.journey().return,RETURN);
++  assert.ok(s.cvView().includes('From SkillLens · Phase 3'));
++  s.show('#/cv');assert.ok(s.cvView().includes('YoID · yoid-ng-7f3a0123 · mock-up'));
++});
++test('without journey=demo nothing changes: no card, no thread, nothing more in sessionStorage',async()=>{
++  for(const search of ['','?as=halima','?as=halima&from=skilllens&credential=cred-002&return='+encodeURIComponent(RETURN)]){
++    const s=await boot({search,hash:'#/cv',journey:true});
++    assert.equal(s.YoID.journey(),null,search);
++    assert.deepEqual([...s.storage.keys()],['yoid.person'],search);
++    const v=s.cvView();
++    assert.ok(!v.includes('journey-card')&&!v.includes('journey-thread'),search);
++    assert.ok(v.includes('Skill Credential, from SkillLens'),'the handoff tag was there before the journey params, and stays');
++  }
++});
++test('the journey shows nothing when the server is not reachable',async()=>{
++  const s=await boot({search:LINK,online:false,journey:true});
++  s.show('#/cv');
++  assert.ok(!s.cvView().includes('journey-card'));
++});
+diff --git a/tests/yoid-shell.test.cjs b/tests/yoid-shell.test.cjs
+index 1fc012e..f9f24ee 100644
+--- a/tests/yoid-shell.test.cjs
++++ b/tests/yoid-shell.test.cjs
+@@ -25,9 +25,11 @@ test('index.html is the Yo-ID shell',()=>{
+   assert.ok(!/©|All Rights Reserved|Terms of Service|Privacy Policy|help@yoma/.test(html));
+   assert.ok(html.includes('A Yoma concept'),'the concept line survives in About');
+ });
+-test('yoid.js signs in on load, routes by hash and keeps one key in sessionStorage',()=>{
++test('yoid.js signs in on load, routes by hash and keeps the person key, plus the journey params when opened from the journey',()=>{
+   assert.match(js,/sessionStorage\.getItem\('yoid\.person'\)/);assert.match(js,/sessionStorage\.setItem\('yoid\.person'/);assert.match(js,/sessionStorage\.removeItem\('yoid\.person'\)/);
+-  assert.equal((js.match(/sessionStorage\.setItem\(/g)||[]).length,1,'one key');
++  // The connected journey (spec 2026-11-28-yocv-connected-journey-design) adds one key, written only for a journey=demo link.
++  assert.equal((js.match(/sessionStorage\.setItem\(/g)||[]).length,2,'the person key and the journey key');
++  assert.match(js,/sessionStorage\.setItem\(JOURNEY_KEY,/);assert.ok(js.includes("const JOURNEY_KEY='yocv.journey'"));
+   assert.ok(js.includes("searchParams.get('as')")&&js.includes('history.replaceState'),'?as= handled and dropped');
+   for(const r of ['#/','#/wallet','#/passport','#/opportunities','#/skills','#/cv'])assert.ok(js.includes("'"+r+"'"),r);
+   assert.ok(js.includes("addEventListener('hashchange'"));
+diff --git a/yoid.js b/yoid.js
+index 8e5c4cb..7e4c1d2 100644
+--- a/yoid.js
++++ b/yoid.js
+@@ -1,7 +1,8 @@
+ /* The Yo-ID shell (docs/superpowers/specs/2026-11-22-yoid-shell-design.md). It owns the signed-in person, the record,
+    the hash route, the bar, the two drawers, the hero, the tab pages and the footer. app.js owns the CV steps and is
+    mounted into the CV tab's container with the record handed to it. Routes: #/, #/wallet, #/passport,
+-   #/opportunities, #/skills, #/cv and #/cv/2 to #/cv/4. Only the chosen person's id is kept in sessionStorage. */
++   #/opportunities, #/skills, #/cv and #/cv/2 to #/cv/4. Only the chosen person's id is kept in sessionStorage, and,
++   when the page was opened from the connected journey (?journey=demo), that link's params. */
+ (()=>{
+ 'use strict';
+ const C=window.YoCV,E=C.escapeHTML;
+@@ -10,7 +11,7 @@ const $=s=>document.querySelector(s);
+ const ROUTES=['#/','#/wallet','#/passport','#/opportunities','#/skills','#/cv'],DEADLINE_MS=30000;
+ let copy=window.YoCVCopy.en;
+ // person: {id, displayName, firstName, town, trade}. signedOut keeps the token account for Log in while hiding it.
+-const S={cfg:null,person:null,record:null,selector:null,tab:null,step:0,offline:false,signedOut:false,busy:false,list:false,open:{},filter:'all',sub:'completed'};
++const S={cfg:null,journey:null,person:null,record:null,selector:null,tab:null,step:0,offline:false,signedOut:false,busy:false,list:false,open:{},filter:'all',sub:'completed'};
+ let cv=null,pendingAction=null,toastTimer;
+ const sample=()=>S.cfg?.accounts?.source==='sample';
+ const who=()=>S.signedOut?null:S.person;
+@@ -295,6 +296,21 @@ function chooseAccount(id){
+  const d=draft();
+  if(who()&&(d.step>0||d.dirty))confirm(copy.switchTitle,copy.switchCopy,copy.switchAccount,()=>signIn(id));else signIn(id);
+ }
++/* The connected journey (spec 2026-11-28-yocv-connected-journey-design, journey contract v1). A link with journey=demo
++   is read once: its params leave the address, as ?as= does, and stay in sessionStorage for this tab, so hash routes and
++   a reload keep them. Arriving on no route opens the CV tab, where the arriving card is. No journey=demo: nothing changes. */
++const JOURNEY_KEY='yocv.journey';
++function resolveJourney(){
++ const url=new URL(location.href),fresh=C.journeyParams(url.search);
++ if(fresh){
++  for(const k of C.JOURNEY_KEYS)url.searchParams.delete(k);
++  if(!url.hash||url.hash==='#/')url.hash='#/cv';
++  history.replaceState(null,'',url.pathname+url.search+url.hash);
++  try{sessionStorage.setItem(JOURNEY_KEY,JSON.stringify(fresh));}catch{}
++  return fresh;
++ }
++ try{const kept=JSON.parse(sessionStorage.getItem(JOURNEY_KEY)||'null');return kept&&typeof kept==='object'?C.journeyParams(kept):null;}catch{return null;}
++}
+ /* ?as=<id> signs in as that persona and leaves the address; else the stored person, else the first persona. */
+ function resolvePerson(){
+  const url=new URL(location.href),as=url.searchParams.get('as');
+@@ -336,6 +352,7 @@ function bind(){
+  });
+ }
+ async function boot(){
++ S.journey=resolveJourney();
+  let cfg;
+  try{
+   const res=await fetch('/api/cv/config',{cache:'no-store'});
+@@ -346,13 +363,13 @@ async function boot(){
+   cfg={copy:window.YoCVCopy.en,rules:window.YoCVRules.RULES,roles:[],accounts:{source:null,personas:[]},mode:{mode:'sample',provider:'browser-local',model:null}};
+  }
+  S.cfg=cfg;copy=cfg.copy||copy;
+- cv=window.YoCVApp.mount(document.querySelector('#view'),{copy,cfg,offline:S.offline,confirm,notify});
++ cv=window.YoCVApp.mount(document.querySelector('#view'),{copy,cfg,offline:S.offline,confirm,notify,journey:S.journey});
+  bind();
+  if(S.offline||!cfg.accounts.source){render();return;}
+  const id=resolvePerson();
+  if(sample()&&!id){render();return;}
+  await signIn(id);
+ }
+-window.YoID={signIn,signOut,chooseAccount,openTab:r=>{location.hash=r;},render,person:()=>who(),record:()=>S.record,views};
++window.YoID={signIn,signOut,chooseAccount,openTab:r=>{location.hash=r;},render,person:()=>who(),record:()=>S.record,journey:()=>S.journey,views};
+ boot();
+ })();
+-- 
+2.43.0
+
