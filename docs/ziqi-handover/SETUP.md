@@ -64,8 +64,10 @@ scripts/course-quality-demo/start.sh --local-ai
 | `--local-ai-url URL` | The native Ollama app instead of the container: `--local-ai-url http://host.docker.internal:11434/v1`. |
 | `--ai-url URL --ai-model NAME` | Any OpenAI-compatible server, e.g. a government-hosted model. A key, if needed, comes from the environment variable `ZIQI_AI_API_KEY` and is never written to a file. |
 
-On a Mac, Docker Desktop has **no GPU access**, so the container runs the model on the CPU: roughly 1 to 3 minutes per
-course check with `qwen2.5:3b` (an estimate; `ai-smoke.sh` prints the real time), about half with `qwen2.5:1.5b`. Give
+On a Mac, Docker Desktop has **no GPU access**, so the container runs the model on the CPU: on a 4-core CPU with nothing
+else running, 58 to 98 seconds per course check with `qwen2.5:3b` (measured 28 November 2026 on Linux; not yet timed on
+a Mac, `ai-smoke.sh` prints the real time). While the machine was busy a check took up to 4 min 50 s, close to the
+300-second limit, so keep it otherwise idle while presenting or use `qwen2.5:1.5b` (faster, weaker). Give
 Docker about 8 GB of memory. The native Ollama app uses the Mac's GPU through Metal and is much faster: install it from
 ollama.com, run `ollama pull qwen2.5:3b`, and start the demo with `--local-ai-url http://host.docker.internal:11434/v1`.
 

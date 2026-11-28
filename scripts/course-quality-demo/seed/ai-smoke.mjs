@@ -13,7 +13,7 @@ if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))
 }
 const named = JSON.parse(readFileSync(new URL("./demo-courses.json", import.meta.url))).courses.find((c) => c.id === id);
 console.log(`Course:   ${named ? `${id.slice(-3)} ${named.title}` : id}`);
-console.log("Running Ziqi's assessment with the AI (on a CPU a small local model takes roughly 1 to 3 minutes)...");
+console.log("Running Ziqi's assessment with the AI (on a CPU a small local model takes about 1 to 2 minutes, longer while the machine is busy)...");
 
 const started = Date.now();
 const response = await adminFetch(`/courseQuality/opportunity/${id}/assess`, { method: "POST", signal: AbortSignal.timeout(600_000) });

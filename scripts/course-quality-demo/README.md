@@ -286,10 +286,12 @@ a paid server yourself.
 - **The first `--local-ai` start downloads the model** (about 2 GB for `qwen2.5:3b`, 1 GB for `qwen2.5:1.5b`) while the
   API and website build. It is kept in the Docker volume `yoma-course-quality-demo-ollama-models`, which `stop.sh` keeps;
   remove it with `docker volume rm yoma-course-quality-demo-ollama-models`. Give Docker about 8 GB of memory.
-- **Speed on a Mac:** Docker Desktop has no GPU access, so the container runs the model on the CPU. One course check
-  with `qwen2.5:3b` takes roughly 1 to 3 minutes on an Apple-silicon Mac, most of it reading the page text (the first
-  after a start also loads the model, about 10 to 20 seconds more), and `qwen2.5:1.5b` about half that. These are
-  estimates from the model size and prompt length, not yet timed on a Mac: `ai-smoke.sh` prints the real duration. The API waits up to 300 seconds. For a live
+- **Speed on a Mac:** Docker Desktop has no GPU access, so the container runs the model on the CPU. Timed on a
+  4-core Linux CPU with nothing else running: 58 to 98 seconds per course check with `qwen2.5:3b` (about 1,100 tokens
+  in, 250 to 380 out). On the same machine while it was busy with other work, a check took up to 4 min 50 s, close to
+  the API's 300-second limit, after which the check falls back to the rule-based result. Not yet timed on a Mac:
+  `ai-smoke.sh` prints the real duration. Keep the machine otherwise idle while presenting, or use `qwen2.5:1.5b`
+  (smaller and faster, weaker answers). For a live
   audience, the native Ollama app is much faster: install it from ollama.com, run `ollama pull qwen2.5:3b`, then start
   with `--local-ai-url http://host.docker.internal:11434/v1`. On Linux the app must listen beyond localhost
   (`OLLAMA_HOST=0.0.0.0 ollama serve`). An address on `localhost` or `127.0.0.1` (with `--local-ai-url` or

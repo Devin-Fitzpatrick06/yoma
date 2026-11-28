@@ -112,10 +112,10 @@ If a live screen is not ready, each step has a preview page that runs on fixture
 Needs a start with `--local-ai` (or `--local-ai-url` for the native Ollama app, which is much faster on a Mac). Run
 `scripts/course-quality-demo/ai-smoke.sh` once before presenting: it warms the model and proves the AI answers.
 
-1. Still signed in as `testadminuser@gmail.com`, open `http://localhost:3000/admin/course-quality` and open a course's
-   reviewer card (for example Digital Marketing Foundations Cohort Course, 102).
-2. Choose **Run AI check**. On a CPU it takes roughly 1 to 3 minutes (`ai-smoke.sh` printed the real time); say so
-   before you click.
+1. Still signed in as `testadminuser@gmail.com`, open `http://localhost:3000/admin/course-quality` and open the reviewer
+   queue: a course waiting for review, for example Introduction to Open Mapping for Climate Action (103).
+2. Choose **Run AI check**. On a CPU it takes 1 to 2 minutes on an idle machine and longer while it is busy
+   (`ai-smoke.sh` printed the real time); say so before you click, and close other heavy apps.
 3. Point out the AI section: the model (`qwen2.5:3b`), provider, the "local, free" badge, tokens in and out, the cost
    **$0.00**, the duration and the outcome.
    - Say: "This is an open model running on this laptop, through Yoma's own backend. The same setting points it at a

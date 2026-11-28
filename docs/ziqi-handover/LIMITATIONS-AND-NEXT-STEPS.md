@@ -29,9 +29,11 @@
    - **The demo's local model is small.** `qwen2.5:3b` (or `qwen2.5:1.5b`) is free and private but makes more mistakes
      than a large hosted model: it can miss costs, misread formats or answer outside the schema (recorded as
      "Invalid"). The AI can only lower a result, so a weak answer sends a course to a reviewer rather than verifying it.
-     Its answers have not been compared with the hand-rated sample.
-   - **CPU speed.** Docker Desktop on a Mac has no GPU, so a check takes roughly 1 to 3 minutes on the CPU (an
-     estimate; `ai-smoke.sh` prints the real time). Fine for one check on demand, too slow for the whole catalogue; the
+     Its answers have not been compared with the hand-rated sample. On the 8 named demo courses (28 November 2026), 7
+     ended as the walkthrough expects; it lowered course 101 from Verified to Needs review (confidence below the bar),
+     which is the "can only lower" rule working, but means the walkthrough's 101 step differs when the AI is on.
+   - **CPU speed.** Docker Desktop on a Mac has no GPU, so a check runs on the CPU: 58 to 98 seconds on an
+     idle 4-core machine, up to 4 min 50 s on a busy one (measured on Linux; not yet on a Mac). Fine for one check on demand, too slow for the whole catalogue; the
      native Ollama app (Metal) or a GPU server is the way to run it at scale.
    - **"Run AI check" must finish inside the ingress timeout.** The deployment's ingress closes a request after 300 s
      (`proxy-read-timeout` in `helm/`, not changed in this work), while the web waits up to 10 minutes. In production
