@@ -1,6 +1,6 @@
 # Connected journey: Ziqi → PathFinder → SkillLens → YoCV → back to the listing
 
-Status: planning
+Status: review — built; full end-to-end test passed 62/62 on 2026-11-28 (sandbox); patches await the other owners
 
 The four BBS prototypes as one journey for Halima, the shared fictional user. Each phase hands her one named item, shows
 it on screen, records it on her YoID (mocked), and links on to the next phase. Phase 4 closes the loop on the Phase 1
