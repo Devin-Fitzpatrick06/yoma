@@ -13,8 +13,12 @@ pre-publish check, and the partner publishes after an explicit sign-off.
 
 ## Open it
 
-**Live, clickable (private link, share it from the page's Share menu):**
-https://claude.ai/artifact/6bqfNgL43ErazSq1MFHqMg. It scales to fit any screen, including a phone.
+**Live, clickable:** https://genumockup.vercel.app (public, Vercel project `genumockup` on Jongmin's account).
+It scales to fit any screen, including a phone. A private copy is also at
+https://claude.ai/artifact/6bqfNgL43ErazSq1MFHqMg.
+
+To update the Vercel copy: put the new `index.html` in a folder on its own, then run
+`npx vercel deploy --prod` from that folder (the URL stays the same).
 
 Locally:
 double-click `index.html`, or serve the folder:
