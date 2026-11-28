@@ -3,6 +3,7 @@
 #   PATHFINDER_DIR=... SKILLLENS_DIR=... YOCV_DIR=... scripts/connected-journey/journey.sh   start all three
 #   scripts/connected-journey/journey.sh stop                                                stop what this script started
 #   scripts/connected-journey/journey.sh status                                              which are running
+#   scripts/connected-journey/journey.sh reset                                               un-save Halima's solar job, to rerun the demo
 # Ziqi (Phase 1) is not started here: that is scripts/course-quality-demo/start.sh --journey.
 # Each clone needs its connected-journey patch first (docs/work/active/course-quality-judger/connected-journey/patches/).
 set -euo pipefail
@@ -16,7 +17,11 @@ ZIQI_URL="${ZIQI_URL:-http://localhost:3000}"
 PATHFINDER_PORT=4173
 SKILLLENS_PORT=3001
 YOCV_PORT=4174
-LISTING="$ZIQI_URL/opportunities/c0a7e000-0000-4000-8000-000000000301"
+LISTING_ID="c0a7e000-0000-4000-8000-000000000301" # the Yoma listing for the shared opp-job-001
+LISTING="$ZIQI_URL/opportunities/$LISTING_ID"
+HALIMA_EMAIL="halima.yusuf@example.org"
+# The Ziqi demo's database container (scripts/course-quality-demo/docker-compose.demo.yml, project yoma-course-quality-demo).
+DEMO_POSTGRES="${DEMO_POSTGRES:-yoma-course-quality-demo-postgres-1}"
 
 running() { [ -f "$LOG_DIR/$1.pid" ] && kill -0 "$(cat "$LOG_DIR/$1.pid")" 2>/dev/null; }
 port_busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
@@ -44,11 +49,33 @@ status_all() {
   done
 }
 
+# Halima's save of the solar job, removed so the demo (or a Playwright run) can start again from "Save". The same DELETE
+# as scripts/course-quality-demo/seed/generate-journey-sql.mjs, which start.sh --journey runs on every start.
+reset_journey() {
+  command -v docker >/dev/null 2>&1 || { echo "Docker is not installed, so the Ziqi demo database cannot be reached."; exit 2; }
+  docker inspect "$DEMO_POSTGRES" >/dev/null 2>&1 \
+    || { echo "The Ziqi demo database ($DEMO_POSTGRES) is not running. Start it with scripts/course-quality-demo/start.sh --journey."; exit 2; }
+  local removed
+  removed="$(docker exec -i "$DEMO_POSTGRES" psql -q -At -U postgres -d yoma-dev <<SQL
+WITH removed AS (
+  DELETE FROM "Opportunity"."MyOpportunity"
+  WHERE "UserId" = (SELECT "Id" FROM "Entity"."User" WHERE "Email" = '$HALIMA_EMAIL')
+    AND "OpportunityId" = '$LISTING_ID'
+    AND "ActionId" = (SELECT "Id" FROM "Opportunity"."MyOpportunityAction" WHERE "Name" = 'Saved')
+  RETURNING 1)
+SELECT count(*) FROM removed;
+SQL
+)"
+  if [ "$removed" = "0" ]; then echo "Halima had not saved the solar job: nothing to reset."; else echo "Halima's save of the solar job is removed."; fi
+  echo "Reload the listing in the browser: it shows Save again."
+}
+
 case "${1:-start}" in
   stop) stop_all; exit 0 ;;
   status) status_all; exit 0 ;;
+  reset) reset_journey; exit 0 ;;
   start) ;;
-  *) echo "Unknown command: $1. Use start (the default), stop or status."; exit 2 ;;
+  *) echo "Unknown command: $1. Use start (the default), stop, status or reset."; exit 2 ;;
 esac
 
 # ---- Checks ----
@@ -93,8 +120,27 @@ if [ ! -f "$SKILLLENS_DIR/.env.local" ]; then
   (cd "$SKILLLENS_DIR" && npm run setup) >>"$LOG_DIR/skilllens-install.log" 2>&1
 fi
 
+# SkillLens deterministic and offline: the mock AI, the stub content-safety check and the opportunities snapshot, unless
+# already set in this shell. The pass signing secret is made once and kept in .logs/ (git-ignored, never printed), so a
+# restart keeps the passes it signed valid.
+# Passed to SkillLens only (the other two apps do not get them).
+SKILLLENS_AI_PROVIDER="${AI_PROVIDER:-mock}"
+SKILLLENS_CONTENT_SAFETY_PROVIDER="${CONTENT_SAFETY_PROVIDER:-stub}"
+SKILLLENS_YOMA_OPPORTUNITIES="${YOMA_OPPORTUNITIES:-snapshot}"
+SKILLLENS_PASS_SIGNING_SECRET="${PASS_SIGNING_SECRET:-}"
+if [ -z "$SKILLLENS_PASS_SIGNING_SECRET" ]; then
+  SECRET_FILE="$LOG_DIR/skilllens-pass-signing-secret"
+  if [ ! -s "$SECRET_FILE" ]; then
+    (umask 077 && node -e 'process.stdout.write(require("crypto").randomBytes(32).toString("hex"))' >"$SECRET_FILE")
+  fi
+  SKILLLENS_PASS_SIGNING_SECRET="$(cat "$SECRET_FILE")"
+fi
+
 start_app pathfinder "$PATHFINDER_DIR" env PORT="$PATHFINDER_PORT" NEXT_PROTOTYPE_URL="http://localhost:$SKILLLENS_PORT/demo/p2e" node serve.mjs
-start_app skilllens "$SKILLLENS_DIR" env NEXT_PUBLIC_YOCV_URL="http://localhost:$YOCV_PORT" npm run dev -- -p "$SKILLLENS_PORT"
+start_app skilllens "$SKILLLENS_DIR" env NEXT_PUBLIC_YOCV_URL="http://localhost:$YOCV_PORT" \
+  AI_PROVIDER="$SKILLLENS_AI_PROVIDER" CONTENT_SAFETY_PROVIDER="$SKILLLENS_CONTENT_SAFETY_PROVIDER" \
+  YOMA_OPPORTUNITIES="$SKILLLENS_YOMA_OPPORTUNITIES" PASS_SIGNING_SECRET="$SKILLLENS_PASS_SIGNING_SECRET" \
+  npm run dev -- -p "$SKILLLENS_PORT"
 start_app yocv "$YOCV_DIR" env PORT="$YOCV_PORT" node server.js
 
 printf 'Waiting for the three apps'
@@ -118,12 +164,16 @@ Connected journey (fictional shared mock data v1.1; every screen says mock-up or
   YoCV        http://localhost:$YOCV_PORT/
 
 The click path, all in one tab:
-  1. Ziqi: sign in as halima.yusuf@example.org / P@ssword12. My Yoma shows her route on Yoma, the grades and the
-     scam job held back. Open the solar job ($LISTING) and Save it.
-  2. "Plan it with PathFinder" opens PathFinder: the plan.
-  3. "Continue to SkillLens" opens SkillLens: the challenge, passed on attempt 2, credential recorded.
-  4. "Continue to YoCV" opens YoCV: the CV with the verified credential, the QR, Apply.
+  1. Ziqi: sign in as halima.yusuf@example.org / P@ssword12. My Yoma asks 4 quick questions the first time (pick
+     "Sales & customer service"), then shows her route on Yoma. Open the solar job ($LISTING):
+     it shows "Checked by Ziqi: Verified · Grade A". Save it.
+  2. "Plan it with PathFinder" opens PathFinder: the plan, with the scam job held back from it.
+  3. "Continue to SkillLens" opens SkillLens: switch to Computer view if it opens in Phone view. The challenge, passed
+     on attempt 2. Tap "Save to my profile", then "Add Skill Credential to my YoID".
+  4. "Continue to YoCV" opens YoCV: pick the role "Solar installation assistant" if it is not preselected. The CV with
+     the verified credential, the QR, Apply.
   5. "Back to the listing" returns to the Ziqi listing, which shows "Job Application received" with the thread complete.
 
+Run it again: scripts/connected-journey/journey.sh reset  (un-saves Halima's solar job)
 Stop the three apps with: scripts/connected-journey/journey.sh stop
 EOF

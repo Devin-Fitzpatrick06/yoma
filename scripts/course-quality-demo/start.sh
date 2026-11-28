@@ -88,8 +88,13 @@ if [ "$JOURNEY" = true ]; then
   [[ "$PATHFINDER_URL" =~ ^https?://[^[:space:]]+$ ]] || { echo "PATHFINDER_URL must start with http:// or https://, for example http://localhost:4173."; exit 2; }
   export NEXT_PUBLIC_JOURNEY_ENABLED=true NEXT_PUBLIC_JOURNEY_LISTING_ID="$JOURNEY_LISTING_ID" NEXT_PUBLIC_JOURNEY_YOID="$JOURNEY_YOID"
   export NEXT_PUBLIC_PATHFINDER_URL="${PATHFINDER_URL%/}"
+  # The API returns a job's public card (status and grade) only with this on, and the journey listing is a job: its
+  # panel shows "Checked by Ziqi: Verified · Grade A" from that card. The website still shows no job card in browse
+  # or on other job listings; jobs also take part in browse's grade ranking and Verified filter while it is on.
+  export CourseQuality__Jobs__ShowInBrowse=true
 else
   export NEXT_PUBLIC_JOURNEY_ENABLED=false NEXT_PUBLIC_JOURNEY_LISTING_ID="" NEXT_PUBLIC_JOURNEY_YOID="" NEXT_PUBLIC_PATHFINDER_URL=""
+  export CourseQuality__Jobs__ShowInBrowse=false
 fi
 export AI__Provider=None
 export ZIQI_LOCAL_AI_MODEL="$LOCAL_AI_MODEL"
