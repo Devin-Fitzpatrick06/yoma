@@ -10,7 +10,8 @@
 //
 // Safety: every hop is resolved first, and a target on a private, loopback, link-local or otherwise non-public address
 // is refused unless --allow-private is given. Without a proxy the connection is pinned to the addresses that were
-// checked, so a second DNS answer cannot move it. The exit code is always 0: read the report.
+// checked, so a second DNS answer cannot move it. With --proxy, only a link given as input may be left to the proxy to
+// resolve; a redirect target or a sitemap link must resolve here first. The exit code is always 0: read the report.
 
 import { readFile, writeFile } from "node:fs/promises";
 import { lookup } from "node:dns/promises";
@@ -276,7 +277,7 @@ async function urlsFromSitemap(xml, options, depth = 0) {
   const urls = [];
   for (const child of children) {
     try {
-      urls.push(...await urlsFromSitemap(await fetchSitemap(child, options), options, depth + 1));
+      urls.push(...await urlsFromSitemap(await fetchSitemap(child, options, true), options, depth + 1));
     } catch (error) {
       console.error(`Could not read the sitemap ${child}: ${error.message}`);
     }
@@ -284,25 +285,27 @@ async function urlsFromSitemap(xml, options, depth = 0) {
   return urls;
 }
 
-async function fetchSitemap(url, options) {
-  const result = await checkLink(url, options, { wantBody: true, maxBytes: MAX_SITEMAP_BYTES });
+/** fromSitemap: a child sitemap named by an index, so chosen by the site rather than the user. */
+async function fetchSitemap(url, options, fromSitemap = false) {
+  const result = await checkLink(url, options, { wantBody: true, maxBytes: MAX_SITEMAP_BYTES, fromSitemap });
   if (!result.body) throw new Error(`${result.status}: ${result.reason}`);
   return unzipIfNeeded(result.body).toString("utf8");
 }
 
+/** The links to check, and whether they were read from a sitemap (so chosen by a site, not by the user). */
 async function readInput(options) {
   const source = options.input;
 
-  if (/^https?:\/\//i.test(source)) return urlsFromSitemap(await fetchSitemap(source, options), options);
+  if (/^https?:\/\//i.test(source)) return { urls: await urlsFromSitemap(await fetchSitemap(source, options), options), fromSitemap: true };
 
   const buffer = unzipIfNeeded(await readFile(source));
   const text = buffer.toString("utf8").replace(/^\uFEFF/, "");
   const ext = path.extname(source.replace(/\.gz$/i, "")).toLowerCase();
 
-  if (ext === ".csv") return urlsFromCsv(text, options.column);
-  if (ext === ".xml" || /^\s*<(\?xml|urlset|sitemapindex)/i.test(text)) return urlsFromSitemap(text, options);
+  if (ext === ".csv") return { urls: urlsFromCsv(text, options.column), fromSitemap: false };
+  if (ext === ".xml" || /^\s*<(\?xml|urlset|sitemapindex)/i.test(text)) return { urls: await urlsFromSitemap(text, options), fromSitemap: true };
 
-  return text.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
+  return { urls: text.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith("#")), fromSitemap: false };
 }
 
 function distinct(urls) {
@@ -348,8 +351,16 @@ class CheckError extends Error {
   constructor(code, message, extra = {}) { super(message); this.code = code; Object.assign(this, extra); }
 }
 
-/** Resolves and checks one hop. Returns the addresses to pin, or null when the proxy will resolve the name. */
-async function validateHop(url, options) {
+// With --proxy, a name this machine cannot resolve may be left to the proxy only for a link the user gave. A redirect hop or a
+// link read from a sitemap is chosen by a site, which could point it at a name only the proxy's network knows.
+const UNVERIFIED_REDIRECT = "could not be looked up on this machine, so the redirect target could not be verified locally and the redirect was not followed.";
+const UNVERIFIED_SITEMAP_LINK = "came from a sitemap and could not be looked up on this machine, so it could not be verified locally and was not opened.";
+
+/**
+ * Resolves and checks one hop. Returns the addresses to pin, or null when the proxy will resolve the name.
+ * origin: "input" (a link given to the CLI, hop 0), "redirect" (a later hop) or "sitemap" (a link read from a sitemap, hop 0).
+ */
+async function validateHop(url, options, origin = "input") {
   const port = Number(url.port || (url.protocol === "https:" ? 443 : 80));
   const host = url.hostname.replace(/^\[|\]$/g, "");
 
@@ -368,8 +379,12 @@ async function validateHop(url, options) {
   try {
     addresses = (await lookup(host, { all: true, verbatim: true })).map((a) => a.address);
   } catch (error) {
-    // behind a proxy that resolves names itself, a name this machine cannot resolve is left to the proxy
-    if (options.proxy && ["ENOTFOUND", "EAI_AGAIN", "ESERVFAIL"].includes(error.code)) return { host, port, addresses: null };
+    // behind a proxy that resolves names itself, a name this machine cannot resolve is left to the proxy, for input links only
+    if (options.proxy && ["ENOTFOUND", "EAI_AGAIN", "ESERVFAIL"].includes(error.code)) {
+      if (origin === "redirect") throw new CheckError("REFUSED", UNVERIFIED_REDIRECT, { unverified: true });
+      if (origin === "sitemap") throw new CheckError("REFUSED", UNVERIFIED_SITEMAP_LINK, { unverified: true });
+      return { host, port, addresses: null };
+    }
     if (error.code === "ENOTFOUND" || error.code === "ENODATA") throw new CheckError("DNS", "The website's domain does not exist, so the link cannot open.");
     throw new CheckError("DNS", "The website's domain could not be looked up right now.");
   }
@@ -592,6 +607,7 @@ function classifyResponse(response, requested, final) {
 function classifyError(error, requested, current) {
   if (error instanceof CheckError) {
     if (error.code === "REFUSED") {
+      if (error.unverified) return ["Refused", error.message === UNVERIFIED_REDIRECT ? `The link redirects to an address that ${error.message}` : `The link ${error.message}`];
       const redirected = current !== requested && materiallyDifferent(requested, current);
       return ["Refused", redirected ? `The link redirects to an address that ${error.message.replace("so it was not opened.", "so the redirect was not followed.")}` : `The link ${error.message}`];
     }
@@ -611,7 +627,7 @@ function classifyError(error, requested, current) {
 /**
  * Checks one link. Never throws: every outcome is a result. With wantBody the body is kept (for sitemaps).
  */
-async function checkLink(raw, options, { wantBody = false, maxBytes = MAX_BODY_BYTES } = {}) {
+async function checkLink(raw, options, { wantBody = false, maxBytes = MAX_BODY_BYTES, fromSitemap = false } = {}) {
   const started = Date.now();
   const result = (status, reason, extra = {}) => ({ url: raw, status, httpStatus: null, finalUrl: null, durationMs: Date.now() - started, reason, ...extra });
 
@@ -629,7 +645,7 @@ async function checkLink(raw, options, { wantBody = false, maxBytes = MAX_BODY_B
 
   try {
     for (let hop = 0; hop <= options.maxRedirects; hop++) {
-      const target = await untilAborted(validateHop(current, options), controller.signal);
+      const target = await untilAborted(validateHop(current, options, hop > 0 ? "redirect" : fromSitemap ? "sitemap" : "input"), controller.signal);
       await paceHost(current.hostname, options.perHostDelayMs, controller.signal);
 
       const response = await sendRequest(current, target, options, controller.signal, maxBytes);
@@ -660,7 +676,7 @@ async function checkLink(raw, options, { wantBody = false, maxBytes = MAX_BODY_B
 
 // ── Scheduling ───────────────────────────────────────────────────────────────
 
-async function checkAll(urls, options, onResult) {
+async function checkAll(urls, options, onResult, { fromSitemap = false } = {}) {
   const results = new Array(urls.length);
   const groups = new Map();
 
@@ -676,7 +692,7 @@ async function checkAll(urls, options, onResult) {
   const worker = async () => {
     for (let group = queue.shift(); group; group = queue.shift()) {
       for (const index of group) {
-        results[index] = await checkLink(urls[index], options);
+        results[index] = await checkLink(urls[index], options, { fromSitemap });
         onResult(results[index]);
       }
     }
@@ -775,9 +791,11 @@ async function main() {
     return;
   }
 
-  let urls;
+  let urls, fromSitemap;
   try {
-    urls = distinct(await readInput(options));
+    const input = await readInput(options);
+    urls = distinct(input.urls);
+    fromSitemap = input.fromSitemap;
   } catch (error) {
     console.error(`Could not read ${options.input}: ${error.message}`);
     return;
@@ -794,7 +812,7 @@ async function main() {
   const results = await checkAll(urls, options, (r) => {
     done++;
     if (!options.quiet) console.log(`[${String(done).padStart(String(urls.length).length)}/${urls.length}] ${r.status.padEnd(10)} ${String(r.httpStatus ?? "-").padStart(3)}  ${r.url}  ${r.reason}`);
-  });
+  }, { fromSitemap });
 
   const report = buildReport(results, options.platform);
   printSummary(report);

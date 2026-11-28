@@ -106,8 +106,12 @@ systems:
 - Pages are only read, up to 1 MB each. Nothing on a page is followed or run, and nothing on it is copied into a reason.
 - `--allow-private` opens private ranges and other ports, for checking your own intranet on purpose. Link-local and
   cloud metadata addresses stay refused even then.
-- With `--proxy`, the proxy makes the connection. If this machine cannot resolve a name, the name is left to the proxy,
-  and only literal addresses and local names (`localhost`, `*.local`, single-label names) can be refused up front.
+- With `--proxy`, the proxy makes the connection. If this machine cannot resolve a name, the name is left to the proxy
+  only for a link you gave as input (its first request), and only literal addresses and local names (`localhost`,
+  `*.local`, single-label names) can be refused up front for it. A redirect target, or a link read from a sitemap (or a
+  child sitemap named by an index), must resolve on this machine to public addresses; otherwise it is `Refused` ("the
+  redirect target could not be verified locally"), so a site cannot steer the check at a name only the proxy's network
+  knows.
 
 ## Using the Yoma API instead
 

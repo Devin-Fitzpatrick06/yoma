@@ -292,13 +292,15 @@ a paid server yourself.
   estimates from the model size and prompt length, not yet timed on a Mac: `ai-smoke.sh` prints the real duration. The API waits up to 300 seconds. For a live
   audience, the native Ollama app is much faster: install it from ollama.com, run `ollama pull qwen2.5:3b`, then start
   with `--local-ai-url http://host.docker.internal:11434/v1`. On Linux the app must listen beyond localhost
-  (`OLLAMA_HOST=0.0.0.0 ollama serve`).
+  (`OLLAMA_HOST=0.0.0.0 ollama serve`). An address on `localhost` or `127.0.0.1` (with `--local-ai-url` or
+  `--ai-url`) is given to the API container as `host.docker.internal`, because inside the container localhost is the
+  container itself; start.sh prints a note when it does this.
 - **A key, if the server needs one,** is read from the environment variable `ZIQI_AI_API_KEY` in the shell that runs
   `start.sh` (for example `ZIQI_AI_API_KEY=... scripts/course-quality-demo/start.sh --ai-url ... --ai-model ...`). It is
   passed to the API container as `AI__OpenAICompatible__ApiKey` at runtime only and never written to a file.
 - **The settings** go to the API through its environment (`docker-compose.demo.yml`, service `api`, names only):
   `AI__Provider=OpenAICompatible`, `AI__OpenAICompatible__BaseUrl` (`http://ollama:11434/v1` for the container),
-  `AI__OpenAICompatible__Model`, `AI__OpenAICompatible__IsLocal` (true for both local options, so the cost is 0) and
+  `AI__OpenAICompatible__Model`, `AI__OpenAICompatible__IsLocal` (true for both local options, so the cost is 0; false for `--ai-url`, which is also the API default) and
   `AI__OpenAICompatible__TimeoutInSeconds=300`. Without an AI option, `AI__Provider=None`.
 - **The model server is internal:** no port is published. The API reaches it as `ollama`, by service name on the demo's
   default network, which the gateway (whose network the API shares) is on.

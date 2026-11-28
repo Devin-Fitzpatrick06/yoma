@@ -63,6 +63,13 @@ if [ "$AI_MODE" != none ]; then
   [[ "$AI_URL" =~ ^https?://[^[:space:]]+$ ]] || { echo "The AI address must start with http:// or https://, for example http://host.docker.internal:11434/v1."; exit 2; }
   [[ "$AI_MODEL" =~ ^[A-Za-z0-9._:/@-]+$ ]] || { echo "The model name \"$AI_MODEL\" has characters a model name does not use."; exit 2; }
 fi
+# Inside the API container, localhost is the container itself: a server on this machine (the native Ollama app, or one
+# given with --ai-url) is host.docker.internal there. The host check below turns it back into localhost.
+if [[ "$AI_MODE" =~ ^(native|remote)$ ]] && [[ "$AI_URL" =~ ^(https?://)(localhost|127\.0\.0\.1)([:/].*)?$ ]]; then
+  container_ai_url="${BASH_REMATCH[1]}host.docker.internal${BASH_REMATCH[3]}"
+  echo "Note: the API runs in a container, where ${BASH_REMATCH[2]} is the container itself, so it is given $container_ai_url instead of $AI_URL."
+  AI_URL="$container_ai_url"
+fi
 # The start-up checks run without the AI; the API is restarted with it once they are done (see "Ziqi's AI" below).
 export AI__Provider=None
 export ZIQI_LOCAL_AI_MODEL="$LOCAL_AI_MODEL"
