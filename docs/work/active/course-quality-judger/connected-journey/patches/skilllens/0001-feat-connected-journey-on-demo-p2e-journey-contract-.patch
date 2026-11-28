@@ -1,0 +1,726 @@
+From ad69bd20a1c5ac8efd82207c132d7ef6d9027757 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 02:43:58 +0000
+Subject: [PATCH 1/2] feat: connected journey on /demo/p2e (journey contract
+ v1, Phase 3)
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- /demo/p2e?journey=demo reads the contract's parameters (lib/journey.ts): course=opp-course-001 opens solar-pv,
+  yoid=yoid-ng-7f3a0123 is Halima (learner=yp-001 for the embed), return is followed only when http: or https:
+- arriving card "From PathFinder · Phase 2" / Learning Plan / plan step / "✓ Recorded on your YoID (mock-up)"
+- YoID strip "YoID · yoid-ng-7f3a0123 · mock-up": Saved Opportunity and Learning Plan recorded, Skill Credential in
+  progress until the embed posts skilllens:yoid with cred-002 recorded, Job Application next
+- leaving card "Handing on to YoCV · Phase 4" / Skill Credential with "Continue to YoCV": link 3 to
+  NEXT_PUBLIC_YOCV_URL (default http://localhost:4174), same tab, every parameter passed on plus from=skilllens and
+  credential=cred-002
+- "Back to the listing" in the header, from return
+- page.tsx is now a small server wrapper that parses the parameters; the client page moved to HostDemo.tsx. Without
+  journey=demo it renders as before. The embed and its messages are unchanged.
+- Yoma blue as a theme token (--color-journey) for the handoff button, brand purple text on it (5.5:1)
+- 13 tests for parameter parsing, the return check, link 3 and the thread states (lib/journey.test.ts)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ app/demo/p2e/{page.tsx => HostDemo.tsx} |  51 ++++-
+ app/demo/p2e/page.tsx                   | 253 +-----------------------
+ app/globals.css                         |   2 +
+ components/Journey.tsx                  |  60 ++++++
+ lib/journey.test.ts                     | 102 ++++++++++
+ lib/journey.ts                          | 110 +++++++++++
+ 6 files changed, 327 insertions(+), 251 deletions(-)
+ copy app/demo/p2e/{page.tsx => HostDemo.tsx} (81%)
+ create mode 100644 components/Journey.tsx
+ create mode 100644 lib/journey.test.ts
+ create mode 100644 lib/journey.ts
+
+diff --git a/app/demo/p2e/page.tsx b/app/demo/p2e/HostDemo.tsx
+similarity index 81%
+copy from app/demo/p2e/page.tsx
+copy to app/demo/p2e/HostDemo.tsx
+index fb4c022..b4f2d73 100644
+--- a/app/demo/p2e/page.tsx
++++ b/app/demo/p2e/HostDemo.tsx
+@@ -3,6 +3,8 @@
+ import { useEffect, useState } from "react";
+ import coursesJson from "../../../data/synthetic/courses.json";
+ import { Icon } from "../../../components/Icon";
++import { HandoffCard, JourneyThread } from "../../../components/Journey";
++import { ARRIVING, LEAVING_TO, OWN, PHASE_N, threadLabel, threadStates, type Journey } from "../../../lib/journey";
+ import { challenge, learner, opportunity, partnerName, plan, SOLAR_COURSE } from "../../../lib/shared";
+ import type { PracticeSample } from "../../../lib/schema";
+ import type { HandoffRecord } from "../../../lib/yoid";
+@@ -120,8 +122,17 @@ function YoidThread({ items }: { items: HandoffRecord[] | null }) {
+   );
+ }
+ 
+-export default function HostDemo() {
+-  const [courseId, setCourseId] = useState(COURSES[0].id);
++interface Props {
++  /** Set only when the page was opened with journey=demo (lib/journey.ts); null keeps the page exactly as before. */
++  journey: Journey | null;
++  /** The contract's link 3 to YoCV, with every parameter passed on. */
++  yocvHref: string | null;
++}
++
++export default function HostDemo({ journey, yocvHref }: Props) {
++  const [courseId, setCourseId] = useState(journey?.courseId ?? COURSES[0].id);
++  // Journey mode: SkillLens's own step is done once the embed reports cred-002 recorded (skilllens:yoid).
++  const [credentialRecorded, setCredentialRecorded] = useState(false);
+   const [open, setOpen] = useState(false);
+   const [saved, setSaved] = useState<PracticeSample | null>(null);
+   const [thread, setThread] = useState<HandoffRecord[] | null>(null);
+@@ -129,6 +140,23 @@ export default function HostDemo() {
+   const course = COURSES.find((c) => c.id === courseId)!;
+   const wide = view === "computer";
+   const solar = courseId === SOLAR_COURSE;
++  // In journey mode the learner comes from the yoid parameter; a YoID SkillLens does not know gets no sample learner.
++  const learnerParam = journey ? journey.learnerId : learner.id;
++
++  // Journey mode: the contract's YoID strip takes the place of the detailed thread card, so one screen shows one thread.
++  const threadCard = journey ? (
++    <JourneyThread label={threadLabel(journey.yoid ?? learner.yoidId)} steps={threadStates(PHASE_N, credentialRecorded)} />
++  ) : (
++    <YoidThread items={thread} />
++  );
++  const leaving = journey && credentialRecorded && yocvHref ? (
++    <HandoffCard
++      eyebrow={`Handing on to ${LEAVING_TO.app} · Phase ${LEAVING_TO.n}`}
++      item={OWN.item}
++      title={OWN.title}
++      action={{ label: `Continue to ${LEAVING_TO.app}`, href: yocvHref }}
++    />
++  ) : null;
+ 
+   useEffect(() => {
+     try {
+@@ -141,7 +169,11 @@ export default function HostDemo() {
+     const onMessage = (e: MessageEvent) => {
+       if (e.origin !== window.location.origin) return;
+       if (e.data?.type === "skilllens:saved") setSaved(e.data.sample);
+-      if (e.data?.type === "skilllens:yoid" && Array.isArray(e.data.thread)) setThread(e.data.thread);
++      if (e.data?.type === "skilllens:yoid" && Array.isArray(e.data.thread)) {
++        const next = e.data.thread as HandoffRecord[];
++        setThread(next);
++        if (next.some((r) => r.item === OWN.item && r.refId === OWN.itemId && r.state === "recorded")) setCredentialRecorded(true);
++      }
+     };
+     window.addEventListener("message", onMessage);
+     return () => window.removeEventListener("message", onMessage);
+@@ -165,6 +197,9 @@ export default function HostDemo() {
+             <p className="font-heading text-xl font-extrabold">Courses on Yoma <span className="text-sm font-semibold text-paper/80">(mock-up)</span></p>
+           </div>
+           <p className="rounded-full bg-paper/15 px-3 py-1 text-sm">{learner.displayName} · sample data</p>
++          {journey?.returnUrl && (
++            <a href={journey.returnUrl} className="text-sm font-semibold underline">Back to the listing</a>
++          )}
+           <label className="block text-sm">
+             Course{" "}
+             <select
+@@ -191,6 +226,7 @@ export default function HostDemo() {
+       {!open ? (
+         <main className={`mx-auto w-full px-4 pb-24 pt-6 ${wide ? "grid max-w-6xl items-start gap-8 lg:grid-cols-2" : "space-y-5 text-center"}`}>
+           <div className={`space-y-4 ${wide ? "text-left" : ""}`}>
++            {journey && (leaving ?? <HandoffCard eyebrow={`From ${ARRIVING.app} · Phase ${ARRIVING.n}`} item={ARRIVING.item} title={ARRIVING.title} />)}
+             <span className={`icon-circle size-16 ${wide ? "" : "mx-auto"}`}><Icon name="check" className="size-9" /></span>
+             <h1 className={`text-brand ${wide ? "text-5xl" : "text-3xl"}`}>Course complete</h1>
+             <p className="chip inline-block">{course.title}{solar && ` · ${partnerName("org-p2e")}`}</p>
+@@ -206,18 +242,19 @@ export default function HostDemo() {
+                 <Icon name="arrow" /> Challenge yourself
+               </button>
+             </section>
+-            <YoidThread items={thread} />
++            {threadCard}
+           </div>
+         </main>
+       ) : (
+         <div className={wide ? "mx-auto grid w-full max-w-6xl gap-4 px-4 lg:grid-cols-3" : "flex min-h-0 flex-1 flex-col"}>
++          {leaving && !wide && <div className="shrink-0 p-3">{leaving}</div>}
+           <iframe
+             key={courseId}
+             title="SkillLens level-up challenge"
+-            src={`/embed/skilllens?course=${courseId}&lang=en&learner=${learner.id}`}
++            src={`/embed/skilllens?course=${courseId}&lang=en${learnerParam ? `&learner=${learnerParam}` : ""}`}
+             className={`block w-full border-0 ${wide ? "demo-frame-wide lg:col-span-2" : "min-h-0 flex-1"}`}
+           />
+-          {wide && <div className="py-4"><YoidThread items={thread} /></div>}
++          {wide && <div className="space-y-4 py-4">{leaving}{threadCard}</div>}
+         </div>
+       )}
+     </div>
+@@ -236,7 +273,7 @@ export default function HostDemo() {
+         </div>
+       )}
+       <div className={`space-y-3 px-4 pb-24 ${wide ? "mx-auto max-w-6xl" : "mx-auto max-w-md"}`}>
+-        {!wide && open && <YoidThread items={thread} />}
++        {!wide && open && threadCard}
+         <DemoStatus />
+       </div>
+       <ViewToggle view={view} onChange={changeView} />
+diff --git a/app/demo/p2e/page.tsx b/app/demo/p2e/page.tsx
+index fb4c022..6b85e3f 100644
+--- a/app/demo/p2e/page.tsx
++++ b/app/demo/p2e/page.tsx
+@@ -1,245 +1,10 @@
+-"use client";
+-
+-import { useEffect, useState } from "react";
+-import coursesJson from "../../../data/synthetic/courses.json";
+-import { Icon } from "../../../components/Icon";
+-import { challenge, learner, opportunity, partnerName, plan, SOLAR_COURSE } from "../../../lib/shared";
+-import type { PracticeSample } from "../../../lib/schema";
+-import type { HandoffRecord } from "../../../lib/yoid";
+-
+-// Mock course host page on Yoma, for demos only: Phase 3 of the BBS x GenU journey with the shared sample learner
+-// (Halima, data/shared/shared-mock-data.json). The real host embeds the same iframe and passes a Yoma sign-in instead.
+-// Solar PV Installation Basics comes first; the other two sample courses stay available from the menu.
+-const COURSES = coursesJson.items.map((c) => ({ id: c.id, title: c.title.en }));
+-
+-type View = "phone" | "computer";
+-const VIEW_KEY = "skilllens:demo-view";
+-
+-interface Integration {
+-  name: string;
+-  mode: "real" | "simulated";
+-  healthy: boolean | null;
+-}
+-
+-/** Demo-only strip: says which parts are real API calls right now, so a demo never passes a stand-in off as real. */
+-function DemoStatus() {
+-  const [list, setList] = useState<Integration[] | null>(null);
+-  useEffect(() => {
+-    fetch("/api/status").then((r) => r.json()).then((d) => setList(d.integrations)).catch(() => setList(null));
+-  }, []);
+-  if (!list) return null;
+-  return (
+-    <details className="card text-sm">
+-      <summary className="flex cursor-pointer items-center gap-2 font-semibold text-brand">
+-        <Icon name="info" className="size-5" />
+-        Demo: {list.filter((i) => i.mode === "real").length} of {list.length} integrations real
+-      </summary>
+-      <ul className="mt-1 space-y-1">
+-        {list.map((i) => (
+-          <li key={i.name}>
+-            {i.mode === "real" ? "Real" : "Simulated"}: {i.name}
+-            {i.healthy === false && " (unreachable)"}
+-          </li>
+-        ))}
+-      </ul>
+-      <a className="mt-2 inline-block font-semibold text-brand underline" href="/status">Details</a>
+-    </details>
+-  );
+-}
+-
+-/** Round toggle, bottom centre: shows the same page as a phone or a computer would. */
+-function ViewToggle({ view, onChange }: { view: View; onChange: (v: View) => void }) {
+-  return (
+-    <div role="radiogroup" aria-label="Preview as" className="fixed bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-1 rounded-full bg-paper p-1.5 shadow-lg ring-1 ring-brand-soft">
+-      {(["phone", "computer"] as const).map((v) => (
+-        <button
+-          key={v}
+-          type="button"
+-          role="radio"
+-          aria-checked={view === v}
+-          onClick={() => onChange(v)}
+-          className={`flex min-h-12 items-center gap-2 rounded-full px-5 font-heading text-lg font-bold transition ${view === v ? "bg-brand text-paper" : "text-brand hover:bg-brand-tint"}`}
+-        >
+-          <Icon name={v === "phone" ? "phone" : "monitor"} className="size-5" />
+-          {v === "phone" ? "Phone" : "Computer"}
+-        </button>
+-      ))}
+-    </div>
+-  );
+-}
+-
+-/** The handoff item that arrives from PathFinder: Halima's Learning Plan, with this course as the current step. */
+-function LearningPlan() {
+-  return (
+-    <section aria-labelledby="plan" className="card-brand space-y-2 text-left">
+-      <p className="text-sm font-semibold text-brand">Learning Plan {plan.id} · from {plan.createdBy}</p>
+-      <h2 id="plan" className="text-lg text-brand">Your plan for {opportunity(plan.target)?.title}</h2>
+-      <ol className="space-y-1">
+-        {plan.steps.map((s, i) => {
+-          const id = s.opportunityId ?? s.opportunityIds?.[0] ?? "";
+-          const here = id === challenge.afterCourse;
+-          return (
+-            <li key={i} className={`flex items-start gap-2 rounded-xl p-2 text-sm ${here ? "bg-paper font-semibold" : ""}`}>
+-              <span className={`grid size-6 shrink-0 place-items-center rounded-full ${here ? "bg-accent text-brand" : "bg-paper text-brand"}`}>{i + 1}</span>
+-              <span>{opportunity(id)?.title ?? id}{here && " (you are here)"}<br /><span className="font-normal text-muted">{s.why}</span></span>
+-            </li>
+-          );
+-        })}
+-      </ol>
+-    </section>
+-  );
+-}
+-
+-const STATE_LABEL: Record<HandoffRecord["state"], string> = { recorded: "On YoID", waiting: "Waiting", next: "Next" };
+-
+-/** Halima's YoID as the thread through the journey: one record per handoff item. Mocked. */
+-function YoidThread({ items }: { items: HandoffRecord[] | null }) {
+-  if (!items) return null;
+-  return (
+-    <section aria-labelledby="yoid" className="card space-y-2 text-left">
+-      <h2 id="yoid" className="flex items-center gap-2 text-lg text-brand">
+-        <span className="icon-circle size-8"><Icon name="check" className="size-5" /></span>
+-        {learner.displayName}&apos;s YoID · {learner.yoidId}
+-      </h2>
+-      <p className="text-sm text-muted">Each prototype records its handoff item here. Mocked: no real YoID.</p>
+-      <ol className="space-y-2">
+-        {items.map((r) => (
+-          <li key={r.refId} className="rounded-xl bg-paper p-3 text-sm">
+-            <p className="flex flex-wrap items-center justify-between gap-2">
+-              <span className="font-semibold text-brand">{r.item} · {r.refId}</span>
+-              <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${r.state === "recorded" ? "bg-success-light text-success-ink" : r.state === "waiting" ? "bg-accent-light text-brand" : "bg-surface text-muted"}`}>
+-                {STATE_LABEL[r.state]}
+-              </span>
+-            </p>
+-            <p>{r.title}</p>
+-            <p className="text-muted">{r.from} → {r.to}{r.recordedOn && ` · ${r.recordedOn}`} · {r.note}</p>
+-          </li>
+-        ))}
+-      </ol>
+-    </section>
+-  );
+-}
+-
+-export default function HostDemo() {
+-  const [courseId, setCourseId] = useState(COURSES[0].id);
+-  const [open, setOpen] = useState(false);
+-  const [saved, setSaved] = useState<PracticeSample | null>(null);
+-  const [thread, setThread] = useState<HandoffRecord[] | null>(null);
+-  const [view, setView] = useState<View>("phone");
+-  const course = COURSES.find((c) => c.id === courseId)!;
+-  const wide = view === "computer";
+-  const solar = courseId === SOLAR_COURSE;
+-
+-  useEffect(() => {
+-    try {
+-      const v = localStorage.getItem(VIEW_KEY);
+-      if (v === "phone" || v === "computer") setView(v);
+-    } catch {
+-      // Storage blocked: start in phone view.
+-    }
+-    fetch(`/api/yoid?id=${encodeURIComponent(learner.yoidId)}`).then((r) => r.json()).then((d) => setThread(d.thread)).catch(() => setThread(null));
+-    const onMessage = (e: MessageEvent) => {
+-      if (e.origin !== window.location.origin) return;
+-      if (e.data?.type === "skilllens:saved") setSaved(e.data.sample);
+-      if (e.data?.type === "skilllens:yoid" && Array.isArray(e.data.thread)) setThread(e.data.thread);
+-    };
+-    window.addEventListener("message", onMessage);
+-    return () => window.removeEventListener("message", onMessage);
+-  }, []);
+-
+-  function changeView(v: View) {
+-    setView(v);
+-    try {
+-      localStorage.setItem(VIEW_KEY, v);
+-    } catch {
+-      // Not remembered, still works.
+-    }
+-  }
+-
+-  const page = (
+-    <div className={`flex min-h-full flex-col bg-paper ${wide ? "" : "h-full"}`}>
+-      <header className="shrink-0 bg-brand text-paper">
+-        <div className={`mx-auto flex flex-wrap items-center gap-x-6 gap-y-3 px-4 py-4 ${wide ? "max-w-6xl" : ""}`}>
+-          <div className="flex items-center gap-2">
+-            <span className="icon-circle size-9"><Icon name="cap" className="size-5" /></span>
+-            <p className="font-heading text-xl font-extrabold">Courses on Yoma <span className="text-sm font-semibold text-paper/80">(mock-up)</span></p>
+-          </div>
+-          <p className="rounded-full bg-paper/15 px-3 py-1 text-sm">{learner.displayName} · sample data</p>
+-          <label className="block text-sm">
+-            Course{" "}
+-            <select
+-              className="ml-1 rounded-full bg-paper px-3 py-1 text-brand"
+-              value={courseId}
+-              onChange={(e) => { setCourseId(e.target.value); setOpen(false); setSaved(null); }}
+-            >
+-              {COURSES.map((c) => <option key={c.id} value={c.id}>{c.title}{c.id !== SOLAR_COURSE && " (other sample)"}</option>)}
+-            </select>
+-          </label>
+-        </div>
+-      </header>
+-
+-      {saved && (
+-        <aside role="status" className={`card-brand m-4 flex gap-3 ${wide ? "mx-auto w-full max-w-6xl" : ""}`}>
+-          <Icon name="check" className="size-7 text-brand" />
+-          <div>
+-            <p className="font-heading text-lg font-bold text-brand">Practice saved</p>
+-            <p className="text-sm">{saved.label}</p>
+-          </div>
+-        </aside>
+-      )}
+-
+-      {!open ? (
+-        <main className={`mx-auto w-full px-4 pb-24 pt-6 ${wide ? "grid max-w-6xl items-start gap-8 lg:grid-cols-2" : "space-y-5 text-center"}`}>
+-          <div className={`space-y-4 ${wide ? "text-left" : ""}`}>
+-            <span className={`icon-circle size-16 ${wide ? "" : "mx-auto"}`}><Icon name="check" className="size-9" /></span>
+-            <h1 className={`text-brand ${wide ? "text-5xl" : "text-3xl"}`}>Course complete</h1>
+-            <p className="chip inline-block">{course.title}{solar && ` · ${partnerName("org-p2e")}`}</p>
+-            <p>Well done, {learner.displayName.split(" ")[0]}! You finished all the lessons.</p>
+-            {solar && <LearningPlan />}
+-          </div>
+-          <div className="space-y-4">
+-            <section className={`rounded-3xl bg-brand p-5 text-paper ${wide ? "p-8" : ""}`}>
+-              <span className="icon-circle mx-auto size-12"><Icon name="star" className="size-7" /></span>
+-              <h2 className="mt-2 text-center text-2xl text-accent">Level up</h2>
+-              <p className="mt-1 text-center">A 10-minute challenge with friendly feedback. Pass it to add a Skill Credential to your YoID.</p>
+-              <button type="button" className="btn-accent mt-4" onClick={() => setOpen(true)}>
+-                <Icon name="arrow" /> Challenge yourself
+-              </button>
+-            </section>
+-            <YoidThread items={thread} />
+-          </div>
+-        </main>
+-      ) : (
+-        <div className={wide ? "mx-auto grid w-full max-w-6xl gap-4 px-4 lg:grid-cols-3" : "flex min-h-0 flex-1 flex-col"}>
+-          <iframe
+-            key={courseId}
+-            title="SkillLens level-up challenge"
+-            src={`/embed/skilllens?course=${courseId}&lang=en&learner=${learner.id}`}
+-            className={`block w-full border-0 ${wide ? "demo-frame-wide lg:col-span-2" : "min-h-0 flex-1"}`}
+-          />
+-          {wide && <div className="py-4"><YoidThread items={thread} /></div>}
+-        </div>
+-      )}
+-    </div>
+-  );
+-
+-  return (
+-    <div className="min-h-screen bg-surface">
+-      {wide ? (
+-        page
+-      ) : (
+-        <div className="flex justify-center px-4 pb-24 pt-6">
+-          {/* 9:16 phone frame; the page scrolls inside it like on a real phone. */}
+-          <div className="device-frame">
+-            <div className="h-full overflow-y-auto">{page}</div>
+-          </div>
+-        </div>
+-      )}
+-      <div className={`space-y-3 px-4 pb-24 ${wide ? "mx-auto max-w-6xl" : "mx-auto max-w-md"}`}>
+-        {!wide && open && <YoidThread items={thread} />}
+-        <DemoStatus />
+-      </div>
+-      <ViewToggle view={view} onChange={changeView} />
+-    </div>
+-  );
++import { parseJourney, yocvLink } from "../../../lib/journey";
++import HostDemo from "./HostDemo";
++
++// Mock course host page. Opened with ?journey=demo (journey contract v1) it is Phase 3 of the connected journey: it reads
++// the contract's parameters, maps course=opp-course-001 to solar-pv and yoid=yoid-ng-7f3a0123 to Halima (yp-001), and
++// links on to YoCV once cred-002 is recorded. Without journey=demo it is the same page as before.
++export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
++  const journey = parseJourney(await searchParams);
++  return <HostDemo journey={journey} yocvHref={journey ? yocvLink(journey) : null} />;
+ }
+diff --git a/app/globals.css b/app/globals.css
+index 3037fa6..ece1be7 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -20,6 +20,8 @@
+   --color-ink: var(--yoma-black);
+   --color-muted: var(--yoma-gray-dark); /* 7.2:1 on white, 6.6:1 on surface */
+   --color-paper: var(--yoma-white);
++  /* Journey handoff button (journey contract v1): Yoma blue. White on it is 2.5:1, so its text is brand purple (5.5:1). */
++  --color-journey: var(--yoma-blue);
+   /* Yoma's error pink is 3.3:1 on white, too light for text, so text uses a darker mix of the same token (7.9:1). */
+   --color-coral: color-mix(in oklab, var(--yoma-pink) 62%, var(--yoma-black));
+   --font-heading: var(--yoma-font-heading);
+diff --git a/components/Journey.tsx b/components/Journey.tsx
+new file mode 100644
+index 0000000..c030e79
+--- /dev/null
++++ b/components/Journey.tsx
+@@ -0,0 +1,60 @@
++// The connected journey's handoff card and YoID thread (journey contract v1), the same design in all four prototypes:
++// white card, Yoma purple heading, Yoma green "recorded" line, Yoma blue button, Nunito headings, Open Sans body, 12 px
++// radius. Shown on /demo/p2e only when it is opened with journey=demo (lib/journey.ts). Mock-up with sample data.
++import { RECORDED_LINE, type StepState } from "../lib/journey";
++import { Icon } from "./Icon";
++
++interface CardProps {
++  eyebrow: string;
++  item: string;
++  title: string;
++  /** Leaving card only: the primary button. Opens in the same tab: the journey is one path. */
++  action?: { label: string; href: string };
++}
++
++export function HandoffCard({ eyebrow, item, title, action }: CardProps) {
++  return (
++    <section aria-label={`${eyebrow}: ${item}`} className="space-y-2 rounded-xl bg-paper p-4 text-left shadow-sm ring-1 ring-line">
++      <p className="text-sm font-semibold text-muted">{eyebrow}</p>
++      <h2 className="font-heading text-xl font-extrabold text-brand">{item}</h2>
++      <p>{title}</p>
++      {action && (
++        <a href={action.href} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-journey px-6 font-heading text-lg font-bold text-brand shadow-sm transition hover:brightness-105">
++          {action.label} <Icon name="arrow" />
++        </a>
++      )}
++      <p className="text-sm font-semibold text-success">{RECORDED_LINE}</p>
++    </section>
++  );
++}
++
++const STATE_STYLE: Record<StepState, string> = {
++  recorded: "bg-success-light text-success-ink",
++  "in progress": "bg-accent-light text-brand",
++  next: "bg-surface text-muted",
++};
++
++/** The four-step YoID strip: Saved Opportunity → Learning Plan → Skill Credential → Job Application. */
++export function JourneyThread({ label, steps }: { label: string; steps: { item: string; state: StepState }[] }) {
++  return (
++    // A container query, not a viewport breakpoint: the strip sits in a narrow side column on the computer view.
++    <section aria-label={label} className="@container space-y-2 rounded-xl bg-paper p-3 text-left ring-1 ring-line">
++      <p className="text-xs font-semibold text-muted">{label}</p>
++      <ol className="grid grid-cols-2 gap-2 @md:grid-cols-4">
++        {steps.map((s) => (
++          <li key={s.item} className={`flex items-start gap-1.5 rounded-lg p-2 text-sm ${STATE_STYLE[s.state]}`}>
++            {s.state === "recorded" ? (
++              <Icon name="check" className="size-5 text-success" />
++            ) : (
++              <span aria-hidden="true" className={`mt-1 size-3 shrink-0 rounded-full ${s.state === "in progress" ? "bg-accent" : "border-2 border-line"}`} />
++            )}
++            <span className="min-w-0">
++              <span className="block font-semibold">{s.item}</span>
++              <span className="text-xs">{s.state}</span>
++            </span>
++          </li>
++        ))}
++      </ol>
++    </section>
++  );
++}
+diff --git a/lib/journey.test.ts b/lib/journey.test.ts
+new file mode 100644
+index 0000000..39cb189
+--- /dev/null
++++ b/lib/journey.test.ts
+@@ -0,0 +1,102 @@
++import { afterEach, describe, expect, it, vi } from "vitest";
++import { courses } from "./data";
++import { DEFAULT_YOCV_URL, parseJourney, safeReturn, threadLabel, threadStates, yocvLink } from "./journey";
++import { learner } from "./shared";
++
++const LISTING = "http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000301";
++// Link 2 of the journey contract, as PathFinder builds it.
++const FROM_PATHFINDER = `journey=demo&from=pathfinder&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&plan=plan-001&course=opp-course-001&return=${encodeURIComponent(LISTING)}`;
++
++describe("journey contract v1: parameters in", () => {
++  it("is off without journey=demo, so the page behaves as before", () => {
++    expect(parseJourney(new URLSearchParams(""))).toBeNull();
++    expect(parseJourney(new URLSearchParams("course=opp-course-001&yoid=yoid-ng-7f3a0123"))).toBeNull();
++    expect(parseJourney({ journey: "other" })).toBeNull();
++  });
++
++  it("maps PathFinder's link to the Solar PV course and Halima", () => {
++    const j = parseJourney(new URLSearchParams(FROM_PATHFINDER))!;
++    expect(j.courseId).toBe("solar-pv");
++    expect(courses.map((c) => c.id)).toContain(j.courseId);
++    expect(j.learnerId).toBe(learner.id);
++    expect(j.learnerId).toBe("yp-001");
++    expect(j.yoid).toBe("yoid-ng-7f3a0123");
++    expect(j.returnUrl).toBe(LISTING);
++  });
++
++  it("reads Next's searchParams object the same way as URLSearchParams", () => {
++    const fromObject = parseJourney(Object.fromEntries(new URLSearchParams(FROM_PATHFINDER)));
++    expect(fromObject).toEqual(parseJourney(new URLSearchParams(FROM_PATHFINDER)));
++  });
++
++  it("gives no course or learner for ids SkillLens does not know", () => {
++    const j = parseJourney({ journey: "demo", course: "opp-course-999", yoid: "yoid-someone-else" })!;
++    expect(j.courseId).toBeNull();
++    expect(j.learnerId).toBeNull();
++  });
++
++  it("follows only http: and https: return URLs", () => {
++    expect(safeReturn(LISTING)).toBe(LISTING);
++    expect(safeReturn("https://yoma.world/opportunities/x?a=1")).toBe("https://yoma.world/opportunities/x?a=1");
++    for (const bad of ["javascript:alert(1)", "data:text/html,hi", "//evil.example/x", "/opportunities/x", "ftp://x.example/", "", null, undefined]) {
++      expect(safeReturn(bad)).toBeNull();
++    }
++    const j = parseJourney({ journey: "demo", return: "javascript:alert(1)" })!;
++    expect(j.returnUrl).toBeNull();
++    expect(yocvLink(j)).not.toContain("return=");
++  });
++});
++
++describe("journey contract v1: link 3, SkillLens → YoCV", () => {
++  it("builds the contract's link exactly, passing on every parameter plus from and credential", () => {
++    const j = parseJourney(new URLSearchParams(FROM_PATHFINDER))!;
++    expect(yocvLink(j, "http://localhost:4174")).toBe(
++      `http://localhost:4174/?as=halima&journey=demo&from=skilllens&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&plan=plan-001&course=opp-course-001&credential=cred-002&return=${encodeURIComponent(LISTING)}`,
++    );
++  });
++
++  it("passes the return URL on unchanged", () => {
++    const withQuery = "https://ziqi.example/opportunities/abc?tab=details&x=1";
++    const link = new URL(yocvLink(parseJourney({ journey: "demo", return: withQuery })!, "https://yocv.example"));
++    expect(link.searchParams.get("return")).toBe(withQuery);
++  });
++
++  afterEach(() => vi.unstubAllEnvs());
++
++  it("defaults YOCV_URL to http://localhost:4174 and tolerates a trailing slash", () => {
++    vi.stubEnv("NEXT_PUBLIC_YOCV_URL", "");
++    const j = parseJourney({ journey: "demo" })!;
++    expect(DEFAULT_YOCV_URL).toBe("http://localhost:4174");
++    expect(yocvLink(j)).toBe("http://localhost:4174/?as=halima&journey=demo&from=skilllens&credential=cred-002");
++    expect(yocvLink(j, "https://yocv.example/")).toBe("https://yocv.example/?as=halima&journey=demo&from=skilllens&credential=cred-002");
++  });
++
++  it("reads YOCV_URL from NEXT_PUBLIC_YOCV_URL", () => {
++    vi.stubEnv("NEXT_PUBLIC_YOCV_URL", "https://yocv.example");
++    expect(yocvLink(parseJourney({ journey: "demo" })!)).toBe("https://yocv.example/?as=halima&journey=demo&from=skilllens&credential=cred-002");
++  });
++
++  it("keeps parameters outside the contract, after the contract's own", () => {
++    const link = yocvLink(parseJourney({ journey: "demo", from: "pathfinder", utm: "x", as: "someone" })!, "http://y");
++    expect(link).toBe("http://y/?as=halima&journey=demo&from=skilllens&credential=cred-002&utm=x");
++  });
++});
++
++describe("journey contract v1: the YoID thread at phase 3", () => {
++  it("has the first two recorded, SkillLens's own in progress, and the Job Application next", () => {
++    expect(threadStates()).toEqual([
++      { item: "Saved Opportunity", state: "recorded" },
++      { item: "Learning Plan", state: "recorded" },
++      { item: "Skill Credential", state: "in progress" },
++      { item: "Job Application", state: "next" },
++    ]);
++  });
++
++  it("records the Skill Credential once SkillLens's step is done", () => {
++    expect(threadStates(3, true).map((s) => s.state)).toEqual(["recorded", "recorded", "recorded", "next"]);
++  });
++
++  it("labels the strip with the YoID", () => {
++    expect(threadLabel("yoid-ng-7f3a0123")).toBe("YoID · yoid-ng-7f3a0123 · mock-up");
++  });
++});
+diff --git a/lib/journey.ts b/lib/journey.ts
+new file mode 100644
+index 0000000..ecdff45
+--- /dev/null
++++ b/lib/journey.ts
+@@ -0,0 +1,110 @@
++// The BBS x GenU connected journey (journey contract v1): Ziqi → PathFinder → SkillLens → YoCV → back to the listing.
++// SkillLens is Phase 3. /demo/p2e opened with ?journey=demo reads the contract's URL parameters, shows the arriving card
++// (Learning Plan from PathFinder), the YoID thread, and, once cred-002 is recorded, the leaving card that links on to YoCV.
++// Without journey=demo nothing here is used, and the page behaves as before.
++// The state comes from the phase and the URL only: there is no shared store between the prototypes.
++import { learner } from "./shared";
++
++/** The contract's parameters, in the order every app writes them. */
++export const JOURNEY_PARAMS = ["journey", "from", "yoid", "listing", "goal", "plan", "course", "credential", "application", "return"] as const;
++export type JourneyParam = (typeof JOURNEY_PARAMS)[number];
++
++/** The four phases and the item each hands on, worded exactly as in the contract. */
++export const PHASES = [
++  { n: 1, app: "Ziqi", key: "ziqi", item: "Saved Opportunity", itemId: "opp-job-001", title: "Solar Installation Assistant (Trainee)" },
++  { n: 2, app: "PathFinder", key: "pathfinder", item: "Learning Plan", itemId: "plan-001", title: "Plan step: complete a P2E course (Solar PV Installation Basics)" },
++  { n: 3, app: "SkillLens", key: "skilllens", item: "Skill Credential", itemId: "cred-002", title: "Solar PV Installation Basics: practical challenge passed" },
++  { n: 4, app: "YoCV", key: "yocv", item: "Job Application", itemId: "app-001", title: "Application to Solar Installation Assistant (Trainee)" },
++] as const;
++export type Phase = (typeof PHASES)[number];
++
++export const PHASE_N = 3;
++export const ARRIVING = PHASES[PHASE_N - 2]; // Learning Plan, from PathFinder
++export const OWN = PHASES[PHASE_N - 1]; // Skill Credential
++export const LEAVING_TO = PHASES[PHASE_N]; // YoCV
++export const RECORDED_LINE = "✓ Recorded on your YoID (mock-up)";
++
++/** Shared course id → SkillLens course id. Only the plan step SkillLens tests. */
++export const COURSE_MAP: Record<string, string> = { "opp-course-001": "solar-pv" };
++/** Shared YoID → the SkillLens sample learner (Halima, yp-001). */
++export const YOID_MAP: Record<string, string> = { [learner.yoidId]: learner.id };
++
++/** YOCV_URL. Read at build time (NEXT_PUBLIC_), like NEXT_PUBLIC_P2E_ORIGIN. */
++export const DEFAULT_YOCV_URL = "http://localhost:4174";
++export const yocvUrl = () => process.env.NEXT_PUBLIC_YOCV_URL || DEFAULT_YOCV_URL;
++
++export interface Journey {
++  /** Every parameter received, in the order received (an unsafe `return` is dropped). */
++  params: [string, string][];
++  /** The SkillLens course to open, or null to keep the page's default. */
++  courseId: string | null;
++  /** The sample learner id for the embed, or null for a YoID SkillLens does not know. */
++  learnerId: string | null;
++  yoid: string | null;
++  /** The Ziqi listing URL, only when it is http: or https:. */
++  returnUrl: string | null;
++}
++
++type Search = URLSearchParams | Record<string, string | string[] | undefined>;
++
++function entries(search: Search): [string, string][] {
++  if (search instanceof URLSearchParams) return [...search.entries()];
++  return Object.entries(search).flatMap(([k, v]) => (v === undefined ? [] : Array.isArray(v) ? v.map((x): [string, string] => [k, x]) : [[k, v] as [string, string]]));
++}
++
++/** A return URL is followed only when it is an absolute http: or https: URL. Anything else is ignored. */
++export function safeReturn(raw: string | null | undefined): string | null {
++  if (!raw) return null;
++  try {
++    const url = new URL(raw);
++    return url.protocol === "http:" || url.protocol === "https:" ? raw : null;
++  } catch {
++    return null;
++  }
++}
++
++/** The journey, or null when the page was not opened with journey=demo (then it behaves exactly as before). */
++export function parseJourney(search: Search): Journey | null {
++  const all = entries(search);
++  const get = (k: string) => all.find(([key]) => key === k)?.[1] ?? null;
++  if (get("journey") !== "demo") return null;
++  const returnUrl = safeReturn(get("return"));
++  const yoid = get("yoid");
++  const course = get("course");
++  return {
++    params: all.filter(([k]) => k !== "return" || returnUrl !== null),
++    courseId: (course && COURSE_MAP[course]) ?? null,
++    learnerId: (yoid && YOID_MAP[yoid]) ?? null,
++    yoid,
++    returnUrl,
++  };
++}
++
++/**
++ * Link 3, SkillLens → YoCV: `YOCV_URL/?as=halima&journey=demo&from=skilllens&yoid=…&listing=…&goal=…&plan=…&course=…
++ * &credential=cred-002&return=…`. Passes on every parameter received, plus from=skilllens and credential=cred-002.
++ * Parameters outside the contract are passed on after the contract's ones.
++ */
++export function yocvLink(journey: Journey, base: string = yocvUrl()): string {
++  const received = new Map<string, string>();
++  for (const [k, v] of journey.params) if (!received.has(k)) received.set(k, v);
++  received.set("journey", "demo");
++  received.set("from", OWN.key);
++  received.set("credential", OWN.itemId);
++  const out = new URLSearchParams([["as", "halima"]]);
++  for (const k of JOURNEY_PARAMS) {
++    const v = received.get(k);
++    if (v !== undefined) out.append(k, v);
++  }
++  for (const [k, v] of journey.params) if (k !== "as" && !(JOURNEY_PARAMS as readonly string[]).includes(k)) out.append(k, v);
++  return `${base.replace(/\/+$/, "")}/?${out.toString()}`;
++}
++
++export type StepState = "recorded" | "in progress" | "next";
++
++/** The YoID thread for the app at phase n: earlier steps recorded, its own in progress until done, later ones next. */
++export function threadStates(n: number = PHASE_N, done = false): { item: Phase["item"]; state: StepState }[] {
++  return PHASES.map((p) => ({ item: p.item, state: p.n < n || (p.n === n && done) ? "recorded" : p.n === n ? "in progress" : "next" }));
++}
++
++export const threadLabel = (yoid: string) => `YoID · ${yoid} · mock-up`;
+-- 
+2.43.0
+

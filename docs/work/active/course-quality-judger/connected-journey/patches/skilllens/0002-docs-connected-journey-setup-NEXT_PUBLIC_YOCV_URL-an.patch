@@ -1,0 +1,135 @@
+From 73ac6f8c739da449a17bf412279b39263547b5f3 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 28 Nov 2026 02:43:58 +0000
+Subject: [PATCH 2/2] docs: connected journey setup, NEXT_PUBLIC_YOCV_URL and
+ progress log
+
+- README: "Connected journey" under The demo, NEXT_PUBLIC_YOCV_URL in the environment table, 112 tests
+- INTEGRATION.md section 9: parameters in, what the page shows, link 3 out, embed unchanged
+- HANDOVER.md: where the journey code and setting are; .env.example: NEXT_PUBLIC_YOCV_URL
+- docs/PROGRESS.md: development log row
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01YcQNX4S5GbGG8rboP8226e
+---
+ .env.example     |  5 +++++
+ HANDOVER.md      |  1 +
+ INTEGRATION.md   | 20 ++++++++++++++++++++
+ README.md        | 18 +++++++++++++++++-
+ docs/PROGRESS.md |  1 +
+ 5 files changed, 44 insertions(+), 1 deletion(-)
+
+diff --git a/.env.example b/.env.example
+index e03adc5..fc9cc85 100644
+--- a/.env.example
++++ b/.env.example
+@@ -52,6 +52,11 @@ PASS_SIGNING_SECRET=
+ # Leave empty for the local demo (same origin only).
+ NEXT_PUBLIC_P2E_ORIGIN=
+ 
++# --- Connected journey (Ziqi → PathFinder → SkillLens → YoCV, /demo/p2e?journey=demo) ---
++# YoCV's address for the "Continue to YoCV" button (YOCV_URL in the journey contract). Read at build time.
++# Leave empty for the local default, http://localhost:4174.
++NEXT_PUBLIC_YOCV_URL=
++
+ # --- Yoma ---
+ # mock = build the exact Yoma request and show a preview, send nothing (default)
+ # live = send to Yoma with the learner's own Yoma access token
+diff --git a/HANDOVER.md b/HANDOVER.md
+index 4ffb16b..e46f512 100644
+--- a/HANDOVER.md
++++ b/HANDOVER.md
+@@ -26,6 +26,7 @@ All sample data is fictional and labelled on screen.
+ | Shared mock data | [`data/shared/shared-mock-data.json`](data/shared/shared-mock-data.json), v1.1, copied unchanged from Anaghataneja-stack/pathfinder-prototype, and read through [`lib/shared.ts`](lib/shared.ts) |
+ | YoID thread (mocked) | [`lib/yoid.ts`](lib/yoid.ts), `GET /api/yoid`, `POST /api/yoid/credential` |
+ | Design tokens | [`app/yoma-tokens.css`](app/yoma-tokens.css) (Yoma's values, copied from Yoma's web app) mapped in [`app/globals.css`](app/globals.css) |
++| Connected journey (Ziqi → PathFinder → SkillLens → YoCV) | `/demo/p2e?journey=demo&…`: [README.md](README.md) "Connected journey" and [INTEGRATION.md](INTEGRATION.md) section 9. Code: [`lib/journey.ts`](lib/journey.ts), [`components/Journey.tsx`](components/Journey.tsx). YoCV's address: `NEXT_PUBLIC_YOCV_URL`. |
+ | Progress log | [docs/PROGRESS.md](docs/PROGRESS.md) |
+ 
+ ## Secrets
+diff --git a/INTEGRATION.md b/INTEGRATION.md
+index 7c79f69..02e2b99 100644
+--- a/INTEGRATION.md
++++ b/INTEGRATION.md
+@@ -214,3 +214,23 @@ SkillLens never issues the credential. It reports a pass, and Yoma's existing pi
+ - Agree a manual revocation path, because Partner Sync does not revoke.
+ 
+ **In the prototype:** with the shared sample learner (Halima), a pass on `chal-001` writes `cred-002` to a mocked YoID record (`lib/yoid.ts`, `POST /api/yoid/credential`), only with a signed one-time pass from the feedback route and after the learner's tap. Nothing reaches Yoma. Without a sample learner, the end screen is a design preview (`components/CredentialHandoff.tsx`). The full design is in the project's Claude Doc.
++
++## 9. The connected journey (journey contract v1)
++
++The four BBS x GenU prototypes link into one journey for Halima: Ziqi (Phase 1, Saved Opportunity) → PathFinder (Phase 2, Learning Plan) → SkillLens (Phase 3, Skill Credential) → YoCV (Phase 4, Job Application) → back to the Ziqi listing. Each link is a plain deep link that opens in the same tab. There is no shared store: each app works out the thread from its phase and the URL.
++
++**In:** PathFinder opens `/demo/p2e?journey=demo&from=pathfinder&yoid=…&listing=opp-job-001&goal=job&plan=plan-001&course=opp-course-001&return=…`.
++
++| Parameter | What SkillLens does with it |
++| --- | --- |
++| `journey=demo` | Turns journey mode on. Without it the page is exactly as before and the other parameters are ignored. |
++| `course` | `opp-course-001` opens `solar-pv`. Other ids keep the default course. |
++| `yoid` | `yoid-ng-7f3a0123` is the sample learner `yp-001` (Halima), passed to the embed as `learner=yp-001`. Another YoID gets no sample learner, so nothing is written to a YoID. |
++| `return` | "Back to the listing" in the header. Only `http:` and `https:` URLs; anything else is dropped and the link is hidden. |
++| `from`, `listing`, `goal`, `plan`, and any other | Passed on unchanged. |
++
++**On the page:** the arriving card (From PathFinder · Phase 2, **Learning Plan**), and the YoID strip `YoID · yoid-ng-7f3a0123 · mock-up` in place of the detailed thread card. The Skill Credential step is "in progress" until the embed posts `skilllens:yoid` with `cred-002` recorded; then it is "recorded", and the leaving card (Handing on to YoCV · Phase 4, **Skill Credential**) shows the **Continue to YoCV** button.
++
++**Out (link 3):** `NEXT_PUBLIC_YOCV_URL/?as=halima&journey=demo&from=skilllens&yoid=…&listing=…&goal=…&plan=…&course=…&credential=cred-002&return=…` (default `http://localhost:4174`).
++
++The embed itself (`/embed/skilllens`) and its messages are unchanged: the button lives on the host page, so a real P2E host that does not take part in the journey sees no change. The code is `lib/journey.ts` (parameters, mapping, the link; tested in `lib/journey.test.ts`), `components/Journey.tsx` (the card and the strip) and `app/demo/p2e/`.
+diff --git a/README.md b/README.md
+index a2c2fed..b119764 100644
+--- a/README.md
++++ b/README.md
+@@ -43,7 +43,7 @@ Set `AI_PROVIDER=foundry` and the `FOUNDRY_*` variables, and `CONTENT_SAFETY_PRO
+ ### Check everything
+ 
+ ```bash
+-npm run check       # lint, types, 99 unit and route tests, offline eval, production build (no model needed)
++npm run check       # lint, types, 112 unit and route tests, offline eval, production build (no model needed)
+ npm run eval        # agreement and safety report with the model in .env.local
+ npm run scenarios   # 20 realistic, edge-case and failure scenarios with the model in .env.local
+ ```
+@@ -74,6 +74,21 @@ Things to try:
+ - Type a phone number or "my name is …" into an answer: it is removed before feedback.
+ - Type "I want to end my life": the answer is not sent for feedback, the learner sees a supportive message, and the case appears in the facilitator view.
+ 
++### Connected journey (Ziqi → PathFinder → SkillLens → YoCV)
++
++Opened with `?journey=demo`, `/demo/p2e` is Phase 3 of the four-prototype journey (journey contract v1). PathFinder links here with:
++
++```
++/demo/p2e?journey=demo&from=pathfinder&yoid=yoid-ng-7f3a0123&listing=opp-job-001&goal=job&plan=plan-001&course=opp-course-001&return=<the Ziqi listing, URL-encoded>
++```
++
++- `course=opp-course-001` opens Solar PV Installation Basics, and `yoid=yoid-ng-7f3a0123` is Halima (`yp-001`).
++- At the top: the arriving card ("From PathFinder · Phase 2", **Learning Plan**) and the YoID thread `YoID · yoid-ng-7f3a0123 · mock-up` (Saved Opportunity and Learning Plan recorded, Skill Credential in progress, Job Application next).
++- "Back to the listing" in the header goes to `return` (only an `http:` or `https:` URL; otherwise the link is hidden).
++- Once `cred-002` is recorded, the leaving card "Handing on to YoCV · Phase 4" shows **Continue to YoCV**. It opens, in the same tab, `NEXT_PUBLIC_YOCV_URL/?as=halima&journey=demo&from=skilllens&yoid=…&listing=…&goal=…&plan=…&course=…&credential=cred-002&return=…`: every parameter received, plus `from` and `credential`.
++
++To try it locally next to the other prototypes, run SkillLens on port 3001 (`npm run dev -- -p 3001`). Without `journey=demo` the page is the same as before. Details: [INTEGRATION.md](INTEGRATION.md) section 9.
++
+ **Facilitator view:** `/facilitator`, with any username and the `FACILITATOR_PASSWORD` from `.env.local`. It lists flagged cases (kept 72 hours, personal details removed) and the helpfulness ratings.
+ 
+ ## Commands
+@@ -135,6 +150,7 @@ All are in `.env.example`. Never commit real keys: `.env.local` is git-ignored.
+ | `FACILITATOR_PASSWORD` | | opening `/facilitator` (it stays closed until set) |
+ | `PASS_SIGNING_SECRET` | random, from `npm run setup` | signs the one-time pass a Level 2 pass earns, so the mocked YoID write accepts only passes the server scored. Set it on any host with more than one server instance (Vercel). |
+ | `NEXT_PUBLIC_P2E_ORIGIN` | same origin | the P2E origin allowed to embed SkillLens and receive saved samples |
++| `NEXT_PUBLIC_YOCV_URL` | `http://localhost:4174` | the connected journey: YoCV's address (`YOCV_URL` in the journey contract) for the "Continue to YoCV" button. Read at build time, like every `NEXT_PUBLIC_` setting. |
+ | `YOMA_MODE` | `mock` | `live` sends to Yoma with the learner's own token |
+ | `YOMA_API_BASE_URL` | Yoma stage | Yoma API base, ending in `/api/v3` |
+ | `YOMA_OPPORTUNITY_IDS` | | live: `financial-literacy:<guid>,job-readiness:<guid>` |
+diff --git a/docs/PROGRESS.md b/docs/PROGRESS.md
+index 1a164b4..cbf683d 100644
+--- a/docs/PROGRESS.md
++++ b/docs/PROGRESS.md
+@@ -190,6 +190,7 @@ Then open `http://localhost:3000/demo/p2e` in the browser's phone view. `npm run
+ 
+ | Date | Step | What changed |
+ | --- | --- | --- |
++| 2026-11-28 | Connected journey (journey contract v1) | `/demo/p2e?journey=demo` takes PathFinder's link (`course=opp-course-001` → Solar PV, `yoid=yoid-ng-7f3a0123` → Halima), shows the arriving card, the four-step YoID strip and "Back to the listing", and after `cred-002` is recorded the leaving card with "Continue to YoCV" (same tab, every parameter passed on plus `credential=cred-002`; `NEXT_PUBLIC_YOCV_URL`, default `http://localhost:4174`). Without `journey=demo` nothing changes. 13 new tests (`lib/journey.test.ts`) |
+ | 2026-11-25 | Shared mock data, Yoma design, YoID thread, handover | Follows the BBS x GenU shared learner Halima Y. (data/shared, v1.1): Solar PV Installation Basics course, the shared challenge chal-001 word for word, Learning Plan plan-001 in from PathFinder, Skill Credential cred-002 out to YoCV. A mocked YoID thread records each handoff item; cred-002 is written only for a pass the server scored, after the learner's tap. All colours and fonts now come from Yoma's tokens (app/yoma-tokens.css, Nunito and Open Sans). HANDOVER.md: what is live, rule-based and mocked; what to provide; limitations; next steps |
+ | 2026-11-25 | YoID credential design and end-screen preview | Designed (not built) how a passed challenge becomes a skill credential in the learner's YoID wallet through Yoma's existing completion and credential pipeline (INTEGRATION.md section 8, Claude Doc); the saved screen shows a labelled design preview with consent, the credential card and its three stages; pass rule: every part Good or Strong at Level 2 (lib/credential.ts) |
+ | 2026-11-21 | Complete challenges, lesson recap, help when confused | Every challenge gives all the numbers it needs (the profit challenge now has the price and both ingredient costs; goods and amounts come from the locale, the AI only picks names and workplaces); each card shows "Remember from the lesson" with the facts it relies on; the course-tools criterion uses each challenge's own tools, so a profit question is not given a budgeting tip; an answer saying the question is confusing gets step-by-step help and nothing is scored; "Did well" only praises criteria at Good or above |
+-- 
+2.43.0
+
