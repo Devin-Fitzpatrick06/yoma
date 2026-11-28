@@ -3,8 +3,10 @@ import { describe, test } from "node:test";
 import type { CourseQualityAIUsage } from "~/api/models/courseQuality";
 import {
   AI_USAGE_LOCAL_FIXTURE,
+  AI_USAGE_MIXED_HISTORY_FIXTURE,
   AI_USAGE_REMOTE_PRICED_FIXTURE,
   AI_USAGE_REMOTE_UNPRICED_FIXTURE,
+  AI_USAGE_SUMMARY_FIXTURE,
 } from "./AIUsage.fixtures";
 import {
   COST_NOT_CONFIGURED_TEXT,
@@ -62,13 +64,59 @@ describe("cost", () => {
     assert.equal(formatRunCost({ isLocal: false, costUsd: 0.0412 }), "$0.0412");
   });
 
+  const totals = { unpricedRuns: 0, remoteRuns: 0 };
+
   test("the panel total is free for a local model with nothing billed", () => {
     assert.equal(
-      formatTotalCost({ isLocal: true, costUsd: 0 }),
+      formatTotalCost({ ...totals, isLocal: true, costUsd: 0 }),
       LOCAL_COST_TEXT,
     );
-    assert.equal(formatTotalCost({ isLocal: false, costUsd: 0 }), "$0.00");
-    assert.equal(formatTotalCost({ isLocal: false, costUsd: 3.5 }), "$3.50");
+    assert.equal(
+      formatTotalCost({ ...totals, isLocal: false, costUsd: 0 }),
+      "$0.00",
+    );
+    assert.equal(
+      formatTotalCost({ ...totals, isLocal: false, costUsd: 3.5 }),
+      "$3.50",
+    );
+  });
+
+  test("the panel total names the runs without a price", () => {
+    assert.equal(
+      formatTotalCost({
+        isLocal: false,
+        costUsd: 3.5,
+        unpricedRuns: 2,
+        remoteRuns: 4,
+      }),
+      "$3.50 known · 2 runs without a price",
+    );
+    assert.equal(
+      formatTotalCost({
+        isLocal: true,
+        costUsd: 0,
+        unpricedRuns: 1,
+        remoteRuns: 1,
+      }),
+      "$0.00 known · 1 run without a price",
+    );
+  });
+
+  test("a local model now is not free when the history has remote runs", () => {
+    assert.equal(
+      formatTotalCost({
+        isLocal: true,
+        costUsd: 0,
+        unpricedRuns: 0,
+        remoteRuns: 3,
+      }),
+      "$0.00",
+    );
+    assert.equal(
+      formatTotalCost(AI_USAGE_MIXED_HISTORY_FIXTURE),
+      "$0.0412 known · 1 run without a price",
+    );
+    assert.equal(formatTotalCost(AI_USAGE_SUMMARY_FIXTURE), LOCAL_COST_TEXT);
   });
 });
 

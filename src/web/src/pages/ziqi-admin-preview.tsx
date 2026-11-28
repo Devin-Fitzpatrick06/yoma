@@ -7,6 +7,7 @@ import {
   AI_SUMMARY_FIXTURE,
   AI_USAGE_EMPTY_FIXTURE,
   AI_USAGE_LOCAL_FIXTURE,
+  AI_USAGE_MIXED_HISTORY_FIXTURE,
   AI_USAGE_NOT_CONFIGURED_FIXTURE,
   AI_USAGE_REMOTE_PRICED_FIXTURE,
   AI_USAGE_REMOTE_UNPRICED_FIXTURE,
@@ -215,10 +216,15 @@ const ZiqiAdminPreview: NextPageWithLayout = () => (
 
       <PreviewSection
         title="Admin: AI usage"
-        description="On the Ziqi reviewer queue: the configured model, totals and recent runs; then no runs yet, and no model configured."
+        description="On the Ziqi reviewer queue: the configured model, totals and recent runs; a local model with older remote runs, one without a price; then no runs yet, and no model configured."
       >
         <AIUsagePanel
           summary={AI_USAGE_SUMMARY_FIXTURE}
+          isLoading={false}
+          isError={false}
+        />
+        <AIUsagePanel
+          summary={AI_USAGE_MIXED_HISTORY_FIXTURE}
           isLoading={false}
           isError={false}
         />

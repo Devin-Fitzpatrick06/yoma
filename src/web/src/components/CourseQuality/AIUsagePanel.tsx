@@ -43,10 +43,8 @@ const AIUsagePanel: React.FC<{
   onRetry?: () => void;
 }> = ({ summary, isLoading, isError, onRetry }) => {
   const id = useId();
-  const unpricedRuns =
-    summary?.recent.filter(
-      (run) => !run.usage.isLocal && run.usage.costUsd == null,
-    ).length ?? 0;
+  // from the API's totals, so runs older than the recent list count too
+  const unpricedRuns = summary?.unpricedRuns ?? 0;
 
   return (
     <section
@@ -170,8 +168,8 @@ const AIUsagePanel: React.FC<{
           {unpricedRuns > 0 && (
             <p className="text-gray-dark text-xs">
               Total cost counts only runs with a configured price;{" "}
-              {unpricedRuns} recent{" "}
-              {unpricedRuns === 1 ? "run shows" : "runs show"} &ldquo;
+              {unpricedRuns} {unpricedRuns === 1 ? "run" : "runs"} in all (older
+              ones included) {unpricedRuns === 1 ? "shows" : "show"} &ldquo;
               {COST_NOT_CONFIGURED_TEXT}&rdquo;.
             </p>
           )}

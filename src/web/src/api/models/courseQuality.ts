@@ -360,6 +360,8 @@ export interface CourseQualityAIUsageSummary {
   inputTokens: number;
   outputTokens: number;
   costUsd: number; // sum of known costs
+  unpricedRuns: number; // stored runs (history included) with an unknown cost, left out of costUsd
+  remoteRuns: number; // stored runs (history included) on a model that was not local
   averageDurationMs: number | null;
   recent: CourseQualityAIRun[]; // newest first, at most 20
 }

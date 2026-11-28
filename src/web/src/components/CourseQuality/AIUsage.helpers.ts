@@ -130,13 +130,32 @@ export const formatRunLine = (usage: CourseQualityAIUsage): string =>
 export const LOCAL_BADGE_TEXT = "Local · free";
 export const REMOTE_BADGE_TEXT = "Remote · billed";
 
-/** The admin panel's total cost: free when the configured model is local and nothing was billed. */
+/** "1 run", "3 runs" */
+const runs = (count: number): string =>
+  `${formatTokens(count)} ${count === 1 ? "run" : "runs"}`;
+
+/**
+ * The admin panel's total cost, from the stored history rather than the model configured now:
+ * - "$0.0412 known · 3 runs without a price" whenever some runs have no price, so the total never
+ *   reads as complete when it is not;
+ * - "$0.00 (local, free)" only when every run was local and nothing was billed;
+ * - otherwise the known total.
+ */
 export const formatTotalCost = (
-  summary: Pick<CourseQualityAIUsageSummary, "isLocal" | "costUsd">,
-): string =>
-  summary.isLocal && !(finite(summary.costUsd) ?? 0)
+  summary: Pick<
+    CourseQualityAIUsageSummary,
+    "isLocal" | "costUsd" | "unpricedRuns" | "remoteRuns"
+  >,
+): string => {
+  const unpriced = Math.max(0, Math.round(finite(summary.unpricedRuns) ?? 0));
+  if (unpriced > 0)
+    return `${formatUsd(summary.costUsd)} known · ${runs(unpriced)} without a price`;
+
+  const remote = Math.max(0, Math.round(finite(summary.remoteRuns) ?? 0));
+  return summary.isLocal && remote === 0 && !(finite(summary.costUsd) ?? 0)
     ? LOCAL_COST_TEXT
     : formatUsd(summary.costUsd);
+};
 
 /** What to set in the API configuration when no model is configured. */
 export const CONFIGURE_AI_STEPS: { setting: string; example: string }[] = [
@@ -146,5 +165,8 @@ export const CONFIGURE_AI_STEPS: { setting: string; example: string }[] = [
     example: "http://localhost:11434/v1 (Ollama)",
   },
   { setting: "AI:OpenAICompatible:Model", example: "qwen2.5:3b" },
-  { setting: "AI:OpenAICompatible:IsLocal", example: "true (cost 0)" },
+  {
+    setting: "AI:OpenAICompatible:IsLocal",
+    example: "true for your own host (cost 0); default false",
+  },
 ];

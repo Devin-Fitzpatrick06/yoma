@@ -56,6 +56,8 @@ export const AI_USAGE_SUMMARY_FIXTURE: CourseQualityAIUsageSummary = {
   inputTokens: 9_604,
   outputTokens: 1_031,
   costUsd: 0,
+  unpricedRuns: 0,
+  remoteRuns: 0,
   averageDurationMs: 51_300,
   recent: [
     {
@@ -95,6 +97,39 @@ export const AI_USAGE_SUMMARY_FIXTURE: CourseQualityAIUsageSummary = {
   ],
 };
 
+/**
+ * Local now, with older remote runs in the history: one priced, one without a price. The total
+ * must not read "local, free".
+ */
+export const AI_USAGE_MIXED_HISTORY_FIXTURE: CourseQualityAIUsageSummary = {
+  ...AI_USAGE_SUMMARY_FIXTURE,
+  runs: 5,
+  answered: 3,
+  inputTokens: 21_704,
+  outputTokens: 1_956,
+  costUsd: 0.0412,
+  unpricedRuns: 1,
+  remoteRuns: 2,
+  averageDurationMs: 57_400,
+  recent: [
+    ...AI_USAGE_SUMMARY_FIXTURE.recent,
+    {
+      assessmentId: "fixture-assessment-4",
+      opportunityId: "00000000-0000-0000-0000-000000000004",
+      opportunityTitle: "Example: Spreadsheet basics",
+      organizationId: "00000000-0000-0000-0000-0000000000a1",
+      usage: AI_USAGE_REMOTE_PRICED_FIXTURE,
+    },
+    {
+      assessmentId: "fixture-assessment-5",
+      opportunityId: "00000000-0000-0000-0000-000000000005",
+      opportunityTitle: "Example: Community health volunteer",
+      organizationId: "00000000-0000-0000-0000-0000000000a1",
+      usage: AI_USAGE_REMOTE_UNPRICED_FIXTURE,
+    },
+  ],
+};
+
 export const AI_USAGE_EMPTY_FIXTURE: CourseQualityAIUsageSummary = {
   ...AI_USAGE_SUMMARY_FIXTURE,
   runs: 0,
@@ -102,6 +137,8 @@ export const AI_USAGE_EMPTY_FIXTURE: CourseQualityAIUsageSummary = {
   inputTokens: 0,
   outputTokens: 0,
   costUsd: 0,
+  unpricedRuns: 0,
+  remoteRuns: 0,
   averageDurationMs: null,
   recent: [],
 };
