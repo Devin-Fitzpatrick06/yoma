@@ -13,7 +13,11 @@ pre-publish check, and the partner publishes after an explicit sign-off.
 
 ## Open it
 
-Double-click `index.html`, or serve the folder:
+**Live, clickable (private link, share it from the page's Share menu):**
+https://claude.ai/artifact/6bqfNgL43ErazSq1MFHqMg. It scales to fit any screen, including a phone.
+
+Locally:
+double-click `index.html`, or serve the folder:
 
 ```bash
 python3 -m http.server 8080 --directory docs/work/active/course-quality-judger/co-author-mockup

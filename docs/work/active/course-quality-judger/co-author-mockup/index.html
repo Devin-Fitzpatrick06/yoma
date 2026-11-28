@@ -37,12 +37,14 @@ p { margin: 0; }
 .viewer a.on { background: var(--purple); color: var(--white); border-color: var(--purple); }
 .viewer .hint { font-weight: 600; color: var(--gray-dark); font-size: 12px; margin-left: 8px; }
 
-.stage { display: flex; flex-direction: column; align-items: center; gap: 48px; padding: 8px 16px 48px; }
-body.board .stage { flex-direction: row; align-items: flex-start; width: max-content; padding: 24px; }
+.viewer { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.stage { display: block; overflow: hidden; padding-block: 8px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.stage .frame { transform-origin: 0 0; margin: 0 auto; }
+body.board .stage { display: flex; flex-direction: row; align-items: flex-start; gap: 48px; overflow: visible; width: max-content; padding: 24px; }
 body.board .viewer { display: none; }
 
 /* A FRAME = one Figma frame */
-.frame { width: 1760px; display: none; flex-direction: row; background: var(--white); box-shadow: 0 4px 24px rgba(0,0,0,.12); }
+.frame { width: 1760px; flex: none; display: none; flex-direction: row; background: var(--white); box-shadow: 0 4px 24px rgba(0,0,0,.12); }
 .frame.active, body.board .frame { display: flex; }
 body.nonotes .frame { width: 1440px; }
 body.nonotes .rail { display: none; }
@@ -194,7 +196,7 @@ body.nonotes .pin { display: none; }
   <a href="#s2" data-s="s2">2 · Draft ready</a>
   <a href="#s3" data-s="s3">3 · Ziqi check</a>
   <a href="#s4" data-s="s4">4 · Review &amp; publish</a>
-  <a href="?board" id="boardlink">All screens (Figma import)</a>
+  <a href="?board#board" id="boardlink">All screens (Figma import)</a>
   <a href="#" id="notestoggle">Hide notes</a>
   <span class="hint">Click the buttons inside each screen to move through the flow. ← → keys also work.</span>
 </nav>
@@ -523,24 +525,43 @@ body.nonotes .pin { display: none; }
 (function () {
   var params = new URLSearchParams(location.search);
   var body = document.body;
-  if (params.has("board")) body.classList.add("board");
+  var stage = document.querySelector(".stage");
+  if (params.has("board") || location.hash === "#board") body.classList.add("board");
   if (params.get("notes") === "0") body.classList.add("nonotes");
   var ids = ["s1", "s2", "s3", "s4"];
-  function show() {
-    if (body.classList.contains("board")) return;
+  function current() {
     var id = (location.hash || "#s1").slice(1);
-    if (ids.indexOf(id) < 0) id = "s1";
+    return ids.indexOf(id) < 0 ? "s1" : id;
+  }
+  // Scale the active 1440/1760 px frame down to the window, so it plays on a laptop or a phone.
+  function fit() {
+    if (body.classList.contains("board")) return;
+    var f = document.getElementById(current());
+    f.style.transform = "none";
+    stage.style.height = "";
+    var cs = getComputedStyle(stage);
+    var avail = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    var sc = Math.min(1, avail / f.offsetWidth);
+    f.style.marginLeft = sc < 1 ? "0" : "auto";
+    f.style.transform = sc < 1 ? "scale(" + sc + ")" : "none";
+    stage.style.height = (f.offsetHeight * sc + parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom)) + "px";
+  }
+  function show() {
+    if (location.hash === "#board" && !body.classList.contains("board")) { body.classList.add("board"); }
+    if (body.classList.contains("board")) return;
+    var id = current();
     ids.forEach(function (s) {
       document.getElementById(s).classList.toggle("active", s === id);
       var a = document.querySelector('.viewer a[data-s="' + s + '"]');
       if (a) a.classList.toggle("on", s === id);
     });
+    fit();
     window.scrollTo(0, 0);
   }
   window.addEventListener("hashchange", show);
+  window.addEventListener("resize", fit);
   document.addEventListener("keydown", function (e) {
-    var i = ids.indexOf((location.hash || "#s1").slice(1));
-    if (i < 0) i = 0;
+    var i = ids.indexOf(current());
     if (e.key === "ArrowRight" && i < 3) location.hash = ids[i + 1];
     if (e.key === "ArrowLeft" && i > 0) location.hash = ids[i - 1];
   });
@@ -550,7 +571,9 @@ body.nonotes .pin { display: none; }
     e.preventDefault();
     body.classList.toggle("nonotes");
     t.textContent = body.classList.contains("nonotes") ? "Show notes" : "Hide notes";
+    fit();
   });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
   show();
 })();
 </script>
