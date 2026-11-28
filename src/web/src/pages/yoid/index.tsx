@@ -11,6 +11,13 @@ import { UserSkillType } from "~/api/models/user";
 import { getUserSkills } from "~/api/services/user";
 import { Header } from "~/components/Common/Header";
 import Suspense from "~/components/Common/Suspense";
+import { JourneyYoidCard } from "~/components/Journey/JourneyYoidCard";
+import {
+  JOURNEY_ACTIVE,
+  JOURNEY_CONFIG,
+  JOURNEY_LISTING_HREF,
+} from "~/components/Journey/journeyConfig";
+import { useJourneyListingSaved } from "~/components/Journey/useJourneyListingSaved";
 import YoIDLayout from "~/components/Layout/YoID";
 import NoRowsMessage from "~/components/NoRowsMessage";
 import { InternalServerError } from "~/components/Status/InternalServerError";
@@ -142,6 +149,9 @@ const YoIDDashboard: NextPageWithLayout<{
     enabled: !error && pathway_enabled,
   });
 
+  // connected journey (demo): has the youth saved the journey listing?
+  const journeySaved = useJourneyListingSaved(!error);
+
   if (error) {
     if (error === 401) return <Unauthenticated />;
     else if (error === 403) return <Unauthorized />;
@@ -194,6 +204,31 @@ const YoIDDashboard: NextPageWithLayout<{
                 }
               >
                 <MyPathCard summary={myPath ?? null} />
+              </Suspense>
+            </div>
+          </div>
+        )}
+
+        {/* CONNECTED JOURNEY (demo, NEXT_PUBLIC_JOURNEY_ENABLED) */}
+        {JOURNEY_ACTIVE && JOURNEY_LISTING_HREF && (
+          <div className="flex w-full flex-col gap-2 sm:w-[300px] md:w-[350px] lg:w-[400px]">
+            <Header title="☀️ Your journey" url={JOURNEY_LISTING_HREF} />
+            <div className="flex min-h-[185px] w-full flex-col gap-4 rounded-lg bg-white p-4 shadow">
+              <Suspense
+                className="flex grow flex-col"
+                isLoading={journeySaved.isLoading}
+                loader={
+                  <LoadingInline
+                    className="h-[185px] flex-col p-0"
+                    classNameSpinner="h-12 w-12"
+                  />
+                }
+              >
+                <JourneyYoidCard
+                  saved={journeySaved.saved}
+                  yoid={JOURNEY_CONFIG.yoid}
+                  listingHref={JOURNEY_LISTING_HREF}
+                />
               </Suspense>
             </div>
           </div>

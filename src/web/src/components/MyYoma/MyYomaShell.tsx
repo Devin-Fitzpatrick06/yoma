@@ -5,6 +5,7 @@ import {
   ListPageHeader,
   ListPageShell,
 } from "~/components/Common/ListPage/ListPageHeader";
+import { JOURNEY_ACTIVE } from "~/components/Journey/journeyConfig";
 import { SignInButton } from "~/components/SignInButton";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -33,6 +34,17 @@ const TITLES: Record<
   },
 };
 
+// Connected journey (demo, NEXT_PUBLIC_JOURNEY_ENABLED): My Yoma maps the route within Yoma, and
+// PathFinder plans across platforms, so the path banner names it as the route on Yoma.
+const JOURNEY_PATH_TITLE = {
+  title: "Your route on Yoma",
+  description:
+    "Your route on Yoma, what you have done so far and where it leads.",
+};
+
+const titleFor = (stage: Exclude<MyYomaStage, "firstVisit">) =>
+  JOURNEY_ACTIVE && stage === "path" ? JOURNEY_PATH_TITLE : TITLES[stage];
+
 export const MyYomaShell: React.FC<{
   stage: MyYomaStage;
   children: ReactNode;
@@ -52,8 +64,8 @@ export const MyYomaShell: React.FC<{
       </Head>
       <ListPageShell>
         <ListPageHeader
-          title={TITLES[stage].title}
-          description={TITLES[stage].description}
+          title={titleFor(stage).title}
+          description={titleFor(stage).description}
         />
         <ListPageBody>{children}</ListPageBody>
       </ListPageShell>
