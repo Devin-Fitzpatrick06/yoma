@@ -115,6 +115,12 @@ const ApiClient = async () => {
     },
   );
 
+  /** Requests that are expected to take long: Ziqi's AI check and link health check. */
+  const isSlowByDesign = (url: string | undefined): boolean =>
+    !!url &&
+    (/\/courseQuality\/opportunity\/[^/]+\/assess(?:$|\?)/.test(url) ||
+      /\/courseQuality\/links\/check(?:$|\?)/.test(url));
+
   //* Intercept requests/responses for NProgress
   instance.interceptors.request.use((config) => {
     const isCsvUpload = isCsvUploadRequest(config);
@@ -128,8 +134,13 @@ const ApiClient = async () => {
     // 📊 ANALYTICS: Add request start time for performance tracking
     (config as any).requestStartTime = Date.now();
 
-    // Start a timeout that will show a "slow network" message after timeout
-    if (!slowNetworkMessageDismissed && !isCsvUpload) {
+    // Start a timeout that will show a "slow network" message after timeout. Ziqi's AI and link
+    // checks are slow by design (a local model can take minutes), so they never trigger it.
+    if (
+      !slowNetworkMessageDismissed &&
+      !isCsvUpload &&
+      !isSlowByDesign(config.url)
+    ) {
       const timeoutId = setTimeout(() => {
         // 📊 ANALYTICS: Track slow network warning
         analytics.trackEvent("api_slow_network_warning", {
