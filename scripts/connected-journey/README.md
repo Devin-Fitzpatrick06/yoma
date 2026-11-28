@@ -90,7 +90,7 @@ listing afterwards.
    Yoma. Open the solar job,
    `http://localhost:3000/opportunities/c0a7e000-0000-4000-8000-000000000301`: it shows Ziqi's verdict, "Checked by
    Ziqi: Verified · Grade A". Save it.
-2. **"Plan it with PathFinder"** opens PathFinder: the plan, with the scam job held back from it.
+2. **"Continue to PathFinder"** opens PathFinder: the plan, with the scam job held back from it.
 3. **"Continue to SkillLens"** opens SkillLens: the challenge, passed on attempt 2, credential recorded.
 4. **"Continue to YoCV"** opens YoCV: the CV with the verified credential, the QR, Apply.
 5. **"Back to the listing"** returns to the Ziqi listing, which shows "Job Application received", with the thread

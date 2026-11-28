@@ -167,7 +167,7 @@ The click path, all in one tab:
   1. Ziqi: sign in as halima.yusuf@example.org / P@ssword12. My Yoma asks 4 quick questions the first time (pick
      "Sales & customer service"), then shows her route on Yoma. Open the solar job ($LISTING):
      it shows "Checked by Ziqi: Verified · Grade A". Save it.
-  2. "Plan it with PathFinder" opens PathFinder: the plan, with the scam job held back from it.
+  2. "Continue to PathFinder" opens PathFinder: the plan, with the scam job held back from it.
   3. "Continue to SkillLens" opens SkillLens: switch to Computer view if it opens in Phone view. The challenge, passed
      on attempt 2. Tap "Save to my profile", then "Add Skill Credential to my YoID".
   4. "Continue to YoCV" opens YoCV: pick the role "Solar installation assistant" if it is not preselected. The CV with

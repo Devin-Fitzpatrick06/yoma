@@ -122,7 +122,7 @@ same thread. Label it "YoID · yoid-ng-7f3a0123 · mock-up".
   - Ziqi then audits them for real, so the grades on screen are Ziqi's own. Update the contract to match.
 - **Z2. Halima.** A demo sign-in (`halima@…`, local only) with the Yoma preferences "Get a job", solar, Kaduna.
 - **Z3. Save → Saved Opportunity.** On the `opp-job-001` listing, saving (Yoma's existing save action) shows the
-  handoff card "Handing on to PathFinder · Phase 2" with "Plan it with PathFinder", linking to
+  handoff card "Handing on to PathFinder · Phase 2" with "Continue to PathFinder", linking to
   `PATHFINDER_URL/?journey=demo&from=ziqi&listing=opp-job-001&goal=job&yoid=…&return=<this listing>`.
 - **Z4. Close the loop.** The same listing page, opened with `?from=yocv&application=app-001`, shows "Job Application
   received · Phase 4" with the thread fully recorded. This is the journey's last screen.

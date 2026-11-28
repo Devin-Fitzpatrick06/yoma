@@ -9,7 +9,7 @@
 #   ./start.sh --fixtures   use only the demo pages for the named courses 101 to 108
 #   ./start.sh --journey    also the connected four-prototype journey: the shared mock data's listings, Halima's sign-in,
 #                           Ziqi's checks on them, and the website's journey switches. PATHFINDER_URL (default
-#                           http://localhost:4173) is where "Plan it with PathFinder" links. The other three prototypes
+#                           http://localhost:4173) is where "Continue to PathFinder" links. The other three prototypes
 #                           start with scripts/connected-journey/journey.sh.
 # Ziqi's AI check (off unless one of these is given; the start-up checks always run without it, so it never slows them):
 #   --local-ai                  a free open model in Docker (Ollama, CPU only on a Mac), default qwen2.5:3b
