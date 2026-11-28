@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Partner Co-author Mock-up</title>
+<!--
+  AI co-author in the Yoma partner portal: MOCK-UP, not a working build.
+  Fictional sample data from scripts/course-quality-demo/journey/shared-mock-data.json (newIdeas.coAuthor).
+  Views:  #s1 … #s4 one screen (clickable)   ?board  all four side by side (for Figma import)
+          ?notes=0  hide the design-notes rail
+  Built for Figma import (html.to.design): flexbox only, real text, no images, no sticky/fixed layers.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* Yoma tokens, copied from src/web/src/styles/colors.css */
+  --white: #ffffff; --white-shade: #f7f7f7; --black: #020304;
+  --blue: #4cade9; --blue-light: #edf6fd; --blue-dark: #2487c5;
+  --purple: #41204b; --purple-shade: #54365d; --purple-soft: #c3a2cd; --purple-tint: #e7d4ed;
+  --orange: #f9ab3e; --orange-light: #fdeed8; --pink: #fe4d57;
+  --green: #387f6a; --green-light: #e6f5f3; --green-dark: #4ca78c;
+  --yellow: #d48414; --yellow-tint: #fae4c6; --beige: #f7f5eb; --beige-light: #fffef8;
+  --gray-dark: #545859; --gray: #dce0e5; --gray-light: #f3f6fa;
+  --shadow: 0 1px 6px rgba(2,3,4,.08);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #e9e9ee; color: var(--black); font-family: "Open Sans", "Nunito", system-ui, sans-serif; font-size: 14px; line-height: 1.45; }
+h1,h2,h3,h4,h5 { font-family: "Nunito", system-ui, sans-serif; margin: 0; }
+p { margin: 0; }
+
+/* Viewer chrome (outside the frames; not part of the design) */
+.viewer { display: flex; align-items: center; gap: 8px; padding: 10px 16px; font-family: "Nunito", sans-serif; font-weight: 700; flex-wrap: wrap; }
+.viewer a { color: var(--purple); text-decoration: none; padding: 6px 12px; border-radius: 999px; background: var(--white); border: 1px solid var(--gray); font-size: 13px; }
+.viewer a.on { background: var(--purple); color: var(--white); border-color: var(--purple); }
+.viewer .hint { font-weight: 600; color: var(--gray-dark); font-size: 12px; margin-left: 8px; }
+
+.stage { display: flex; flex-direction: column; align-items: center; gap: 48px; padding: 8px 16px 48px; }
+body.board .stage { flex-direction: row; align-items: flex-start; width: max-content; padding: 24px; }
+body.board .viewer { display: none; }
+
+/* A FRAME = one Figma frame */
+.frame { width: 1760px; display: none; flex-direction: row; background: var(--white); box-shadow: 0 4px 24px rgba(0,0,0,.12); }
+.frame.active, body.board .frame { display: flex; }
+body.nonotes .frame { width: 1440px; }
+body.nonotes .rail { display: none; }
+
+.app { width: 1440px; flex: none; display: flex; flex-direction: column; background: var(--white-shade); position: relative; }
+.mockflag { display: flex; justify-content: center; align-items: center; gap: 10px; height: 28px; background: var(--orange); color: var(--purple); font: 800 12px "Nunito", sans-serif; letter-spacing: .06em; text-transform: uppercase; }
+.nav { height: 64px; background: var(--purple); display: flex; align-items: center; justify-content: space-between; padding: 0 32px; color: var(--white); }
+.nav .brand { font: 800 28px "Nunito", sans-serif; letter-spacing: -.02em; }
+.nav .brand small { font: 600 12px "Open Sans", sans-serif; opacity: .7; margin-left: 10px; letter-spacing: 0; }
+.nav .right { display: flex; align-items: center; gap: 14px; font-weight: 600; font-size: 13px; }
+.nav .orgpill { display: flex; align-items: center; gap: 8px; background: var(--purple-shade); padding: 6px 12px 6px 6px; border-radius: 999px; }
+.logo { width: 26px; height: 26px; border-radius: 999px; background: var(--orange); color: var(--purple); display: flex; align-items: center; justify-content: center; font: 800 11px "Nunito", sans-serif; }
+.band { background: var(--purple); height: 210px; margin-bottom: -210px; }
+.page { padding: 18px 56px 48px; display: flex; flex-direction: column; }
+.crumb { display: flex; gap: 8px; color: var(--white); font-size: 12px; font-weight: 700; }
+.crumb span.sep { opacity: .7; }
+.pagehead { display: flex; align-items: center; justify-content: space-between; margin: 8px 0 22px; }
+.pagehead h3 { color: var(--white); font-size: 24px; font-weight: 800; }
+.pagehead .saved { color: var(--purple-tint); font-size: 12px; font-weight: 600; }
+
+.main { display: flex; flex-direction: row; gap: 16px; align-items: flex-start; }
+.menu { width: 256px; flex: none; background: var(--white); border-radius: 8px; box-shadow: var(--shadow); padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.mi { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 8px; background: var(--gray-light); color: var(--gray-dark); font: 700 14px "Nunito", sans-serif; }
+.mi.cur { background: var(--green-light); color: var(--green); }
+.mi .tag { margin-left: auto; font: 700 10px "Open Sans", sans-serif; padding: 2px 7px; border-radius: 999px; }
+.ic { width: 22px; height: 22px; flex: none; border-radius: 999px; display: flex; align-items: center; justify-content: center; font: 800 13px "Nunito", sans-serif; color: var(--white); }
+.ic.ok { background: var(--green); }
+.ic.warn { background: var(--yellow); }
+.ic.you { background: var(--blue); }
+.ic.idle { background: var(--gray); color: var(--gray-dark); }
+
+.card { flex: 1; background: var(--white); border-radius: 8px; box-shadow: var(--shadow); padding: 32px; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.card h5 { font-size: 18px; font-weight: 800; letter-spacing: .02em; }
+.card .lead { font-size: 13px; color: var(--gray-dark); margin-top: -12px; }
+.side { width: 336px; flex: none; display: flex; flex-direction: column; gap: 16px; }
+.panel { background: var(--white); border-radius: 8px; box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.panel h4 { font-size: 15px; font-weight: 800; color: var(--purple); }
+
+/* fields */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.flabel { display: flex; align-items: center; gap: 8px; font: 700 14px "Nunito", sans-serif; }
+.fsub { font-size: 12px; color: var(--gray-dark); }
+.input { border: 1px solid var(--gray); border-radius: 8px; padding: 10px 12px; background: var(--white); min-height: 42px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.input.area { align-items: flex-start; min-height: 96px; line-height: 1.6; display: block; }
+.input.empty { color: #9aa0a6; }
+.input.ai { border-color: var(--purple-soft); background: #fcf8fd; }
+.input.you { border-color: var(--blue); background: var(--blue-light); }
+.row { display: flex; gap: 16px; }
+.row > * { flex: 1; min-width: 0; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--gray-light); font-size: 12px; font-weight: 600; }
+.chip.sel { background: var(--purple); color: var(--white); }
+.chip.green { background: var(--green-light); color: var(--green); }
+
+/* provenance tags */
+.src { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font: 700 10px "Open Sans", sans-serif; letter-spacing: .02em; white-space: nowrap; }
+.src.ai { background: var(--purple-tint); color: var(--purple); }
+.src.you { background: var(--blue-light); color: var(--blue-dark); }
+.src.prof { background: var(--green-light); color: var(--green); }
+.src.dec { background: var(--yellow-tint); color: #8a5208; }
+mark.added { background: var(--orange-light); border-bottom: 2px dashed var(--yellow); padding: 1px 2px; color: inherit; }
+.addedbox { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--yellow-tint); background: var(--beige-light); border-radius: 8px; padding: 12px; }
+.addedrow { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.addedrow .q { flex: 1; }
+.mini { text-decoration: none; white-space: nowrap; font: 700 12px "Nunito", sans-serif; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--gray); background: var(--white); color: var(--black); }
+.mini.keep { border-color: var(--green); color: var(--green); }
+.mini.keep.on { background: var(--green); color: var(--white); }
+.mini.drop { color: var(--pink); border-color: #ffc2c5; }
+
+/* buttons */
+.btns { display: flex; gap: 12px; align-items: center; }
+.btn { font: 700 14px "Nunito", sans-serif; padding: 11px 22px; border-radius: 999px; border: 2px solid transparent; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.btn.primary { background: var(--blue); color: var(--white); }
+.btn.purple { background: var(--purple); color: var(--white); }
+.btn.ghost { background: var(--white); color: var(--purple); border-color: var(--purple); }
+.btn.text { background: none; color: var(--gray-dark); padding-left: 0; padding-right: 0; }
+.btn.dis { background: var(--gray); color: var(--gray-dark); }
+
+/* co-author box */
+.coauthor { border-radius: 12px; background: var(--purple-tint); padding: 22px; display: flex; flex-direction: column; gap: 14px; border: 1px solid var(--purple-soft); }
+.coauthor h4 { color: var(--purple); font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.spark { color: var(--orange); font-size: 18px; }
+.coauthor .input { border-color: var(--purple-soft); }
+.coauthor .note { font-size: 12px; color: var(--purple-shade); display: flex; gap: 6px; align-items: flex-start; }
+.ghostform { opacity: .45; display: flex; flex-direction: column; gap: 16px; }
+.divider { display: flex; align-items: center; gap: 12px; color: var(--gray-dark); font-size: 12px; font-weight: 700; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--gray); }
+
+.strip { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 8px; background: var(--green-light); color: var(--green); font-weight: 600; font-size: 13px; }
+.strip b { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 14px; }
+.strip .stats { flex: none; max-width: 260px; justify-content: flex-end; display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+.legend { display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--gray-dark); flex-wrap: wrap; }
+
+/* questions panel */
+.qa { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 8px; background: var(--gray-light); }
+.qa .qt { font: 700 13px "Nunito", sans-serif; display: flex; gap: 8px; align-items: center; }
+.qa .num { width: 20px; height: 20px; border-radius: 999px; background: var(--blue); color: var(--white); font: 800 11px "Nunito", sans-serif; display: flex; align-items: center; justify-content: center; flex: none; }
+.qa .why { font-size: 11px; color: var(--gray-dark); }
+.opts { display: flex; gap: 6px; flex-wrap: wrap; }
+.dec { display: flex; flex-direction: column; gap: 8px; }
+.decrow { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 8px 0; border-top: 1px solid var(--gray-light); }
+
+/* Ziqi panel */
+.ziqi .head { display: flex; align-items: center; gap: 10px; }
+.zlogo { width: 30px; height: 30px; border-radius: 8px; background: var(--purple); color: var(--orange); display: flex; align-items: center; justify-content: center; font: 800 15px "Nunito", sans-serif; }
+.status { display: flex; flex-direction: column; gap: 4px; padding: 14px; border-radius: 8px; }
+.status.ok { background: var(--green-light); color: var(--green); }
+.status.look { background: var(--yellow-tint); color: #8a5208; }
+.status b { font: 800 16px "Nunito", sans-serif; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.check .sc { margin-left: auto; font-weight: 700; color: var(--gray-dark); font-size: 12px; }
+.fix { border-left: 3px solid var(--yellow); padding: 8px 10px; background: var(--beige-light); display: flex; flex-direction: column; gap: 4px; font-size: 12px; border-radius: 0 6px 6px 0; }
+.fix a { color: var(--blue-dark); font-weight: 700; text-decoration: none; }
+.history { font-size: 11px; color: var(--gray-dark); display: flex; flex-direction: column; gap: 4px; border-top: 1px solid var(--gray-light); padding-top: 10px; }
+
+/* preview card (what a young person sees) */
+.preview { border: 1px solid var(--gray); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.preview .top { background: var(--beige); padding: 22px; display: flex; gap: 16px; align-items: flex-start; }
+.preview .biglogo { width: 56px; height: 56px; border-radius: 999px; background: var(--orange); color: var(--purple); display: flex; align-items: center; justify-content: center; font: 800 18px "Nunito", sans-serif; flex: none; }
+.preview h2 { font-size: 22px; font-weight: 800; color: var(--purple); }
+.preview .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.preview .body { padding: 22px; display: flex; flex-direction: column; gap: 14px; font-size: 14px; }
+.badge-z { background: var(--green-light); color: var(--green); }
+.badge-zlto { background: var(--orange-light); color: #8a5208; }
+.prov { display: flex; flex-direction: column; gap: 10px; }
+.provrow { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+.confirm { display: flex; gap: 10px; align-items: flex-start; padding: 14px; border-radius: 8px; border: 2px solid var(--blue); background: var(--blue-light); font-size: 13px; font-weight: 600; }
+.box { width: 20px; height: 20px; border-radius: 4px; background: var(--blue); color: var(--white); display: flex; align-items: center; justify-content: center; font: 800 13px "Nunito", sans-serif; flex: none; }
+
+/* numbered pins tying the UI to the notes rail */
+.pin { width: 22px; height: 22px; border-radius: 999px; background: var(--pink); color: var(--white); font: 800 12px "Nunito", sans-serif; display: inline-flex; align-items: center; justify-content: center; flex: none; box-shadow: 0 0 0 3px rgba(254,77,87,.2); }
+body.nonotes .pin { display: none; }
+
+/* design-notes rail */
+.rail { width: 320px; flex: none; background: var(--beige); padding: 28px 24px; display: flex; flex-direction: column; gap: 18px; border-left: 1px solid var(--yellow-tint); }
+.rail .step { font: 800 12px "Nunito", sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--yellow); }
+.rail h2 { font-size: 22px; font-weight: 800; color: var(--purple); line-height: 1.2; }
+.rail .intro { font-size: 13px; color: var(--purple-shade); }
+.rnote { display: flex; gap: 10px; font-size: 13px; }
+.rnote b { font-family: "Nunito", sans-serif; }
+.rbox { background: var(--white); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.rbox h5 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--gray-dark); }
+.rfoot { margin-top: auto; font-size: 11px; color: var(--gray-dark); border-top: 1px solid var(--yellow-tint); padding-top: 12px; }
+</style>
+</head>
+<body>
+
+<nav class="viewer" aria-label="Mock-up screens">
+  <a href="#s1" data-s="s1">1 · Describe</a>
+  <a href="#s2" data-s="s2">2 · Draft ready</a>
+  <a href="#s3" data-s="s3">3 · Ziqi check</a>
+  <a href="#s4" data-s="s4">4 · Review &amp; publish</a>
+  <a href="?board" id="boardlink">All screens (Figma import)</a>
+  <a href="#" id="notestoggle">Hide notes</a>
+  <span class="hint">Click the buttons inside each screen to move through the flow. ← → keys also work.</span>
+</nav>
+
+<div class="stage">
+
+<!-- ═════════════════════════ SCREEN 1 · DESCRIBE ═════════════════════════ -->
+<section class="frame" id="s1" data-name="1 · Describe">
+  <div class="app">
+    <div class="mockflag">Mock-up · not a working build · fictional sample data</div>
+    <div class="nav">
+      <div class="brand">yoma<small>Partner portal</small></div>
+      <div class="right"><span>Opportunities</span><span>Verifications</span><span>Insights</span>
+        <div class="orgpill"><div class="logo">AH</div>Arewa Tech Hub</div></div>
+    </div>
+    <div class="band"></div>
+    <div class="page">
+      <div class="crumb"><span>← Opportunities</span><span class="sep">|</span><span>Create</span></div>
+      <div class="pagehead"><h3>New opportunity</h3></div>
+      <div class="main">
+        <div class="menu">
+          <div class="mi cur"><span class="ic warn">!</span>General</div>
+          <div class="mi"><span class="ic warn">!</span>Details</div>
+          <div class="mi"><span class="ic warn">!</span>Rewards</div>
+          <div class="mi"><span class="ic warn">!</span>Skills</div>
+          <div class="mi"><span class="ic warn">!</span>Keywords</div>
+          <div class="mi"><span class="ic warn">!</span>Verification</div>
+          <div class="mi"><span class="ic idle">·</span>Credential</div>
+          <div class="mi"><span class="ic idle">·</span>Preview</div>
+        </div>
+        <div class="card">
+          <div class="coauthor">
+            <h4><span class="spark">✦</span>Draft this for me <span class="pin">1</span></h4>
+            <p style="font-size:13px;color:var(--purple-shade);margin-top:-6px">Tell us about your opportunity in a sentence or two. Yoma writes a first draft of every step. You check each field, and nothing is published until you press Publish.</p>
+            <div class="field">
+              <div class="flabel">What kind of opportunity is it?</div>
+              <div class="opts"><span class="chip">Learning</span><span class="chip">Job</span><span class="chip sel">Event</span><span class="chip">Impact action</span><span class="chip">Other</span></div>
+            </div>
+            <div class="field">
+              <div class="flabel">Describe it <span class="pin">2</span></div>
+              <div class="input area" style="min-height:80px">Green jobs fair at our hub on 12 Dec, solar and recycling companies coming, free, bring your CV</div>
+              <div class="fsub">Write it the way you'd say it to a colleague. English, Hausa, Yoruba or Pidgin is fine.</div>
+            </div>
+            <div class="field">
+              <div class="flabel">Link (optional)</div>
+              <div class="input">https://example.org/events/green-jobs-fair</div>
+            </div>
+            <div class="note"><span>🔒</span><span>Don't include young people's names or contact details. Your note is used only to draft this listing. <span class="pin">3</span></span></div>
+            <div class="btns">
+              <a class="btn primary" href="#s2"><span class="spark" style="color:var(--white)">✦</span>Draft my listing</a>
+              <span class="btn text">I'll fill it in myself</span>
+            </div>
+          </div>
+
+          <div class="divider">or fill in the steps yourself</div>
+
+          <div class="ghostform">
+            <div><h5>General</h5><p class="lead" style="margin-top:4px">Information about the opportunity that people can explore.</p></div>
+            <div class="field"><div class="flabel">Title</div><div class="input empty">A short title (max 150 characters)</div></div>
+            <div class="row">
+              <div class="field"><div class="flabel">Type</div><div class="input empty">Select…</div></div>
+              <div class="field"><div class="flabel">Engagement</div><div class="input empty">Select…</div></div>
+            </div>
+            <div class="field"><div class="flabel">Summary</div><div class="input empty">A brief summary shown on search results</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="rail">
+    <div class="step">Screen 1 of 4</div>
+    <h2>The partner describes it in one line</h2>
+    <p class="intro">Arewa Tech Hub, a small events partner in Kaduna, wants to list a green jobs fair. Today they face an 8-step form with 30+ fields.</p>
+    <div class="rnote"><span class="pin">1</span><span><b>Inside the existing form, not a new tool.</b> The box sits at the top of step 1 of the real 8-step wizard. Partners who prefer to type can ignore it.</span></div>
+    <div class="rnote"><span class="pin">2</span><span><b>Plain language in, structured listing out.</b> The note is the exact text from the shared mock data. Short, informal, missing details: what real partners send.</span></div>
+    <div class="rnote"><span class="pin">3</span><span><b>Safe by default.</b> A reminder not to paste personal data, since the note goes to a language model.</span></div>
+    <div class="rbox"><h5>Yoma data it uses</h5>Organisation profile (name, country, logo, languages) · opportunity types and categories · the skills list.</div>
+    <div class="rfoot">AI co-author for the partner portal · BBS × GenU · Mock-up, no AI calls. Sample: <code>newIdeas.coAuthor</code>, <code>org-arewahub</code>, <code>opp-event-001</code>.</div>
+  </aside>
+</section>
+
+<!-- ═════════════════════════ SCREEN 2 · DRAFT READY ═════════════════════════ -->
+<section class="frame" id="s2" data-name="2 · Draft ready">
+  <div class="app">
+    <div class="mockflag">Mock-up · not a working build · fictional sample data</div>
+    <div class="nav">
+      <div class="brand">yoma<small>Partner portal</small></div>
+      <div class="right"><span>Opportunities</span><span>Verifications</span><span>Insights</span>
+        <div class="orgpill"><div class="logo">AH</div>Arewa Tech Hub</div></div>
+    </div>
+    <div class="band"></div>
+    <div class="page">
+      <div class="crumb"><span>← Opportunities</span><span class="sep">|</span><span>Create</span></div>
+      <div class="pagehead"><h3>New opportunity</h3><span class="saved">Draft saved · not published</span></div>
+      <div class="main">
+        <div class="menu">
+          <div class="mi cur"><span class="ic ok">✓</span>General<span class="tag src ai">AI draft</span></div>
+          <div class="mi"><span class="ic warn">!</span>Details<span class="tag src you">2 questions</span></div>
+          <div class="mi"><span class="ic you">?</span>Rewards<span class="tag src dec">Your call</span></div>
+          <div class="mi"><span class="ic ok">✓</span>Skills<span class="tag src ai">AI draft</span></div>
+          <div class="mi"><span class="ic ok">✓</span>Keywords<span class="tag src ai">AI draft</span></div>
+          <div class="mi"><span class="ic you">?</span>Verification<span class="tag src dec">Your call</span></div>
+          <div class="mi"><span class="ic idle">·</span>Credential</div>
+          <div class="mi"><span class="ic idle">·</span>Preview</div>
+        </div>
+        <div class="card">
+          <div class="strip"><span class="spark">✦</span><span><b>Your draft is ready.</b> Check the purple fields, then answer 2 questions.</span>
+            <span class="stats"><span class="src ai">11 fields drafted</span><span class="src you">2 questions</span><span class="src dec">3 decisions</span></span></div>
+          <div class="legend">Where each value came from: <span class="src ai">✦ AI draft</span><span class="src you">From you</span><span class="src prof">Your profile</span><span class="src dec">Only you decide</span> <span class="pin">4</span></div>
+
+          <div><h5>General</h5></div>
+          <div class="field"><div class="flabel">Title <span class="src ai">✦ AI draft</span></div><div class="input ai">Kaduna Youth Green Jobs Fair</div></div>
+          <div class="row">
+            <div class="field"><div class="flabel">Type <span class="src you">From you</span></div><div class="input you">Event</div></div>
+            <div class="field"><div class="flabel">Engagement <span class="src ai">✦ AI draft</span></div><div class="input ai">Onsite</div></div>
+          </div>
+          <div class="field"><div class="flabel">Categories <span class="src ai">✦ AI draft</span></div>
+            <div class="input ai"><span class="chip">Career and Personal Development</span><span class="chip">Agriculture, Food, Environment and Climate</span></div></div>
+          <div class="row">
+            <div class="field"><div class="flabel">Link <span class="src you">From you</span></div><div class="input you">https://example.org/events/green-jobs-fair</div></div>
+            <div class="field"><div class="flabel">Provider <span class="src prof">Your profile</span></div><div class="input">Arewa Tech Hub · Nigeria</div></div>
+          </div>
+          <div class="field"><div class="flabel">Summary <span class="src ai">✦ AI draft</span></div><div class="input ai">Meet solar and recycling employers hiring in Kaduna. Free entry.</div></div>
+          <div class="field"><div class="flabel">Description <span class="src ai">✦ AI draft</span> <span class="pin">5</span></div>
+            <div class="input area ai">Meet solar and recycling employers hiring in Kaduna. Bring a printed or phone CV, <mark class="added">ask about trainee roles, and join a 20-minute CV clinic</mark>. Free entry, <mark class="added">open to ages 18 to 35</mark>.</div>
+            <div class="addedbox">
+              <div style="font:800 13px Nunito,sans-serif;color:#8a5208">2 details the AI added that weren't in your note. Keep them only if they're true.</div>
+              <div class="addedrow"><span class="q">“…ask about trainee roles, and join a 20-minute CV clinic”</span><a class="mini keep on" href="#s3">✓ Keep</a><span class="mini drop">Remove</span></div>
+              <div class="addedrow"><span class="q">“…open to ages 18 to 35”</span><a class="mini keep" href="#s3">✓ Keep</a><span class="mini drop">Remove</span></div>
+            </div>
+          </div>
+          <div class="btns" style="justify-content:flex-end"><span class="btn ghost">Save draft</span><a class="btn primary" href="#s3">Next: Details →</a></div>
+        </div>
+
+        <div class="side">
+          <div class="panel">
+            <h4>2 questions for you <span class="pin">6</span></h4>
+            <p style="font-size:12px;color:var(--gray-dark)">Your note didn't say. We won't guess facts young people rely on.</p>
+            <div class="qa"><div class="qt"><span class="num">1</span>What time does it start and end?</div><div class="why">Goes into Availability on the Details step.</div>
+              <div class="input you">10:00 to 15:00</div></div>
+            <div class="qa"><div class="qt"><span class="num">2</span>Is there step-free access?</div><div class="why">Shown to young people who need it.</div>
+              <div class="opts"><span class="chip sel">Yes</span><span class="chip">No</span><span class="chip">Not sure</span></div></div>
+          </div>
+          <div class="panel">
+            <h4>Only you decide <span class="pin">7</span></h4>
+            <p style="font-size:12px;color:var(--gray-dark)">The AI leaves these alone. They affect rewards, trust and credentials.</p>
+            <div class="dec">
+              <div class="decrow"><span>ZLTO reward</span><span class="src dec">Rewards step</span></div>
+              <div class="decrow"><span>How attendance is verified</span><span class="src dec">Verification step</span></div>
+              <div class="decrow"><span>Credential issued</span><span class="src dec">Credential step</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="rail">
+    <div class="step">Screen 2 of 4</div>
+    <h2>A full draft, with its sources shown</h2>
+    <p class="intro">The AI fills the steps it can and leaves facts it can't know as questions for the partner.</p>
+    <div class="rnote"><span class="pin">4</span><span><b>Every value is labelled by source.</b> AI draft, from you, from your profile, or only you decide. The partner sees what to check without rereading everything.</span></div>
+    <div class="rnote"><span class="pin">5</span><span><b>Additions are flagged, never hidden.</b> The model added a CV clinic and an age range that weren't in the note. The partner keeps or removes each one. This is the main safeguard against made-up details.</span></div>
+    <div class="rnote"><span class="pin">6</span><span><b>Missing facts become questions.</b> Start time and step-free access are asked, not guessed (the shared data's <code>missingInfo</code>).</span></div>
+    <div class="rnote"><span class="pin">7</span><span><b>Money and verification stay human.</b> ZLTO, proof method and credentials are never drafted.</span></div>
+    <div class="rbox"><h5>What it would take to build</h5>One structured-output prompt that returns the existing opportunity-create JSON plus a per-field source and a list of questions. It can reuse Ziqi's swappable model setting (a local open model works).</div>
+    <div class="rfoot">Field names and steps match the real Yoma opportunity form (8 steps).</div>
+  </aside>
+</section>
+
+<!-- ═════════════════════════ SCREEN 3 · DETAILS + ZIQI ═════════════════════════ -->
+<section class="frame" id="s3" data-name="3 · Ziqi check">
+  <div class="app">
+    <div class="mockflag">Mock-up · not a working build · fictional sample data</div>
+    <div class="nav">
+      <div class="brand">yoma<small>Partner portal</small></div>
+      <div class="right"><span>Opportunities</span><span>Verifications</span><span>Insights</span>
+        <div class="orgpill"><div class="logo">AH</div>Arewa Tech Hub</div></div>
+    </div>
+    <div class="band"></div>
+    <div class="page">
+      <div class="crumb"><span>← Opportunities</span><span class="sep">|</span><span>Create</span></div>
+      <div class="pagehead"><h3>New opportunity</h3><span class="saved">Draft saved · not published</span></div>
+      <div class="main">
+        <div class="menu">
+          <div class="mi"><span class="ic ok">✓</span>General</div>
+          <div class="mi cur"><span class="ic ok">✓</span>Details</div>
+          <div class="mi"><span class="ic you">?</span>Rewards<span class="tag src dec">Your call</span></div>
+          <div class="mi"><span class="ic ok">✓</span>Skills</div>
+          <div class="mi"><span class="ic ok">✓</span>Keywords</div>
+          <div class="mi"><span class="ic ok">✓</span>Verification</div>
+          <div class="mi"><span class="ic idle">·</span>Credential</div>
+          <div class="mi"><span class="ic idle">·</span>Preview</div>
+        </div>
+        <div class="card">
+          <div><h5>Details</h5><p class="lead" style="margin-top:4px">Information about who it's for, where and when.</p></div>
+          <div class="row">
+            <div class="field"><div class="flabel">Languages <span class="src prof">Your profile</span></div><div class="input"><span class="chip">English</span><span class="chip">Hausa</span></div></div>
+            <div class="field"><div class="flabel">Location <span class="src ai">✦ AI draft</span></div><div class="input ai"><span class="chip">Nigeria</span> Kaduna · Arewa Tech Hub</div></div>
+          </div>
+          <div class="row">
+            <div class="field"><div class="flabel">Starts <span class="src ai">✦ AI draft</span> <span class="src you">From you</span></div><div class="input you">Sat 12 Dec 2026 · 10:00</div></div>
+            <div class="field"><div class="flabel">Ends <span class="src you">From you</span></div><div class="input you">Sat 12 Dec 2026 · 15:00</div></div>
+          </div>
+          <div class="row">
+            <div class="field"><div class="flabel">Effort <span class="src ai">✦ AI draft</span></div><div class="input ai">5 hours</div></div>
+            <div class="field"><div class="flabel">Age range <span class="src you">Kept by you</span></div><div class="input you">18 to 35</div></div>
+          </div>
+          <div class="field"><div class="flabel">Accessibility <span class="src you">From you</span></div><div class="input you"><span class="chip green">✓ Step-free access</span></div></div>
+          <div class="field"><div class="flabel">Skills <span class="src ai">✦ AI draft</span> <span class="pin">8</span></div>
+            <div class="input ai"><span class="chip">Finding &amp; applying for jobs</span><span class="chip">Writing a CV</span><span class="chip">Clear communication</span><span class="mini">+ Add</span></div>
+            <div class="fsub">Picked from Yoma's skills list, so they match what young people already have on YoID.</div></div>
+          <div class="field"><div class="flabel">Keywords <span class="src ai">✦ AI draft</span></div>
+            <div class="input ai"><span class="chip">green jobs</span><span class="chip">solar</span><span class="chip">recycling</span><span class="chip">careers fair</span><span class="chip">Kaduna</span></div></div>
+          <div class="btns" style="justify-content:space-between"><a class="btn text" href="#s2">← Back</a><a class="btn primary" href="#s4">Next: Review &amp; publish →</a></div>
+        </div>
+
+        <div class="side">
+          <div class="panel ziqi">
+            <div class="head"><div class="zlogo">Z</div><div><h4>Ziqi pre-publish check</h4><div style="font-size:11px;color:var(--gray-dark)">Checks the draft as you edit. Never blocks saving.</div></div><span class="pin">9</span></div>
+            <div class="status ok"><b>✓ Ready to be verified</b><span style="font-size:12px">Ziqi would mark this event Verified once it is published.</span></div>
+            <div class="check"><span class="ic ok">✓</span>Link opens an event page<span class="sc">100</span></div>
+            <div class="check"><span class="ic ok">✓</span>Date and time are clear<span class="sc">100</span></div>
+            <div class="check"><span class="ic ok">✓</span>Who it's for and where<span class="sc">92</span></div>
+            <div class="check"><span class="ic ok">✓</span>Accessibility stated<span class="sc">100</span></div>
+            <div class="check"><span class="ic ok">✓</span>No fees or personal data asked<span class="sc">100</span></div>
+            <div class="fix"><b>One suggestion (optional)</b>Say whether attendance earns ZLTO, or that it doesn't. Young people filter by reward.<a href="#s4">Go to Rewards →</a></div>
+            <div class="history"><b style="font-family:Nunito,sans-serif">How the draft improved</b>
+              <span>AI draft only: <b style="color:#8a5208">Needs a look</b>, no start time, accessibility unknown</span>
+              <span>After your 2 answers: <b style="color:var(--green)">Ready to be verified</b></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="rail">
+    <div class="step">Screen 3 of 4</div>
+    <h2>Ziqi checks the draft before it goes live</h2>
+    <p class="intro">The co-author writes the draft and Ziqi checks it. The same quality checks that audit published listings now run before publishing.</p>
+    <div class="rnote"><span class="pin">8</span><span><b>Tagged with Yoma's own skills list.</b> Drafted skills come from the existing list, so search, PathFinder and YoID matching work on day one.</span></div>
+    <div class="rnote"><span class="pin">9</span><span><b>Reuses what's built.</b> This panel exists today in the Ziqi prototype (pre-publish check on the real form). The co-author only adds the drafting step in front of it.</span></div>
+    <div class="rbox"><h5>Why the pair matters</h5><p>A drafting tool alone fills Yoma faster with more listings. Paired with Ziqi it fills Yoma with listings that are already verifiable. The two answers move the draft from <i>Needs a look</i> to <i>Ready</i>.</p></div>
+    <div class="rfoot">Checks shown are illustrative for an event. Ziqi letter grades (A–D) apply to courses and jobs.</div>
+  </aside>
+</section>
+
+<!-- ═════════════════════════ SCREEN 4 · REVIEW & PUBLISH ═════════════════════════ -->
+<section class="frame" id="s4" data-name="4 · Review & publish">
+  <div class="app">
+    <div class="mockflag">Mock-up · not a working build · fictional sample data</div>
+    <div class="nav">
+      <div class="brand">yoma<small>Partner portal</small></div>
+      <div class="right"><span>Opportunities</span><span>Verifications</span><span>Insights</span>
+        <div class="orgpill"><div class="logo">AH</div>Arewa Tech Hub</div></div>
+    </div>
+    <div class="band"></div>
+    <div class="page">
+      <div class="crumb"><span>← Opportunities</span><span class="sep">|</span><span>Create</span></div>
+      <div class="pagehead"><h3>New opportunity</h3><span class="saved">Draft saved · not published</span></div>
+      <div class="main">
+        <div class="menu">
+          <div class="mi"><span class="ic ok">✓</span>General</div>
+          <div class="mi"><span class="ic ok">✓</span>Details</div>
+          <div class="mi"><span class="ic ok">✓</span>Rewards</div>
+          <div class="mi"><span class="ic ok">✓</span>Skills</div>
+          <div class="mi"><span class="ic ok">✓</span>Keywords</div>
+          <div class="mi"><span class="ic ok">✓</span>Verification</div>
+          <div class="mi"><span class="ic ok">✓</span>Credential</div>
+          <div class="mi cur"><span class="ic ok">✓</span>Preview</div>
+        </div>
+        <div class="card">
+          <div><h5>Preview</h5><p class="lead" style="margin-top:4px">This is how young people will see your opportunity.</p></div>
+          <div class="preview">
+            <div class="top">
+              <div class="biglogo">AH</div>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:700;color:var(--gray-dark)">Arewa Tech Hub · Event</div>
+                <h2>Kaduna Youth Green Jobs Fair</h2>
+                <div class="meta"><span class="chip">📅 Sat 12 Dec 2026 · 10:00 to 15:00</span><span class="chip">📍 Arewa Tech Hub, Kaduna</span><span class="chip badge-zlto">20 ZLTO</span><span class="chip">Ages 18 to 35</span><span class="chip">Step-free access</span><span class="chip badge-z">✓ Verified by Ziqi</span></div>
+              </div>
+            </div>
+            <div class="body">
+              <p>Meet solar and recycling employers hiring in Kaduna. Bring a printed or phone CV, ask about trainee roles, and join a 20-minute CV clinic. Free entry, open to ages 18 to 35.</p>
+              <div class="legend" style="color:var(--black)"><b style="font-family:Nunito,sans-serif">Skills you'll use:</b><span class="chip">Finding &amp; applying for jobs</span><span class="chip">Writing a CV</span><span class="chip">Clear communication</span></div>
+            </div>
+          </div>
+          <div class="confirm"><span class="box">✓</span><span>I've checked every field, and this listing is accurate. I understand that Arewa Tech Hub, not the AI, is responsible for what is published. <span class="pin">10</span></span></div>
+          <div class="btns" style="justify-content:space-between"><a class="btn text" href="#s3">← Back</a><span class="btns"><span class="btn ghost">Save draft</span><a class="btn primary" href="#s1">Publish</a></span></div>
+        </div>
+
+        <div class="side">
+          <div class="panel">
+            <h4>How this listing was made <span class="pin">11</span></h4>
+            <div class="prov">
+              <div class="provrow"><span class="ic ok">✓</span><span><b>Drafted by AI</b> from your 1-line note · 11 fields</span></div>
+              <div class="provrow"><span class="ic ok">✓</span><span><b>2 AI additions kept</b> by you · 0 removed</span></div>
+              <div class="provrow"><span class="ic ok">✓</span><span><b>2 questions answered</b> by you</span></div>
+              <div class="provrow"><span class="ic ok">✓</span><span><b>Reward and verification</b> set by you</span></div>
+              <div class="provrow"><span class="ic ok">✓</span><span><b>Checked by Ziqi:</b> ready to be verified</span></div>
+            </div>
+            <div style="font-size:11px;color:var(--gray-dark)">Kept with the listing in Yoma's audit log. Young people don't see it.</div>
+          </div>
+          <div class="panel" style="background:var(--green-light)">
+            <h4 style="color:var(--green)">Time to publish <span class="pin">12</span></h4>
+            <div style="display:flex;gap:12px;align-items:flex-end"><b style="font:800 34px Nunito,sans-serif;color:var(--green)">≈ 6 min</b><span style="font-size:12px;color:var(--green);padding-bottom:6px">versus filling 8 steps by hand</span></div>
+            <div style="font-size:11px;color:var(--gray-dark)">Illustrative. The real baseline comes from GenU's partner data.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <aside class="rail">
+    <div class="step">Screen 4 of 4</div>
+    <h2>The partner publishes, and stays accountable</h2>
+    <p class="intro">The young person sees a normal, verified Yoma listing. The record of how it was made stays with Yoma.</p>
+    <div class="rnote"><span class="pin">10</span><span><b>A human signs off.</b> Publishing needs an explicit confirmation. The AI never publishes.</span></div>
+    <div class="rnote"><span class="pin">11</span><span><b>Provenance is recorded.</b> What the AI drafted, what the partner changed and what Ziqi said are logged with the model and prompt version. This feeds GenU's audit and later quality analysis.</span></div>
+    <div class="rnote"><span class="pin">12</span><span><b>The cost of not having it.</b> GenU's new rubric criterion. The figure is a placeholder until we have real minutes per listing and listings per month.</span></div>
+    <div class="rbox"><h5>Fits the journey</h5>Listings like this one are what Halima discovers in Phase 1. Better listings in means better matches out for PathFinder and YoCV.</div>
+    <div class="rfoot">Pressing Publish returns to screen 1.</div>
+  </aside>
+</section>
+
+</div>
+
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var body = document.body;
+  if (params.has("board")) body.classList.add("board");
+  if (params.get("notes") === "0") body.classList.add("nonotes");
+  var ids = ["s1", "s2", "s3", "s4"];
+  function show() {
+    if (body.classList.contains("board")) return;
+    var id = (location.hash || "#s1").slice(1);
+    if (ids.indexOf(id) < 0) id = "s1";
+    ids.forEach(function (s) {
+      document.getElementById(s).classList.toggle("active", s === id);
+      var a = document.querySelector('.viewer a[data-s="' + s + '"]');
+      if (a) a.classList.toggle("on", s === id);
+    });
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", show);
+  document.addEventListener("keydown", function (e) {
+    var i = ids.indexOf((location.hash || "#s1").slice(1));
+    if (i < 0) i = 0;
+    if (e.key === "ArrowRight" && i < 3) location.hash = ids[i + 1];
+    if (e.key === "ArrowLeft" && i > 0) location.hash = ids[i - 1];
+  });
+  var t = document.getElementById("notestoggle");
+  t.textContent = body.classList.contains("nonotes") ? "Show notes" : "Hide notes";
+  t.addEventListener("click", function (e) {
+    e.preventDefault();
+    body.classList.toggle("nonotes");
+    t.textContent = body.classList.contains("nonotes") ? "Show notes" : "Hide notes";
+  });
+  show();
+})();
+</script>
+</body>
+</html>
